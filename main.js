@@ -242,7 +242,6 @@ function styleFeature(feature, fieldToDisplay, opacityField, outlineField, minOp
 
 // Function to get color based on value and year
 function getColor(value, year, maxAbsValue) {
-  console.log(`getColor called with value: ${value}, year: ${year}, maxAbsValue: ${maxAbsValue}`);
   if (year.includes('-')) {
     const color = value > maxAbsValue / 2 ? '#1a9641' :
            value > maxAbsValue / 4 ? '#77c35c' :
