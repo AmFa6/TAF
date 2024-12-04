@@ -59,22 +59,10 @@ const minOutlineValueInput = document.getElementById("minOutlineValue");
 const maxOutlineValueInput = document.getElementById("maxOutlineValue");
 const outlineExponentInput = document.getElementById("outlineExponent");
 
-// Add 'None' option to the opacityFieldDropdown
-const noneOptionOpacity = document.createElement("option");
-noneOptionOpacity.value = "None";
-noneOptionOpacity.text = "None";
-opacityFieldDropdown.add(noneOptionOpacity);
-
-// Set default value of opacityFieldDropdown to 'Population'
+// Ensure 'Population' is the default value for opacityFieldDropdown
 opacityFieldDropdown.value = "pop";
 
-// Add 'None' option to the outlineFieldDropdown
-const noneOptionOutline = document.createElement("option");
-noneOptionOutline.value = "None";
-noneOptionOutline.text = "None";
-outlineFieldDropdown.add(noneOptionOutline);
-
-// Set default value of outlineFieldDropdown to 'None'
+// Ensure 'None' is the default value for outlineFieldDropdown
 outlineFieldDropdown.value = "None";
 
 // Maps for purpose and mode
