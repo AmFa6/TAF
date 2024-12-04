@@ -250,7 +250,6 @@ function getColor(value, year, maxAbsValue) {
            value > -maxAbsValue / 4 ? '#fec981' :
            value > -maxAbsValue / 2 ? '#f07c4a' :
                                       '#d7191c';
-    console.log(`Returning color: ${color}`);
     return color;
   } else {
     const color = value > 90 ? '#fde725' :
