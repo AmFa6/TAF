@@ -59,6 +59,9 @@ const minOutlineValueInput = document.getElementById("minOutlineValue");
 const maxOutlineValueInput = document.getElementById("maxOutlineValue");
 const outlineExponentInput = document.getElementById("outlineExponent");
 
+// Set default value for opacity field
+opacityFieldDropdown.value = "pop";
+
 // Maps for purpose and mode
 const purposeMap = {
   "Education": "Edu",
