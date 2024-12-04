@@ -116,46 +116,16 @@ function updateLayerVisibility() {
     const opacityValues = filteredFeatures.map(feature => feature.properties[opacityField]).filter(value => value !== null && value !== 0);
     const outlineValues = filteredFeatures.map(feature => feature.properties[outlineField]).filter(value => value !== null && value !== 0);
 
-    let minOpacity = opacityValues.length > 0 ? Math.min(...opacityValues) : 0;
-    let maxOpacity = opacityValues.length > 0 ? Math.max(...opacityValues) : 1;
+    let minOpacity = opacityValues.length > 0 ? Math.min(...opacityValues) : 0.05;
+    let maxOpacity = opacityValues.length > 0 ? Math.max(...opacityValues) : 0.95;
     let minOutline = outlineValues.length > 0 ? Math.min(...outlineValues) : 0;
-    let maxOutline = outlineValues.length > 0 ? Math.max(...outlineValues) : 1;
-
-    // Round values based on field type
-    if (opacityField === 'pop' || opacityField === 'hh_fut') {
-      minOpacity = Math.floor(minOpacity);
-      maxOpacity = Math.ceil(maxOpacity);
-    } else {
-      minOpacity = Math.floor(minOpacity * 100) / 100;
-      maxOpacity = Math.ceil(maxOpacity * 100) / 100;
-    }
-
-    if (outlineField === 'pop' || outlineField === 'hh_fut') {
-      minOutline = Math.floor(minOutline);
-      maxOutline = Math.ceil(maxOutline);
-    } else {
-      minOutline = Math.floor(minOutline * 100) / 100;
-      maxOutline = Math.ceil(maxOutline * 100) / 100;
-    }
-
-    // Calculate the maximum absolute value for all features
-    const maxAbsValue = Math.max(...filteredFeatures.map(feature => Math.abs(feature.properties[fieldToDisplay])));
-
-    // Update the input fields with the calculated min and max values if auto-update is enabled
-    if (autoUpdateOpacity) {
-      minOpacityValueInput.value = minOpacity;
-      maxOpacityValueInput.value = maxOpacity;
-    }
-    if (autoUpdateOutline) {
-      minOutlineValueInput.value = minOutline;
-      maxOutlineValueInput.value = maxOutline;
-    }
+    let maxOutline = outlineValues.length > 0 ? Math.max(...outlineValues) : 3;
 
     // Ensure input values are valid numbers
-    const minOpacityValue = parseFloat(minOpacityValueInput.value) || 0.05;
-    const maxOpacityValue = parseFloat(maxOpacityValueInput.value) || 0.95;
-    const minOutlineValue = parseFloat(minOutlineValueInput.value) || 0;
-    const maxOutlineValue = parseFloat(maxOutlineValueInput.value) || 3;
+    minOpacity = parseFloat(minOpacity) || 0.05;
+    maxOpacity = parseFloat(maxOpacity) || 0.95;
+    minOutline = parseFloat(minOutline) || 0;
+    maxOutline = parseFloat(maxOutline) || 3;
     const opacityExponent = parseFloat(opacityExponentInput.value) || 1;
     const outlineExponent = parseFloat(outlineExponentInput.value) || 1;
 
@@ -172,16 +142,15 @@ function updateLayerVisibility() {
       style: feature => styleFeature(
         feature, 
         fieldToDisplay, 
-        opacityField === 'none' ? defaultOpacity : scaleExp(feature.properties[opacityField] || 0.05, minOpacityValue, maxOpacityValue, opacityExponent, 0.05, 0.95, opacityOrder),
-        outlineField === 'none' ? defaultOutlineWidth : scaleExp(feature.properties[outlineField] || 0, minOutlineValue, maxOutlineValue, outlineExponent, 0, 3, outlineOrder),
-        minOpacityValue, 
-        maxOpacityValue, 
+        opacityField === 'none' ? defaultOpacity : scaleExp(feature.properties[opacityField] || 0.05, minOpacity, maxOpacity, opacityExponent, 0.05, 0.95, opacityOrder),
+        outlineField === 'none' ? defaultOutlineWidth : scaleExp(feature.properties[outlineField] || 0, minOutline, maxOutline, outlineExponent, 0, 3, outlineOrder),
+        minOpacity, 
+        maxOpacity, 
         opacityExponent, 
-        minOutlineValue, 
-        maxOutlineValue, 
+        minOutline, 
+        maxOutline, 
         outlineExponent, 
-        selectedYear, 
-        maxAbsValue
+        selectedYear
       )
     }).addTo(map);
   }
@@ -257,9 +226,9 @@ maxOutlineValueInput.addEventListener("blur", () => {
 outlineExponentInput.addEventListener("input", updateLayerVisibility);
 
 // Function to style features
-function styleFeature(feature, fieldToDisplay, opacityField, outlineField, minOpacityValue, maxOpacityValue, opacityExponent, minOutlineValue, maxOutlineValue, outlineExponent, selectedYear, maxAbsValue) {
+function styleFeature(feature, fieldToDisplay, opacityField, outlineField, minOpacityValue, maxOpacityValue, opacityExponent, minOutlineValue, maxOutlineValue, outlineExponent, selectedYear) {
   const value = feature.properties[fieldToDisplay];
-  const color = getColor(value, selectedYear, maxAbsValue);
+  const color = getColor(value, selectedYear);
   const opacity = opacityField === 0.75 ? 0.75 : scaleExp(feature.properties[opacityField] || 0.05, minOpacityValue, maxOpacityValue, opacityExponent, 0.05, 0.95, opacityOrder);
   const weight = outlineField === 0 ? 0 : scaleExp(feature.properties[outlineField] || 0, minOutlineValue, maxOutlineValue, outlineExponent, 0, 3, outlineOrder);
   return {
@@ -272,8 +241,8 @@ function styleFeature(feature, fieldToDisplay, opacityField, outlineField, minOp
 }
 
 // Function to get color based on value and year
-function getColor(value, year, maxAbsValue) {
-  console.log(`getColor called with value: ${value}, year: ${year}, maxAbsValue: ${maxAbsValue}`);
+function getColor(value, year) {
+  console.log(`getColor called with value: ${value}, year: ${year}`);
   if (year.includes('-')) {
     const color = value > maxAbsValue / 2 ? '#1a9641' :
            value > maxAbsValue / 4 ? '#77c35c' :
