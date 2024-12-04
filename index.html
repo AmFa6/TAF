@@ -16,9 +16,10 @@
       height: 100%;
       width: 100%;
     }
-    #controls, #settings {
+    #controls {
       position: absolute;
       top: 10px;
+      right: 10px;
       z-index: 1000; /* Ensure the controls are always on top */
       background: white;
       padding: 10px;
@@ -27,19 +28,11 @@
       width: 250px;
       box-sizing: border-box;
     }
-    #controls {
-      right: 10px;
-    }
-    #settings {
-      left: 10px;
-    }
-    #controls label, #controls select, #controls input,
-    #settings label, #settings select, #settings input {
+    #controls label, #controls select, #controls input {
       display: block;
       margin-bottom: 10px;
     }
-    #controls select, #controls input,
-    #settings select, #settings input {
+    #controls select, #controls input {
       width: 100%;
       padding: 5px;
       border: 1px solid #ccc;
@@ -48,13 +41,12 @@
       color: black;
       box-sizing: border-box;
     }
-    #controls select:focus, #controls input:focus,
-    #settings select:focus, #settings input:focus {
+    #controls select:focus, #controls input:focus {
       outline: none;
       border-color: #007bff;
       box-shadow: 0 0 5px rgba(0,123,255,0.5);
     }
-    #settings input[type="range"] {
+    #controls input[type="range"] {
       width: 100%;
     }
     .field-container {
@@ -105,8 +97,7 @@
       <option value="Public Transport">Public Transport</option>
       <option value="Car">Car</option>
     </select>
-  </div>
-  <div id="settings">
+    <br>
     <label for="opacityFieldDropdown">Opacity Field:</label>
     <select id="opacityFieldDropdown">
       <option value="pop">Population</option>
