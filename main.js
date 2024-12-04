@@ -65,8 +65,8 @@ noneOption.value = "None";
 noneOption.text = "None";
 opacityFieldDropdown.add(noneOption);
 
-// Update the opacityFieldDropdown default value to 'Population'
-opacityFieldDropdown.value = "Population";
+// Set default value of opacityFieldDropdown to 'Population'
+opacityFieldDropdown.value = "pop";
 
 // Maps for purpose and mode
 const purposeMap = {
