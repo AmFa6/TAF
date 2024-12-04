@@ -107,43 +107,25 @@ function updateLayerVisibility() {
     });
 
     // Calculate min and max values for opacity and outline fields
-    const opacityValues = filteredFeatures.map(feature => feature.properties[opacityField]).filter(value => value !== null && value !== 0);
-    const outlineValues = filteredFeatures.map(feature => feature.properties[outlineField]).filter(value => value !== null && value !== 0);
+    const opacityValues = filteredFeatures.map(feature => feature.properties[opacityField]).filter(value => !isNaN(value) && value !== null && value !== 0);
+    const outlineValues = filteredFeatures.map(feature => feature.properties[outlineField]).filter(value => !isNaN(value) && value !== null && value !== 0);
 
-    let minOpacity = opacityValues.length > 0 ? Math.min(...opacityValues) : 0;
-    let maxOpacity = opacityValues.length > 0 ? Math.max(...opacityValues) : 1;
+    let minOpacity = opacityValues.length > 0 ? Math.min(...opacityValues) : 0.05;
+    let maxOpacity = opacityValues.length > 0 ? Math.max(...opacityValues) : 0.95;
     let minOutline = outlineValues.length > 0 ? Math.min(...outlineValues) : 0;
-    let maxOutline = outlineValues.length > 0 ? Math.max(...outlineValues) : 1;
+    let maxOutline = outlineValues.length > 0 ? Math.max(...outlineValues) : 3;
 
-    // Round values based on field type
-    if (opacityField === 'pop' || opacityField === 'hh_fut') {
-      minOpacity = Math.floor(minOpacity);
-      maxOpacity = Math.ceil(maxOpacity);
-    } else {
-      minOpacity = Math.floor(minOpacity * 100) / 100;
-      maxOpacity = Math.ceil(maxOpacity * 100) / 100;
-    }
+    // Ensure input values are valid numbers
+    minOpacity = parseFloat(minOpacity) || 0.05;
+    maxOpacity = parseFloat(maxOpacity) || 0.95;
+    minOutline = parseFloat(minOutline) || 0;
+    maxOutline = parseFloat(maxOutline) || 3;
+    const opacityExponent = parseFloat(opacityExponentInput.value) || 1;
+    const outlineExponent = parseFloat(outlineExponentInput.value) || 1;
 
-    if (outlineField === 'pop' || outlineField === 'hh_fut') {
-      minOutline = Math.floor(minOutline);
-      maxOutline = Math.ceil(maxOutline);
-    } else {
-      minOutline = Math.floor(minOutline * 100) / 100;
-      maxOutline = Math.ceil(maxOutline * 100) / 100;
-    }
-
-    // Calculate the maximum absolute value for all features
-    const maxAbsValue = Math.max(...filteredFeatures.map(feature => Math.abs(feature.properties[fieldToDisplay])));
-
-    // Update the input fields with the calculated min and max values if auto-update is enabled
-    if (autoUpdateOpacity) {
-      minOpacityValueInput.value = minOpacity;
-      maxOpacityValueInput.value = maxOpacity;
-    }
-    if (autoUpdateOutline) {
-      minOutlineValueInput.value = minOutline;
-      maxOutlineValueInput.value = maxOutline;
-    }
+    // Default opacity and outline if "No Field" is selected
+    const defaultOpacity = 0.75;
+    const defaultOutlineWidth = 0;
 
     const filteredGeoJson = {
       type: "FeatureCollection",
@@ -151,7 +133,19 @@ function updateLayerVisibility() {
     };
 
     const geoJsonLayer = L.geoJSON(filteredGeoJson, {
-      style: feature => styleFeature(feature, fieldToDisplay, opacityField, outlineField, parseFloat(minOpacityValueInput.value), parseFloat(maxOpacityValueInput.value), parseFloat(opacityExponentInput.value), parseFloat(minOutlineValueInput.value), parseFloat(maxOutlineValueInput.value), parseFloat(outlineExponentInput.value), selectedYear, maxAbsValue, opacityOrder, outlineOrder)
+      style: feature => styleFeature(
+        feature, 
+        fieldToDisplay, 
+        opacityField === 'none' ? defaultOpacity : scaleExp(feature.properties[opacityField] || 0.05, minOpacity, maxOpacity, opacityExponent, 0.05, 0.95, opacityOrder),
+        outlineField === 'none' ? defaultOutlineWidth : scaleExp(feature.properties[outlineField] || 0, minOutline, maxOutline, outlineExponent, 0, 3, outlineOrder),
+        minOpacity, 
+        maxOpacity, 
+        opacityExponent, 
+        minOutline, 
+        maxOutline, 
+        outlineExponent, 
+        selectedYear
+      )
     }).addTo(map);
   }
 }
