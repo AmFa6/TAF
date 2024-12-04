@@ -60,13 +60,22 @@ const maxOutlineValueInput = document.getElementById("maxOutlineValue");
 const outlineExponentInput = document.getElementById("outlineExponent");
 
 // Add 'None' option to the opacityFieldDropdown
-const noneOption = document.createElement("option");
-noneOption.value = "None";
-noneOption.text = "None";
-opacityFieldDropdown.add(noneOption);
+const noneOptionOpacity = document.createElement("option");
+noneOptionOpacity.value = "None";
+noneOptionOpacity.text = "None";
+opacityFieldDropdown.add(noneOptionOpacity);
 
 // Set default value of opacityFieldDropdown to 'Population'
 opacityFieldDropdown.value = "pop";
+
+// Add 'None' option to the outlineFieldDropdown
+const noneOptionOutline = document.createElement("option");
+noneOptionOutline.value = "None";
+noneOptionOutline.text = "None";
+outlineFieldDropdown.add(noneOptionOutline);
+
+// Set default value of outlineFieldDropdown to 'None'
+outlineFieldDropdown.value = "None";
 
 // Maps for purpose and mode
 const purposeMap = {
@@ -242,7 +251,7 @@ function styleFeature(feature, fieldToDisplay, opacityField, outlineField, minOp
   const value = feature.properties[fieldToDisplay];
   const color = getColor(value, selectedYear, maxAbsValue);
   const opacity = opacityField === 'None' ? 0.75 : (feature.properties[opacityField] === 0 || feature.properties[opacityField] === null ? 0.05 : scaleExp(feature.properties[opacityField], minOpacityValue, maxOpacityValue, opacityExponent, 0.05, 1, opacityOrder));
-  const weight = feature.properties[outlineField] === 0 || feature.properties[outlineField] === null ? 0 : scaleExp(feature.properties[outlineField], minOutlineValue, maxOutlineValue, outlineExponent, 0.05, 1, outlineOrder);
+  const weight = outlineField === 'None' ? 0 : (feature.properties[outlineField] === 0 || feature.properties[outlineField] === null ? 0 : scaleExp(feature.properties[outlineField], minOutlineValue, maxOutlineValue, outlineExponent, 0.05, 1, outlineOrder));
   return {
     fillColor: color,
     weight: weight,
