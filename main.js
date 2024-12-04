@@ -152,10 +152,10 @@ function updateLayerVisibility() {
     }
 
     // Ensure input values are valid numbers
-    const minOpacityValue = parseFloat(minOpacityValueInput.value) || 0;
-    const maxOpacityValue = parseFloat(maxOpacityValueInput.value) || 1;
+    const minOpacityValue = parseFloat(minOpacityValueInput.value) || 0.05;
+    const maxOpacityValue = parseFloat(maxOpacityValueInput.value) || 0.95;
     const minOutlineValue = parseFloat(minOutlineValueInput.value) || 0;
-    const maxOutlineValue = parseFloat(maxOutlineValueInput.value) || 1;
+    const maxOutlineValue = parseFloat(maxOutlineValueInput.value) || 3;
     const opacityExponent = parseFloat(opacityExponentInput.value) || 1;
     const outlineExponent = parseFloat(outlineExponentInput.value) || 1;
 
@@ -172,8 +172,8 @@ function updateLayerVisibility() {
       style: feature => styleFeature(
         feature, 
         fieldToDisplay, 
-        opacityField === 'none' ? defaultOpacity : feature.properties[opacityField], 
-        outlineField === 'none' ? defaultOutlineWidth : feature.properties[outlineField], 
+        opacityField === 'none' ? defaultOpacity : scaleExp(feature.properties[opacityField] || 0.05, minOpacityValue, maxOpacityValue, opacityExponent, 0.05, 0.95, opacityOrder),
+        outlineField === 'none' ? defaultOutlineWidth : scaleExp(feature.properties[outlineField] || 0, minOutlineValue, maxOutlineValue, outlineExponent, 0, 3, outlineOrder),
         minOpacityValue, 
         maxOpacityValue, 
         opacityExponent, 
@@ -260,8 +260,8 @@ outlineExponentInput.addEventListener("input", updateLayerVisibility);
 function styleFeature(feature, fieldToDisplay, opacityField, outlineField, minOpacityValue, maxOpacityValue, opacityExponent, minOutlineValue, maxOutlineValue, outlineExponent, selectedYear, maxAbsValue) {
   const value = feature.properties[fieldToDisplay];
   const color = getColor(value, selectedYear, maxAbsValue);
-  const opacity = opacityField === 0.75 ? 0.75 : scaleExp(feature.properties[opacityField], minOpacityValue, maxOpacityValue, opacityExponent, 0.1, 1, opacityOrder);
-  const weight = outlineField === 0 ? 0 : scaleExp(feature.properties[outlineField], minOutlineValue, maxOutlineValue, outlineExponent, 1, 10, outlineOrder);
+  const opacity = opacityField === 0.75 ? 0.75 : scaleExp(feature.properties[opacityField] || 0.05, minOpacityValue, maxOpacityValue, opacityExponent, 0.05, 0.95, opacityOrder);
+  const weight = outlineField === 0 ? 0 : scaleExp(feature.properties[outlineField] || 0, minOutlineValue, maxOutlineValue, outlineExponent, 0, 3, outlineOrder);
   return {
     fillColor: color,
     weight: weight,
