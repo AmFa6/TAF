@@ -59,8 +59,11 @@ const minOutlineValueInput = document.getElementById("minOutlineValue");
 const maxOutlineValueInput = document.getElementById("maxOutlineValue");
 const outlineExponentInput = document.getElementById("outlineExponent");
 
-// Set default value for opacity field
-opacityFieldDropdown.value = "pop";
+// Set default value for opacity field and call updateLayerVisibility when the page loads
+document.addEventListener("DOMContentLoaded", () => {
+  opacityFieldDropdown.value = "pop";
+  updateLayerVisibility();
+});
 
 // Maps for purpose and mode
 const purposeMap = {
