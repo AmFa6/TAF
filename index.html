@@ -30,7 +30,7 @@
     }
     #controls label, #controls select, #controls input {
       display: block;
-      margin-bottom: 5px;
+      margin-bottom: 5px; /* Reduced space between rows */
     }
     #controls select, #controls input {
       width: 100%;
@@ -107,6 +107,7 @@
       <h3>Customise:</h3>
       <label for="opacityFieldDropdown">Opacity Field:</label>
       <select id="opacityFieldDropdown">
+        <option value="none"></option>
         <option value="pop">Population</option>
         <option value="imd">IMD</option>
         <option value="carav">Car Availability</option>
@@ -137,6 +138,7 @@
       <br>
       <label for="outlineFieldDropdown">Outline Width Field:</label>
       <select id="outlineFieldDropdown">
+        <option value="none"></option>
         <option value="imd">IMD</option>
         <option value="pop">Population</option>
         <option value="carav">Car Availability</option>
