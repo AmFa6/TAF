@@ -59,6 +59,10 @@ const minOutlineValueInput = document.getElementById("minOutlineValue");
 const maxOutlineValueInput = document.getElementById("maxOutlineValue");
 const outlineExponentInput = document.getElementById("outlineExponent");
 
+// Initialize default values
+opacityFieldDropdown.value = "population";  // Set default value for opacityField
+outlineFieldDropdown.value = "";  // Ensure outlineField is blank by default
+
 // Maps for purpose and mode
 const purposeMap = {
   "Education": "Edu",
@@ -142,6 +146,16 @@ function updateLayerVisibility() {
         };
       }
     }).addTo(map);
+
+    // Update min and max values in the input fields
+    if (autoUpdateOpacity) {
+      minOpacityValueInput.value = minOpacity;
+      maxOpacityValueInput.value = maxOpacity;
+    }
+    if (autoUpdateOutline) {
+      minOutlineValueInput.value = minOutline;
+      maxOutlineValueInput.value = maxOutline;
+    }
   }
 }
 
