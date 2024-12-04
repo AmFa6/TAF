@@ -229,8 +229,8 @@ outlineExponentInput.addEventListener("input", updateLayerVisibility);
 function styleFeature(feature, fieldToDisplay, opacityField, outlineField, minOpacityValue, maxOpacityValue, opacityExponent, minOutlineValue, maxOutlineValue, outlineExponent, selectedYear) {
   const value = feature.properties[fieldToDisplay];
   const color = getColor(value, selectedYear);
-  const opacity = opacityField === 0.75 ? 0.75 : scaleExp(feature.properties[opacityField] || 0.05, minOpacityValue, maxOpacityValue, opacityExponent, 0.05, 0.95, opacityOrder);
-  const weight = outlineField === 0 ? 0 : scaleExp(feature.properties[outlineField] || 0, minOutlineValue, maxOutlineValue, outlineExponent, 0, 3, outlineOrder);
+  const opacity = feature.properties[opacityField] === 0 || feature.properties[opacityField] === null ? 0.05 : scaleExp(feature.properties[opacityField], minOpacityValue, maxOpacityValue, opacityExponent, 0.05, 0.95, opacityOrder); // Adjust min and max values as needed
+  const weight = feature.properties[outlineField] === 0 || feature.properties[outlineField] === null ? 0 : scaleExp(feature.properties[outlineField], minOutlineValue, maxOutlineValue, outlineExponent, 0, 3, outlineOrder); // Adjust min and max values as needed
   return {
     fillColor: color,
     weight: weight,
