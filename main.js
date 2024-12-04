@@ -59,12 +59,6 @@ const minOutlineValueInput = document.getElementById("minOutlineValue");
 const maxOutlineValueInput = document.getElementById("maxOutlineValue");
 const outlineExponentInput = document.getElementById("outlineExponent");
 
-// Set default value for opacity field and call updateLayerVisibility when the page loads
-document.addEventListener("DOMContentLoaded", () => {
-  opacityFieldDropdown.value = "pop";
-  updateLayerVisibility();
-});
-
 // Maps for purpose and mode
 const purposeMap = {
   "Education": "Edu",
@@ -116,22 +110,40 @@ function updateLayerVisibility() {
     const opacityValues = filteredFeatures.map(feature => feature.properties[opacityField]).filter(value => value !== null && value !== 0);
     const outlineValues = filteredFeatures.map(feature => feature.properties[outlineField]).filter(value => value !== null && value !== 0);
 
-    let minOpacity = opacityValues.length > 0 ? Math.min(...opacityValues) : 0.05;
-    let maxOpacity = opacityValues.length > 0 ? Math.max(...opacityValues) : 0.95;
+    let minOpacity = opacityValues.length > 0 ? Math.min(...opacityValues) : 0;
+    let maxOpacity = opacityValues.length > 0 ? Math.max(...opacityValues) : 1;
     let minOutline = outlineValues.length > 0 ? Math.min(...outlineValues) : 0;
-    let maxOutline = outlineValues.length > 0 ? Math.max(...outlineValues) : 3;
+    let maxOutline = outlineValues.length > 0 ? Math.max(...outlineValues) : 1;
 
-    // Ensure input values are valid numbers
-    minOpacity = parseFloat(minOpacity) || 0.05;
-    maxOpacity = parseFloat(maxOpacity) || 0.95;
-    minOutline = parseFloat(minOutline) || 0;
-    maxOutline = parseFloat(maxOutline) || 3;
-    const opacityExponent = parseFloat(opacityExponentInput.value) || 1;
-    const outlineExponent = parseFloat(outlineExponentInput.value) || 1;
+    // Round values based on field type
+    if (opacityField === 'pop' || opacityField === 'hh_fut') {
+      minOpacity = Math.floor(minOpacity);
+      maxOpacity = Math.ceil(maxOpacity);
+    } else {
+      minOpacity = Math.floor(minOpacity * 100) / 100;
+      maxOpacity = Math.ceil(maxOpacity * 100) / 100;
+    }
 
-    // Default opacity and outline if "No Field" is selected
-    const defaultOpacity = 0.75;
-    const defaultOutlineWidth = 0;
+    if (outlineField === 'pop' || outlineField === 'hh_fut') {
+      minOutline = Math.floor(minOutline);
+      maxOutline = Math.ceil(maxOutline);
+    } else {
+      minOutline = Math.floor(minOutline * 100) / 100;
+      maxOutline = Math.ceil(maxOutline * 100) / 100;
+    }
+
+    // Calculate the maximum absolute value for all features
+    const maxAbsValue = Math.max(...filteredFeatures.map(feature => Math.abs(feature.properties[fieldToDisplay])));
+
+    // Update the input fields with the calculated min and max values if auto-update is enabled
+    if (autoUpdateOpacity) {
+      minOpacityValueInput.value = minOpacity;
+      maxOpacityValueInput.value = maxOpacity;
+    }
+    if (autoUpdateOutline) {
+      minOutlineValueInput.value = minOutline;
+      maxOutlineValueInput.value = maxOutline;
+    }
 
     const filteredGeoJson = {
       type: "FeatureCollection",
@@ -139,19 +151,7 @@ function updateLayerVisibility() {
     };
 
     const geoJsonLayer = L.geoJSON(filteredGeoJson, {
-      style: feature => styleFeature(
-        feature, 
-        fieldToDisplay, 
-        opacityField === 'none' ? defaultOpacity : scaleExp(feature.properties[opacityField] || 0.05, minOpacity, maxOpacity, opacityExponent, 0.05, 0.95, opacityOrder),
-        outlineField === 'none' ? defaultOutlineWidth : scaleExp(feature.properties[outlineField] || 0, minOutline, maxOutline, outlineExponent, 0, 3, outlineOrder),
-        minOpacity, 
-        maxOpacity, 
-        opacityExponent, 
-        minOutline, 
-        maxOutline, 
-        outlineExponent, 
-        selectedYear
-      )
+      style: feature => styleFeature(feature, fieldToDisplay, opacityField, outlineField, parseFloat(minOpacityValueInput.value), parseFloat(maxOpacityValueInput.value), parseFloat(opacityExponentInput.value), parseFloat(minOutlineValueInput.value), parseFloat(maxOutlineValueInput.value), parseFloat(outlineExponentInput.value), selectedYear, maxAbsValue, opacityOrder, outlineOrder)
     }).addTo(map);
   }
 }
@@ -226,9 +226,9 @@ maxOutlineValueInput.addEventListener("blur", () => {
 outlineExponentInput.addEventListener("input", updateLayerVisibility);
 
 // Function to style features
-function styleFeature(feature, fieldToDisplay, opacityField, outlineField, minOpacityValue, maxOpacityValue, opacityExponent, minOutlineValue, maxOutlineValue, outlineExponent, selectedYear) {
+function styleFeature(feature, fieldToDisplay, opacityField, outlineField, minOpacityValue, maxOpacityValue, opacityExponent, minOutlineValue, maxOutlineValue, outlineExponent, selectedYear, maxAbsValue, opacityOrder, outlineOrder) {
   const value = feature.properties[fieldToDisplay];
-  const color = getColor(value, selectedYear);
+  const color = getColor(value, selectedYear, maxAbsValue);
   const opacity = feature.properties[opacityField] === 0 || feature.properties[opacityField] === null ? 0.05 : scaleExp(feature.properties[opacityField], minOpacityValue, maxOpacityValue, opacityExponent, 0.05, 0.95, opacityOrder); // Adjust min and max values as needed
   const weight = feature.properties[outlineField] === 0 || feature.properties[outlineField] === null ? 0 : scaleExp(feature.properties[outlineField], minOutlineValue, maxOutlineValue, outlineExponent, 0, 3, outlineOrder); // Adjust min and max values as needed
   return {
@@ -241,8 +241,8 @@ function styleFeature(feature, fieldToDisplay, opacityField, outlineField, minOp
 }
 
 // Function to get color based on value and year
-function getColor(value, year) {
-  console.log(`getColor called with value: ${value}, year: ${year}`);
+function getColor(value, year, maxAbsValue) {
+  console.log(`getColor called with value: ${value}, year: ${year}, maxAbsValue: ${maxAbsValue}`);
   if (year.includes('-')) {
     const color = value > maxAbsValue / 2 ? '#1a9641' :
            value > maxAbsValue / 4 ? '#77c35c' :
