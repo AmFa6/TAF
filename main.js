@@ -263,7 +263,6 @@ function getColor(value, year, maxAbsValue) {
            value > 20 ? '#3e4989' :
            value > 10 ? '#482777' :
                         '#440154';
-    console.log(`Returning color: ${color}`);
     return color;
   }
 }
