@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Custom Web App</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+    #map {
+      height: 100%;
+      width: 100%;
+    }
+    #controls, #settings {
+      position: absolute;
+      top: 10px;
+      z-index: 1000; /* Ensure the controls are always on top */
+      background: white;
+      padding: 10px;
+      border-radius: 5px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+      width: 250px;
+      box-sizing: border-box;
+    }
+    #controls {
+      right: 10px;
+    }
+    #settings {
+      left: 10px;
+    }
+    #controls label, #controls select, #controls input,
+    #settings label, #settings select, #settings input {
+      display: block;
+      margin-bottom: 10px;
+    }
+    #controls select, #controls input,
+    #settings select, #settings input {
+      width: 100%;
+      padding: 5px;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+      background-color: white;
+      color: black;
+      box-sizing: border-box;
+    }
+    #controls select:focus, #controls input:focus,
+    #settings select:focus, #settings input:focus {
+      outline: none;
+      border-color: #007bff;
+      box-shadow: 0 0 5px rgba(0,123,255,0.5);
+    }
+    #settings input[type="range"] {
+      width: 100%;
+    }
+    .field-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .field-container > div {
+      flex: 1;
+    }
+    .field-container > div + div {
+      margin-left: 10px;
+    }
+    .button-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .button-container > button {
+      flex: 1;
+      margin-left: 10px;
+    }
+    .button-container > button:first-child {
+      margin-left: 0;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div id="controls">
+    <label for="yearDropdown">Year:</label>
+    <select id="yearDropdown"></select>
+    <br>
+    <label for="purposeDropdown">Purpose:</label>
+    <select id="purposeDropdown">
+      <option value="All Amenities">All Amenities</option>
+      <option value="Education">Education</option>
+      <option value="Employment">Employment</option>
+      <option value="High Street">High Street</option>
+      <option value="Health">Health</option>
+    </select>
+    <br>
+    <label for="modeDropdown">Mode:</label>
+    <select id="modeDropdown">
+      <option value="All Modes">All Modes</option>
+      <option value="Walk">Walk</option>
+      <option value="Cycle">Cycle</option>
+      <option value="Public Transport">Public Transport</option>
+      <option value="Car">Car</option>
+    </select>
+  </div>
+  <div id="settings">
+    <label for="opacityFieldDropdown">Opacity Field:</label>
+    <select id="opacityFieldDropdown">
+      <option value="pop">Population</option>
+      <option value="imd">IMD</option>
+      <option value="carav">Car Availability</option>
+      <option value="hh_fut">Future Dwellings</option>
+      <!-- Add more options as needed -->
+    </select>
+    <br>
+    <div class="field-container">
+      <div>
+        <label for="minOpacityValue">Minimum Value:</label>
+        <input type="number" id="minOpacityValue">
+        <label for="maxOpacityValue">Maximum Value:</label>
+        <input type="number" id="maxOpacityValue">
+      </div>
+      <div>
+        <button id="resetOpacityButton">Reset</button>
+      </div>
+    </div>
+    <div class="field-container">
+      <div>
+        <label for="opacityExponent">Contrast:</label>
+        <input type="range" id="opacityExponent" min="0.1" max="5" step="0.1" value="0.4">
+      </div>
+      <div class="button-container">
+        <button id="inverseOpacityScaleButton">Inverse Scale</button>
+      </div>
+    </div>
+    <br>
+    <label for="outlineFieldDropdown">Outline Width Field:</label>
+    <select id="outlineFieldDropdown">
+      <option value="imd">IMD</option>
+      <option value="pop">Population</option>
+      <option value="carav">Car Availability</option>
+      <option value="hh_fut">Future Dwellings</option>
+      <!-- Add more options as needed -->
+    </select>
+    <br>
+    <div class="field-container">
+      <div>
+        <label for="minOutlineValue">Minimum Value:</label>
+        <input type="number" id="minOutlineValue">
+        <label for="maxOutlineValue">Maximum Value:</label>
+        <input type="number" id="maxOutlineValue">
+      </div>
+      <div>
+        <button id="resetOutlineButton">Reset</button>
+      </div>
+    </div>
+    <div class="field-container">
+      <div>
+        <label for="outlineExponent">Contrast:</label>
+        <input type="range" id="outlineExponent" min="0.1" max="5" step="0.1" value="3">
+      </div>
+      <div class="button-container">
+        <button id="inverseOutlineScaleButton">Inverse Scale</button>
+      </div>
+    </div>
+  </div>
+  <script src="main.js"></script>
+</body>
+</html>
