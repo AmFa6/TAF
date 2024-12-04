@@ -151,6 +151,14 @@ function updateLayerVisibility() {
       maxOutlineValueInput.value = maxOutline;
     }
 
+    // Ensure input values are valid numbers
+    const minOpacityValue = parseFloat(minOpacityValueInput.value) || 0;
+    const maxOpacityValue = parseFloat(maxOpacityValueInput.value) || 1;
+    const minOutlineValue = parseFloat(minOutlineValueInput.value) || 0;
+    const maxOutlineValue = parseFloat(maxOutlineValueInput.value) || 1;
+    const opacityExponent = parseFloat(opacityExponentInput.value) || 1;
+    const outlineExponent = parseFloat(outlineExponentInput.value) || 1;
+
     // Default opacity and outline if "No Field" is selected
     const defaultOpacity = 0.75;
     const defaultOutlineWidth = 0;
@@ -166,12 +174,12 @@ function updateLayerVisibility() {
         fieldToDisplay, 
         opacityField === 'none' ? defaultOpacity : feature.properties[opacityField], 
         outlineField === 'none' ? defaultOutlineWidth : feature.properties[outlineField], 
-        parseFloat(minOpacityValueInput.value), 
-        parseFloat(maxOpacityValueInput.value), 
-        parseFloat(opacityExponentInput.value), 
-        parseFloat(minOutlineValueInput.value), 
-        parseFloat(maxOutlineValueInput.value), 
-        parseFloat(outlineExponentInput.value), 
+        minOpacityValue, 
+        maxOpacityValue, 
+        opacityExponent, 
+        minOutlineValue, 
+        maxOutlineValue, 
+        outlineExponent, 
         selectedYear, 
         maxAbsValue
       )
