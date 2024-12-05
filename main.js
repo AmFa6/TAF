@@ -183,6 +183,8 @@ function updateLegend() {
   const headerText = selectedYear.includes('-') ? "Score Difference" : "Population Percentiles - (<i>Scores</i>)";
   const headerDiv = document.createElement("div");
   headerDiv.innerHTML = `${headerText}`;
+  headerDiv.style.fontSize = "1.1em";
+  headerDiv.style.marginBottom = "10px";
   legendContent.appendChild(headerDiv);
   
   if (selectedYear.includes('-')) {
