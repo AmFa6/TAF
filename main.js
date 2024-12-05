@@ -220,14 +220,14 @@ function updateLegend() {
     // Display 10 classes for years without '-'
     const classes = [
       { range: `90-100 - 10% of region's population with best access to amenities`, color: "#fde725" },
-      { range: `80-90 - (*${scores[7]}*)-(*${scores[8]}*)`, color: "#b5de2b" },
-      { range: `70-80 - (*${scores[6]}*)-(*${scores[7]}*)`, color: "#6ece58" },
-      { range: `60-70 - (*${scores[5]}*)-(*${scores[6]}*)`, color: "#35b779" },
-      { range: `50-60 - (*${scores[4]}*)-(*${scores[5]}*)`, color: "#1f9e89" },
-      { range: `40-50 - (*${scores[3]}*)-(*${scores[4]}*)`, color: "#26828e" },
-      { range: `30-40 - (*${scores[2]}*)-(*${scores[3]}*)`, color: "#31688e" },
-      { range: `20-30 - (*${scores[1]}*)-(*${scores[2]}*)`, color: "#3e4989" },
-      { range: `10-20 - (*${scores[0]}*)-(*${scores[1]}*)`, color: "#482777" },
+      { range: `80-90 - (<i>${scores[7]}</i>)-(<i>${scores[8]}</i>)`, color: "#b5de2b" },
+      { range: `70-80 - (<i>${scores[6]}</i>)-(<i>${scores[7]}</i>)`, color: "#6ece58" },
+      { range: `60-70 - (<i>${scores[5]}</i>)-(<i>${scores[6]}</i>)`, color: "#35b779" },
+      { range: `50-60 - (<i>${scores[4]}</i>)-(<i>${scores[5]}</i>)`, color: "#1f9e89" },
+      { range: `40-50 - (<i>${scores[3]}</i>)-(<i>${scores[4]}</i>)`, color: "#26828e" },
+      { range: `30-40 - (<i>${scores[2]}</i>)-(<i>${scores[3]}</i>)`, color: "#31688e" },
+      { range: `20-30 - (<i>${scores[1]}</i>)-(<i>${scores[2]}</i>)`, color: "#3e4989" },
+      { range: `10-20 - (<i>${scores[0]}</i>)-(<i>${scores[1]}</i>)`, color: "#482777" },
       { range: `0-10 - 10% of region's population with worst access to amenities`, color: "#440154" }
     ];
     classes.forEach(c => {
