@@ -251,7 +251,6 @@ function styleFeature(feature, fieldToDisplay, opacityField, outlineField, minOp
 
 // Function to get color based on value and year
 function getColor(value, year, maxAbsValue) {
-  console.log(`getColor called with value: ${value}, year: ${year}, maxAbsValue: ${maxAbsValue}`);
   if (year.includes('-')) {
     const color = value > maxAbsValue / 2 ? '#1a9641' :
            value > maxAbsValue / 4 ? '#77c35c' :
@@ -260,7 +259,6 @@ function getColor(value, year, maxAbsValue) {
            value > -maxAbsValue / 4 ? '#fec981' :
            value > -maxAbsValue / 2 ? '#f07c4a' :
                                       '#d7191c';
-    console.log(`Returning color: ${color}`);
     return color;
   } else {
     const color = value > 90 ? '#fde725' :
@@ -273,7 +271,6 @@ function getColor(value, year, maxAbsValue) {
            value > 20 ? '#3e4989' :
            value > 10 ? '#482777' :
                         '#440154';
-    console.log(`Returning color: ${color}`);
     return color;
   }
 }
