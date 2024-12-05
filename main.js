@@ -54,10 +54,10 @@ const opacityFieldDropdown = document.getElementById("opacityFieldDropdown");
 const outlineFieldDropdown = document.getElementById("outlineFieldDropdown");
 const minOpacityValueInput = document.getElementById("minOpacityValue");
 const maxOpacityValueInput = document.getElementById("maxOpacityValue");
-const opacityExponentInput = document.getElementById("opacityExponent") / 20;
+const opacityExponentInput = document.getElementById("opacityExponent");
 const minOutlineValueInput = document.getElementById("minOutlineValue");
 const maxOutlineValueInput = document.getElementById("maxOutlineValue");
-const outlineExponentInput = document.getElementById("outlineExponent") / 20;
+const outlineExponentInput = document.getElementById("outlineExponent");
 
 // Ensure 'Population' is the default value for opacityFieldDropdown
 opacityFieldDropdown.value = "pop";
