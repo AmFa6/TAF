@@ -143,6 +143,8 @@ function updateLayerVisibility() {
         maxOutline = Math.ceil(maxOutline * 100) / 100;
       }
 
+      const maxAbsValue = Math.max(...filteredFeatures.map(feature => Math.abs(feature.properties[fieldToDisplay])));
+
       // Update the input fields with the calculated min and max values if auto-update is enabled
       if (autoUpdateOpacity) {
         minOpacityValueInput.value = minOpacity;
@@ -160,7 +162,7 @@ function updateLayerVisibility() {
     };
 
     const geoJsonLayer = L.geoJSON(filteredGeoJson, {
-      style: feature => styleFeature(feature, fieldToDisplay, opacityField, outlineField, parseFloat(minOpacityValueInput.value), parseFloat(maxOpacityValueInput.value), parseFloat(opacityExponentInput.value), parseFloat(minOutlineValueInput.value), parseFloat(maxOutlineValueInput.value), parseFloat(outlineExponentInput.value), selectedYear)
+      style: feature => styleFeature(feature, fieldToDisplay, opacityField, outlineField, parseFloat(minOpacityValueInput.value), parseFloat(maxOpacityValueInput.value), parseFloat(opacityExponentInput.value), parseFloat(minOutlineValueInput.value), parseFloat(maxOutlineValueInput.value), parseFloat(outlineExponentInput.value), selectedYear, maxAbsValue)
     }).addTo(map);
   }
 
