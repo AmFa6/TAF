@@ -163,6 +163,52 @@ function updateLayerVisibility() {
       style: feature => styleFeature(feature, fieldToDisplay, opacityField, outlineField, parseFloat(minOpacityValueInput.value), parseFloat(maxOpacityValueInput.value), parseFloat(opacityExponentInput.value), parseFloat(minOutlineValueInput.value), parseFloat(maxOutlineValueInput.value), parseFloat(outlineExponentInput.value), selectedYear)
     }).addTo(map);
   }
+
+  updateLegend();
+}
+
+function updateLegend() {
+  const selectedYear = yearDropdown.value;
+  const legendContent = document.getElementById("legend-content");
+
+  legendContent.innerHTML = ""; // Clear the legend content
+
+  if (selectedYear.includes('-')) {
+    // Display 7 classes for years with '-'
+    const classes = [
+      { range: "-50 to -40", color: "#d7191c" },
+      { range: "-40 to -30", color: "#f07c4a" },
+      { range: "-30 to -20", color: "#fec981" },
+      { range: "-20 to 0", color: "#c4e687" },
+      { range: "0 to 20", color: "#77c35c" },
+      { range: "20 to 40", color: "#1a9641" },
+      { range: "40 to 50", color: "#1a9641" }
+    ];
+    classes.forEach(c => {
+      const div = document.createElement("div");
+      div.innerHTML = `<span style="display: inline-block; width: 20px; height: 20px; background-color: ${c.color};"></span> ${c.range}`;
+      legendContent.appendChild(div);
+    });
+  } else {
+    // Display 10 classes for years without '-'
+    const classes = [
+      { range: "0-10", color: "#440154" },
+      { range: "10-20", color: "#482777" },
+      { range: "20-30", color: "#3e4989" },
+      { range: "30-40", color: "#31688e" },
+      { range: "40-50", color: "#26828e" },
+      { range: "50-60", color: "#1f9e89" },
+      { range: "60-70", color: "#35b779" },
+      { range: "70-80", color: "#6ece58" },
+      { range: "80-90", color: "#b5de2b" },
+      { range: "90-100", color: "#fde725" }
+    ];
+    classes.forEach(c => {
+      const div = document.createElement("div");
+      div.innerHTML = `<span style="display: inline-block; width: 20px; height: 20px; background-color: ${c.color};"></span> ${c.range} Accessibility score - Population based percentiles`;
+      legendContent.appendChild(div);
+    });
+  }
 }
 
 // Function to reset opacity values to default
