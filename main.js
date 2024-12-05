@@ -156,14 +156,15 @@ function updateLayerVisibility() {
       }
     }
 
-    const filteredGeoJson = {
-      type: "FeatureCollection",
-      features: filteredFeatures
-    };
-
-    const geoJsonLayer = L.geoJSON(filteredGeoJson, {
-      style: feature => styleFeature(feature, fieldToDisplay, opacityField, outlineField, parseFloat(minOpacityValueInput.value), parseFloat(maxOpacityValueInput.value), parseFloat(opacityExponentInput.value), parseFloat(minOutlineValueInput.value), parseFloat(maxOutlineValueInput.value), parseFloat(outlineExponentInput.value), selectedYear, maxAbsValue)
-    }).addTo(map);
+      const filteredGeoJson = {
+        type: "FeatureCollection",
+        features: filteredFeatures
+      };
+  
+      const geoJsonLayer = L.geoJSON(filteredGeoJson, {
+        style: feature => styleFeature(feature, fieldToDisplay, opacityField, outlineField, parseFloat(minOpacityValueInput.value), parseFloat(maxOpacityValueInput.value), parseFloat(opacityExponentInput.value), parseFloat(minOutlineValueInput.value), parseFloat(maxOutlineValueInput.value), parseFloat(outlineExponentInput.value), selectedYear, maxAbsValue)
+      }).addTo(map);
+    }
   }
 
   updateLegend();
