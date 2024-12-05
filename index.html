@@ -132,6 +132,7 @@
       <div>
         <label for="opacityExponent">Contrast:</label>
         <input type="range" id="opacityExponent" min="0" max="100" step="5" value="10">
+        <span id="opacityExponentValue">10</span>
       </div>
       <div class="button-container">
         <button id="inverseOpacityScaleButton">Inverse Scale</button>
@@ -163,6 +164,7 @@
       <div>
         <label for="outlineExponent">Contrast:</label>
         <input type="range" id="outlineExponent" min="0" max="100" step="5" value="60">
+        <span id="outlineExponentValue">60</span>
       </div>
       <div class="button-container">
         <button id="inverseOutlineScaleButton">Inverse Scale</button>
@@ -170,5 +172,22 @@
     </div>
   </div>
   <script src="main.js"></script>
+  <script>
+    const opacityExponentInput = document.getElementById('opacityExponent');
+    const opacityExponentValue = document.getElementById('opacityExponentValue');
+    opacityExponentInput.addEventListener('input', function() {
+      opacityExponentValue.textContent = opacityExponentInput.value;
+    });
+
+    const outlineExponentInput = document.getElementById('outlineExponent');
+    const outlineExponentValue = document.getElementById('outlineExponentValue');
+    outlineExponentInput.addEventListener('input', function() {
+      outlineExponentValue.textContent = outlineExponentInput.value;
+    });
+
+    // Initialize values
+    opacityExponentValue.textContent = opacityExponentInput.value;
+    outlineExponentValue.textContent = outlineExponentInput.value;
+  </script>
 </body>
 </html>
