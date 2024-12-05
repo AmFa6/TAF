@@ -176,17 +176,17 @@ function onEachFeature(feature, layer) {
   layer.on({
     click: function (e) {
       const properties = feature.properties;
-      const hexId = properties['Hex_ID'];
-      const score = Math.round(properties[`${purposeMap[purposeDropdown.value]}_${modeMap[modeDropdown.value]}`]);
-      const population = properties['pop'] ? Math.round(properties['pop']) : 'N/A';
-      const imd = properties['imd'] ? properties['imd'].toFixed(2) : 'N/A';
-      const carAvailability = properties['carav'] ? properties['carav'].toFixed(2) : 'N/A';
-      const futureDwellings = properties['hh_fut'] ? Math.round(properties['hh_fut']) : 'N/A';
-      
-      let popupContent = `<strong>Hex_ID:</strong> ${hexId}<br><strong>Score:</strong> ${score}<br><strong>Population:</strong> ${population}<br><strong>Index of Multiple Deprivation:</strong> ${imd}<br><strong>Car Availability:</strong> ${carAvailability}<br><strong>Future Dwellings:</strong> ${futureDwellings}`;
+      const hexId = properties['Hex_ID']: '';
+      const score = Math.round(properties[`${purposeMap[purposeDropdown.value]}_${modeMap[modeDropdown.value]}`]): '';
+      const percentile = Math.round(properties[`${purposeMap[purposeDropdown.value]}_${modeMap[modeDropdown.value]}_100`]) : '';
+      const population = properties['pop'] ? Math.round(properties['pop']) : '';
+      const imd = properties['imd'] ? properties['imd'].toFixed(2) : '';
+      const carAvailability = properties['carav'] ? properties['carav'].toFixed(2) : '';
+      const futureDwellings = properties['hh_fut'] ? Math.round(properties['hh_fut']) : '';
+
+      let popupContent = `<strong>Hex_ID:</strong> ${hexId}<br><strong>Score:</strong> ${score}<br><strong>Percentile:</strong> ${percentile}<br><strong>Population:</strong> ${population}<br><strong>Index of Multiple Deprivation:</strong> ${imd}<br><strong>Car Availability:</strong> ${carAvailability}<br><strong>Future Dwellings:</strong> ${futureDwellings}`;
       
       if (!yearDropdown.value.includes('-')) {
-        const percentile = Math.round(properties[`${purposeMap[purposeDropdown.value]}_${modeMap[modeDropdown.value]}_100`]);
         popupContent += `<br><strong>Percentile:</strong> ${percentile}`;
       }
       
