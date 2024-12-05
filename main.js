@@ -176,18 +176,20 @@ function updateLegend() {
 
   legendContent.innerHTML = '';
 
-  const maxAbsValue = calculateMaxAbsValue(selectedYear);
+  const maxAbsValue = Math.round(calculateMaxAbsValue(selectedYear) / 10) * 10;
+  const halfMax = Math.round((maxAbsValue / 2) / 10) * 10;
+  const quarterMax = Math.round((maxAbsValue / 4) / 10) * 10;
 
   if (selectedYear.includes('-')) {
     // Display dynamic classes for years with '-'
     const classes = [
-      { range: `> ${maxAbsValue / 2}`, color: "#1a9641" },
-      { range: `${maxAbsValue / 4} to ${maxAbsValue / 2}`, color: "#77c35c" },
-      { range: `0 to ${maxAbsValue / 4}`, color: "#c4e687" },
+      { range: `> ${halfMax}`, color: "#1a9641" },
+      { range: `${quarterMax} to ${halfMax}`, color: "#77c35c" },
+      { range: `0 to ${quarterMax}`, color: "#c4e687" },
       { range: `0`, color: "rgba(0, 0, 0, 0)" },
-      { range: `-0 to -${maxAbsValue / 4}`, color: "#fec981" },
-      { range: `-${maxAbsValue / 4} to -${maxAbsValue / 2}`, color: "#f07c4a" },
-      { range: `< -${maxAbsValue / 2}`, color: "#d7191c" }
+      { range: `-0 to -${quarterMax}`, color: "#fec981" },
+      { range: `-${quarterMax} to -${halfMax}`, color: "#f07c4a" },
+      { range: `< -${halfMax}`, color: "#d7191c" }
     ];
     classes.forEach(c => {
       const div = document.createElement("div");
@@ -310,17 +312,20 @@ function styleFeature(feature, fieldToDisplay, opacityField, outlineField, minOp
 
 // Function to get color based on value and year
 function getColor(value, year, maxAbsValue) {
+  const roundedMaxAbsValue = Math.round(maxAbsValue / 10) * 10;
+  const halfMax = Math.round((roundedMaxAbsValue / 2) / 10) * 10;
+  const quarterMax = Math.round((roundedMaxAbsValue / 4) / 10) * 10;
+
   if (year.includes('-')) {
-    const color = value > maxAbsValue / 2 ? '#1a9641' :
-           value > maxAbsValue / 4 ? '#77c35c' :
+    return value > halfMax ? '#1a9641' :
+           value > quarterMax ? '#77c35c' :
            value > 0 ? '#c4e687' :
            value === 0 ? 'rgba(0, 0, 0, 0)' :
-           value > -maxAbsValue / 4 ? '#fec981' :
-           value > -maxAbsValue / 2 ? '#f07c4a' :
-                                      '#d7191c';
-    return color;
+           value > -quarterMax ? '#fec981' :
+           value > -halfMax ? '#f07c4a' :
+                              '#d7191c';
   } else {
-    const color = value > 90 ? '#fde725' :
+    return value > 90 ? '#fde725' :
            value > 80 ? '#b5de2b' :
            value > 70 ? '#6ece58' :
            value > 60 ? '#35b779' :
@@ -330,7 +335,6 @@ function getColor(value, year, maxAbsValue) {
            value > 20 ? '#3e4989' :
            value > 10 ? '#482777' :
                         '#440154';
-    return color;
   }
 }
 
