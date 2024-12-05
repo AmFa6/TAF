@@ -90,10 +90,21 @@
       font-size: 1em;
       background: none;
       margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .collapsible:after {
+      content: '\25BC';
+      font-size: 0.8em;
+      margin-left: 5px;
     }
     .collapsible-content {
       display: none;
       overflow: hidden;
+      background-color: #f0f0f0;
+      padding: 10px;
+      border-radius: 5px;
     }
   </style>
 </head>
@@ -140,7 +151,7 @@
           <input type="number" id="maxOpacityValue" class="small-font">
         </div>
         <div>
-          <button id="resetOpacityButton" class="small-font">Reset</button>
+          <button id="resetOpacityButton" class="small-font">Reset Values</button>
         </div>
       </div>
       <div class="field-container">
@@ -170,7 +181,7 @@
           <input type="number" id="maxOutlineValue" class="small-font">
         </div>
         <div>
-          <button id="resetOutlineButton" class="small-font">Reset</button>
+          <button id="resetOutlineButton" class="small-font">Reset Values</button>
         </div>
       </div>
       <div class="field-container">
@@ -210,6 +221,7 @@
       collapsible.addEventListener("click", function() {
         this.classList.toggle("active");
         content.style.display = content.style.display === "block" ? "none" : "block";
+        this.classList.toggle("collapsed", content.style.display === "none");
       });
     });
   </script>
