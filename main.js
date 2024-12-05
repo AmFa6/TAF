@@ -176,16 +176,18 @@ function updateLegend() {
 
   legendContent.innerHTML = '';
 
+  const maxAbsValue = calculateMaxAbsValue(selectedYear);
+
   if (selectedYear.includes('-')) {
-    // Display 7 classes for years with '-'
+    // Display dynamic classes for years with '-'
     const classes = [
-      { range: "-50 to -40", color: "#d7191c" },
-      { range: "-40 to -30", color: "#f07c4a" },
-      { range: "-30 to -20", color: "#fec981" },
-      { range: "-20 to 0", color: "#c4e687" },
-      { range: "0 to 20", color: "#77c35c" },
-      { range: "20 to 40", color: "#1a9641" },
-      { range: "40 to 50", color: "#1a9641" }
+      { range: `> ${maxAbsValue / 2}`, color: "#1a9641" },
+      { range: `${maxAbsValue / 4} to ${maxAbsValue / 2}`, color: "#77c35c" },
+      { range: `0 to ${maxAbsValue / 4}`, color: "#c4e687" },
+      { range: `0`, color: "rgba(0, 0, 0, 0)" },
+      { range: `-0 to -${maxAbsValue / 4}`, color: "#fec981" },
+      { range: `-${maxAbsValue / 4} to -${maxAbsValue / 2}`, color: "#f07c4a" },
+      { range: `< -${maxAbsValue / 2}`, color: "#d7191c" }
     ];
     classes.forEach(c => {
       const div = document.createElement("div");
@@ -213,6 +215,13 @@ function updateLegend() {
       legendContent.appendChild(div);
     });
   }
+}
+
+function calculateMaxAbsValue(selectedYear) {
+  const selectedLayer = layers[selectedYear];
+  const fieldToDisplay = `${purposeMap[purposeDropdown.value]}_${modeMap[modeDropdown.value]}`;
+  const filteredFeatures = selectedLayer.features.filter(feature => feature.properties[fieldToDisplay] !== undefined);
+  return Math.max(...filteredFeatures.map(feature => Math.abs(feature.properties[fieldToDisplay])));
 }
 
 // Function to reset opacity values to default
