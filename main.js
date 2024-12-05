@@ -181,9 +181,9 @@ function onEachFeature(feature, layer) {
       const score = getValue(`${purposeMap[purposeDropdown.value]}_${modeMap[modeDropdown.value]}`) !== '-' ? Math.round(getValue(`${purposeMap[purposeDropdown.value]}_${modeMap[modeDropdown.value]}`)) : '-';
       const percentile = getValue(`${purposeMap[purposeDropdown.value]}_${modeMap[modeDropdown.value]}_100`) !== '-' ? Math.round(getValue(`${purposeMap[purposeDropdown.value]}_${modeMap[modeDropdown.value]}_100`)) : '-';
       const population = getValue('pop') !== '-' ? Math.round(getValue('pop')) : '-';
-      const imd = getValue('imd') !== '-' ? getValue('imd').toFixed(2) : '-';
-      const carAvailability = getValue('carav') !== '-' ? getValue('carav').toFixed(2) : '-';
-      const futureDwellings = getValue('hh_fut') !== '-' ? Math.round(getValue('hh_fut')) : '-';
+      const imd = population === 0 ? '-' : (getValue('imd') !== '-' ? getValue('imd').toFixed(2) : '-');
+      const carAvailability = population === 0 ? '-' : (getValue('carav') !== '-' ? getValue('carav').toFixed(2) : '-');
+      const futureDwellings = getValue('hh_fut') === 0 ? '-' : (getValue('hh_fut') !== '-' ? Math.round(getValue('hh_fut')) : '-');
       
       let popupContent = `<strong>Hex_ID:</strong> ${hexId}<br><strong>Score:</strong> ${score}<br><strong>Percentile:</strong> ${percentile}<br><strong>Population:</strong> ${population}<br><strong>Index of Multiple Deprivation:</strong> ${imd}<br><strong>Car Availability:</strong> ${carAvailability}<br><strong>Future Dwellings:</strong> ${futureDwellings}`;
       
