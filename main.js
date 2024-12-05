@@ -186,7 +186,7 @@ function onEachFeature(feature, layer) {
       let popupContent = `<strong>Hex_ID:</strong> ${hexId}<br><strong>Score:</strong> ${score}<br><strong>Population:</strong> ${population}<br><strong>Index of Multiple Deprivation:</strong> ${imd}<br><strong>Car Availability:</strong> ${carAvailability}<br><strong>Future Dwellings:</strong> ${futureDwellings}`;
       
       if (!yearDropdown.value.includes('-')) {
-        const percentile = Math.round(properties[`${purposeMap[purposeDropdown.value]}_${modeDropdown.value]}_100`]);
+        const percentile = Math.round(properties[`${purposeMap[purposeDropdown.value]}_${modeMap[modeDropdown.value]}_100`]);
         popupContent += `<br><strong>Percentile:</strong> ${percentile}`;
       }
       
