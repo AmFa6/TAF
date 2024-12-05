@@ -180,6 +180,11 @@ function updateLegend() {
   const halfMax = Math.round((maxAbsValue / 2) / 10) * 10;
   const quarterMax = Math.round((maxAbsValue / 4) / 10) * 10;
 
+  const headerText = selectedYear.includes('-') ? "Score Difference" : "Population Percentiles - (<i>Scores</i>)";
+  const headerDiv = document.createElement("div");
+  headerDiv.innerHTML = `${headerText}`;
+  legendContent.appendChild(headerDiv);
+  
   if (selectedYear.includes('-')) {
     // Display dynamic classes for years with '-'
     const classes = [
