@@ -171,6 +171,8 @@ function updateLegend() {
   const selectedYear = yearDropdown.value;
   const legendContent = document.getElementById("legend-content");
 
+  legendContent.innerHTML = '';
+
   if (selectedYear.includes('-')) {
     // Display 7 classes for years with '-'
     const classes = [
