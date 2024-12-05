@@ -183,7 +183,7 @@ function onEachFeature(feature, layer) {
       const imd = properties['imd'] !== undefined ? properties['imd'].toFixed(2) : '-';
       const carAvailability = properties['carav'] !== undefined ? properties['carav'].toFixed(2) : '-';
       const futureDwellings = properties['hh_fut'] !== undefined ? Math.round(properties['hh_fut']) : '-';
-      
+
       let popupContent = `<strong>Hex_ID:</strong> ${hexId}<br><strong>Score:</strong> ${score}<br><strong>Percentile:</strong> ${percentile}<br><strong>Population:</strong> ${population}<br><strong>Index of Multiple Deprivation:</strong> ${imd}<br><strong>Car Availability:</strong> ${carAvailability}<br><strong>Future Dwellings:</strong> ${futureDwellings}`;
       
       L.popup()
