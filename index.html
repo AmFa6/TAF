@@ -16,30 +16,23 @@
       height: 100%;
       width: 100%;
     }
-    #controls, #settings {
+    #panel {
       position: absolute;
       top: 10px;
+      left: 10px;
       z-index: 1000; /* Ensure the controls are always on top */
       background: white;
       padding: 10px;
       border-radius: 5px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
       width: 250px;
       box-sizing: border-box;
     }
-    #controls {
-      right: 10px;
-    }
-    #settings {
-      left: 10px;
-    }
-    #controls label, #controls select, #controls input,
-    #settings label, #settings select, #settings input {
+    #panel label, #panel select, #panel input {
       display: block;
       margin-bottom: 10px;
     }
-    #controls select, #controls input,
-    #settings select, #settings input {
+    #panel select, #panel input {
       width: 100%;
       padding: 5px;
       border: 1px solid #ccc;
@@ -48,13 +41,12 @@
       color: black;
       box-sizing: border-box;
     }
-    #controls select:focus, #controls input:focus,
-    #settings select:focus, #settings input:focus {
+    #panel select:focus, #panel input:focus {
       outline: none;
       border-color: #007bff;
-      box-shadow: 0 0 5px rgba(0,123,255,0.5);
+      box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
     }
-    #settings input[type="range"] {
+    #panel input[type="range"] {
       width: 100%;
     }
     .field-container {
@@ -81,16 +73,19 @@
     .button-container > button:first-child {
       margin-left: 0;
     }
+    .large-font {
+      font-size: 1.2em;
+    }
   </style>
 </head>
 <body>
   <div id="map"></div>
-  <div id="controls">
-    <label for="yearDropdown">Year:</label>
-    <select id="yearDropdown"></select>
+  <div id="panel">
+    <label for="yearDropdown" class="large-font">Year:</label>
+    <select id="yearDropdown" class="large-font"></select>
     <br>
-    <label for="purposeDropdown">Purpose:</label>
-    <select id="purposeDropdown">
+    <label for="purposeDropdown" class="large-font">Purpose:</label>
+    <select id="purposeDropdown" class="large-font">
       <option value="All Amenities">All Amenities</option>
       <option value="Education">Education</option>
       <option value="Employment">Employment</option>
@@ -98,16 +93,15 @@
       <option value="Health">Health</option>
     </select>
     <br>
-    <label for="modeDropdown">Mode:</label>
-    <select id="modeDropdown">
+    <label for="modeDropdown" class="large-font">Mode:</label>
+    <select id="modeDropdown" class="large-font">
       <option value="All Modes">All Modes</option>
       <option value="Walk">Walk</option>
       <option value="Cycle">Cycle</option>
       <option value="Public Transport">Public Transport</option>
       <option value="Car">Car</option>
     </select>
-  </div>
-  <div id="settings">
+    <br>
     <label for="opacityFieldDropdown">Scale Opacity from:</label>
     <select id="opacityFieldDropdown">
       <option value="None">None</option>
