@@ -197,19 +197,38 @@ function updateLegend() {
       legendContent.appendChild(div);
     });
   } else {
+    // Find the feature with the value closest to 10, 20, 30, etc. for purpose_mode_100
+    const fieldToDisplay = `${purposeMap[purposeDropdown.value]}_${modeMap[modeDropdown.value]}_100`;
+    const fieldToRound = `${purposeMap[purposeDropdown.value]}_${modeMap[modeDropdown.value]}`;
+    const selectedLayer = layers[selectedYear];
+    const filteredFeatures = selectedLayer.features.filter(feature => feature.properties[fieldToDisplay] !== undefined);
+
+    const values = [10, 20, 30, 40, 50, 60, 70, 80, 90];
+    const scores = values.map(val => {
+      let closestFeature = null;
+      let closestDifference = Infinity;
+      filteredFeatures.forEach(feature => {
+        const difference = Math.abs(feature.properties[fieldToDisplay] - val);
+        if (difference < closestDifference) {
+          closestDifference = difference;
+          closestFeature = feature;
+        }
+      });
+      return closestFeature ? Math.round(closestFeature.properties[fieldToRound] / 10) * 10 : 0;
+    });
+
     // Display 10 classes for years without '-'
     const classes = [
-      { range: "90-100 - 10% of region's population with best access to amenities", color: "#fde725" },
-      { range: "80-90", color: "#b5de2b" },
-      { range: "80-90", color: "#b5de2b" },
-      { range: "70-80", color: "#6ece58" },
-      { range: "60-70", color: "#35b779" },
-      { range: "50-60", color: "#1f9e89" },
-      { range: "40-50", color: "#26828e" },
-      { range: "30-40", color: "#31688e" },
-      { range: "20-30", color: "#3e4989" },
-      { range: "10-20", color: "#482777" },
-      { range: "0-10 - 10% of region's population with worst access to amenities", color: "#440154" }
+      { range: `90-100 - 10% of region's population with best access to amenities (${scores[8]})`, color: "#fde725" },
+      { range: `80-90 (${scores[7]})`, color: "#b5de2b" },
+      { range: `70-80 (${scores[6]})`, color: "#6ece58" },
+      { range: `60-70 (${scores[5]})`, color: "#35b779" },
+      { range: `50-60 (${scores[4]})`, color: "#1f9e89" },
+      { range: `40-50 (${scores[3]})`, color: "#26828e" },
+      { range: `30-40 (${scores[2]})`, color: "#31688e" },
+      { range: `20-30 (${scores[1]})`, color: "#3e4989" },
+      { range: `10-20 (${scores[0]})`, color: "#482777" },
+      { range: `0-10 - 10% of region's population with worst access to amenities`, color: "#440154" }
     ];
     classes.forEach(c => {
       const div = document.createElement("div");
@@ -217,6 +236,13 @@ function updateLegend() {
       legendContent.appendChild(div);
     });
   }
+}
+
+function calculateMaxAbsValue(selectedYear) {
+  const selectedLayer = layers[selectedYear];
+  const fieldToDisplay = `${purposeMap[purposeDropdown.value]}_${modeMap[modeDropdown.value]}`;
+  const filteredFeatures = selectedLayer.features.filter(feature => feature.properties[fieldToDisplay] !== undefined);
+  return Math.max(...filteredFeatures.map(feature => Math.abs(feature.properties[fieldToDisplay])));
 }
 
 function calculateMaxAbsValue(selectedYear) {
