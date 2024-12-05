@@ -176,14 +176,15 @@ function onEachFeature(feature, layer) {
   layer.on({
     click: function (e) {
       const properties = feature.properties;
-      const hexId = properties['Hex_ID'] || '-';
-      const score = properties[`${purposeMap[purposeDropdown.value]}_${modeMap[modeDropdown.value]}`] !== undefined ? Math.round(properties[`${purposeMap[purposeDropdown.value]}_${modeMap[modeDropdown.value]}`]) : '-';
-      const percentile = properties[`${purposeMap[purposeDropdown.value]}_${modeMap[modeDropdown.value]}_100`] !== undefined ? Math.round(properties[`${purposeMap[purposeDropdown.value]}_${modeMap[modeDropdown.value]}_100`]) : '-';
-      const population = properties['pop'] !== undefined ? Math.round(properties['pop']) : '-';
-      const imd = properties['imd'] !== undefined ? properties['imd'].toFixed(2) : '-';
-      const carAvailability = properties['carav'] !== undefined ? properties['carav'].toFixed(2) : '-';
-      const futureDwellings = properties['hh_fut'] !== undefined ? Math.round(properties['hh_fut']) : '-';
-
+      const getValue = (prop) => (properties[prop] !== undefined && properties[prop] !== null) ? properties[prop] : '-';
+      const hexId = getValue('Hex_ID');
+      const score = getValue(`${purposeMap[purposeDropdown.value]}_${modeMap[modeDropdown.value]}`) !== '-' ? Math.round(getValue(`${purposeMap[purposeDropdown.value]}_${modeMap[modeDropdown.value]}`)) : '-';
+      const percentile = getValue(`${purposeMap[purposeDropdown.value]}_${modeMap[modeDropdown.value]}_100`) !== '-' ? Math.round(getValue(`${purposeMap[purposeDropdown.value]}_${modeMap[modeDropdown.value]}_100`)) : '-';
+      const population = getValue('pop') !== '-' ? Math.round(getValue('pop')) : '-';
+      const imd = getValue('imd') !== '-' ? getValue('imd').toFixed(2) : '-';
+      const carAvailability = getValue('carav') !== '-' ? getValue('carav').toFixed(2) : '-';
+      const futureDwellings = getValue('hh_fut') !== '-' ? Math.round(getValue('hh_fut')) : '-';
+      
       let popupContent = `<strong>Hex_ID:</strong> ${hexId}<br><strong>Score:</strong> ${score}<br><strong>Percentile:</strong> ${percentile}<br><strong>Population:</strong> ${population}<br><strong>Index of Multiple Deprivation:</strong> ${imd}<br><strong>Car Availability:</strong> ${carAvailability}<br><strong>Future Dwellings:</strong> ${futureDwellings}`;
       
       L.popup()
