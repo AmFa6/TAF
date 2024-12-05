@@ -178,7 +178,12 @@ function onEachFeature(feature, layer) {
       const properties = feature.properties;
       const hexId = properties['Hex_ID'];
       const score = Math.round(properties[`${purposeMap[purposeDropdown.value]}_${modeMap[modeDropdown.value]}`]);
-      let popupContent = `<strong>Hex_ID:</strong> ${hexId}<br><strong>Score:</strong> ${score}`;
+      const population = properties['pop'] || 'N/A';
+      const imd = properties['imd'] || 'N/A';
+      const carAvailability = properties['carav'] || 'N/A';
+      const futureDwellings = properties['hh_fut'] || 'N/A';
+      
+      let popupContent = `<strong>Hex_ID:</strong> ${hexId}<br><strong>Score:</strong> ${score}<br><strong>Population:</strong> ${population}<br><strong>Index of Multiple Deprivation:</strong> ${imd}<br><strong>Car Availability:</strong> ${carAvailability}<br><strong>Future Dwellings:</strong> ${futureDwellings}`;
       
       if (!yearDropdown.value.includes('-')) {
         const percentile = Math.round(properties[`${purposeMap[purposeDropdown.value]}_${modeMap[modeDropdown.value]}_100`]);
