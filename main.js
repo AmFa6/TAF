@@ -112,35 +112,46 @@ function updateLayerVisibility() {
       return feature.properties[fieldToDisplay] !== undefined;
     });
 
-    let minOpacity, maxOpacity, minOutline, maxOutline;
+    // Handle 'None' option for opacity field
     if (opacityField === 'None') {
       minOpacityValueInput.value = '';
       maxOpacityValueInput.value = '';
-      minOpacity = 0.75;
-      maxOpacity = 0.75;
     } else {
-      const opacityValues = filteredFeatures.map(feature => feature.properties[opacityField]).filter(value => value !== null);
-      minOpacity = opacityValues.length > 0 ? Math.min(...opacityValues) : 0.75;
-      maxOpacity = opacityValues.length > 0 ? Math.max(...opacityValues) : 0.75;
-      minOpacity = Math.floor(minOpacity * 100) / 100;
-      maxOpacity = Math.ceil(maxOpacity * 100) / 100;
-      minOpacityValueInput.value = minOpacity;
-      maxOpacityValueInput.value = maxOpacity;
-    }
+      // Calculate min and max values for opacity and outline fields
+      const opacityValues = filteredFeatures.map(feature => feature.properties[opacityField]).filter(value => value !== null && value !== 0);
+      const outlineValues = filteredFeatures.map(feature => feature.properties[outlineField]).filter(value => value !== null && value !== 0);
 
-    if (outlineField === 'None') {
-      minOutlineValueInput.value = '';
-      maxOutlineValueInput.value = '';
-      minOutline = 0;
-      maxOutline = 1;
-    } else {
-      const outlineValues = filteredFeatures.map(feature => feature.properties[outlineField]).filter(value => value !== null);
-      minOutline = outlineValues.length > 0 ? Math.min(...outlineValues) : 0;
-      maxOutline = outlineValues.length > 0 ? Math.max(...outlineValues) : 1;
-      minOutline = Math.floor(minOutline * 100) / 100;
-      maxOutline = Math.ceil(maxOutline * 100) / 100;
-      minOutlineValueInput.value = minOutline;
-      maxOutlineValueInput.value = maxOutline;
+      let minOpacity = opacityValues.length > 0 ? Math.min(...opacityValues) : 0;
+      let maxOpacity = opacityValues.length > 0 ? Math.max(...opacityValues) : 1;
+      let minOutline = outlineValues.length > 0 ? Math.min(...outlineValues) : 0;
+      let maxOutline = outlineValues.length > 0 ? Math.max(...outlineValues) : 1;
+
+      // Round values based on field type
+      if (opacityField === 'pop' || opacityField === 'hh_fut') {
+        minOpacity = Math.floor(minOpacity);
+        maxOpacity = Math.ceil(maxOpacity);
+      } else {
+        minOpacity = Math.floor(minOpacity * 100) / 100;
+        maxOpacity = Math.ceil(maxOpacity * 100) / 100;
+      }
+
+      if (outlineField === 'pop' || outlineField === 'hh_fut') {
+        minOutline = Math.floor(minOutline);
+        maxOutline = Math.ceil(maxOutline);
+      } else {
+        minOutline = Math.floor(minOutline * 100) / 100;
+        maxOutline = Math.ceil(maxOutline * 100) / 100;
+      }
+
+      // Update the input fields with the calculated min and max values if auto-update is enabled
+      if (autoUpdateOpacity) {
+        minOpacityValueInput.value = minOpacity;
+        maxOpacityValueInput.value = maxOpacity;
+      }
+      if (autoUpdateOutline) {
+        minOutlineValueInput.value = minOutline;
+        maxOutlineValueInput.value = maxOutline;
+      }
     }
 
     const filteredGeoJson = {
@@ -149,7 +160,7 @@ function updateLayerVisibility() {
     };
 
     const geoJsonLayer = L.geoJSON(filteredGeoJson, {
-      style: feature => styleFeature(feature, fieldToDisplay, opacityField, outlineField, minOpacity, maxOpacity, parseFloat(opacityExponentInput.value), minOutline, maxOutline, parseFloat(outlineExponentInput.value))
+      style: feature => styleFeature(feature, fieldToDisplay, opacityField, outlineField, parseFloat(minOpacityValueInput.value), parseFloat(maxOpacityValueInput.value), parseFloat(opacityExponentInput.value), parseFloat(minOutlineValueInput.value), parseFloat(maxOutlineValueInput.value), parseFloat(outlineExponentInput.value), selectedYear)
     }).addTo(map);
   }
 }
