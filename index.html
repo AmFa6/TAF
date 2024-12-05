@@ -82,6 +82,19 @@
     .small-font {
       font-size: 0.8em;
     }
+    .collapsible {
+      cursor: pointer;
+      border: none;
+      text-align: left;
+      outline: none;
+      font-size: 1.2em;
+      background: none;
+      margin-bottom: 10px;
+    }
+    .collapsible-content {
+      display: none;
+      overflow: hidden;
+    }
   </style>
 </head>
 <body>
@@ -108,65 +121,66 @@
       <option value="Car">Car</option>
     </select>
     <br>
-    <label for="opacityFieldDropdown">Scale Opacity from:</label>
-    <select id="opacityFieldDropdown" class="small-font">
-      <option value="None">None</option>
-      <option value="pop">Population</option>
-      <option value="imd">Index of Multiple Deprivation</option>
-      <option value="carav">Car Availability</option>
-      <option value="hh_fut">Future Dwellings</option>
-      <!-- Add more options as needed -->
-    </select>
-    <br>
-    <div class="field-container">
-      <div>
-        <label for="minOpacityValue">Minimum Value:</label>
-        <input type="number" id="minOpacityValue" class="small-font">
-        <label for="maxOpacityValue">Maximum Value:</label>
-        <input type="number" id="maxOpacityValue" class="small-font">
+    <button type="button" class="collapsible">Settings</button>
+    <div class="collapsible-content">
+      <label for="opacityFieldDropdown" class="medium-font">Scale Opacity from:</label>
+      <select id="opacityFieldDropdown" class="small-font">
+        <option value="None">None</option>
+        <option value="pop">Population</option>
+        <option value="imd">Index of Multiple Deprivation</option>
+        <option value="carav">Car Availability</option>
+        <option value="hh_fut">Future Dwellings</option>
+      </select>
+      <br>
+      <div class="field-container">
+        <div>
+          <label for="minOpacityValue" class="medium-font">Minimum Value:</label>
+          <input type="number" id="minOpacityValue" class="small-font">
+          <label for="maxOpacityValue" class="medium-font">Maximum Value:</label>
+          <input type="number" id="maxOpacityValue" class="small-font">
+        </div>
+        <div>
+          <button id="resetOpacityButton" class="small-font">Reset</button>
+        </div>
       </div>
-      <div>
-        <button id="resetOpacityButton" class="small-font">Reset</button>
+      <div class="field-container">
+        <div>
+          <label for="opacityExponent" class="medium-font">Contrast - <em id="opacityExponentValue">10</em></label>
+          <input type="range" id="opacityExponent" min="0" max="100" step="5" value="10" class="small-font">
+        </div>
+        <div class="button-container">
+          <button id="inverseOpacityScaleButton" class="small-font">Inverse Scale</button>
+        </div>
       </div>
-    </div>
-    <div class="field-container">
-      <div>
-        <label for="opacityExponent">Contrast - <em id="opacityExponentValue">10</em></label>
-        <input type="range" id="opacityExponent" min="0" max="100" step="5" value="10" class="small-font">
+      <br>
+      <label for="outlineFieldDropdown" class="medium-font">Scale Outline Width from:</label>
+      <select id="outlineFieldDropdown" class="small-font">
+        <option value="None">None</option>
+        <option value="imd">Index of Multiple Deprivation</option>
+        <option value="pop">Population</option>
+        <option value="carav">Car Availability</option>
+        <option value="hh_fut">Future Dwellings</option>
+      </select>
+      <br>
+      <div class="field-container">
+        <div>
+          <label for="minOutlineValue" class="medium-font">Minimum Value:</label>
+          <input type="number" id="minOutlineValue" class="small-font">
+          <label for="maxOutlineValue" class="medium-font">Maximum Value:</label>
+          <input type="number" id="maxOutlineValue" class="small-font">
+        </div>
+        <div>
+          <button id="resetOutlineButton" class="small-font">Reset</button>
+        </div>
       </div>
-      <div class="button-container">
-        <button id="inverseOpacityScaleButton" class="small-font">Inverse Scale</button>
-      </div>
-    </div>
-    <br>
-    <label for="outlineFieldDropdown">Scale Outline Width from:</label>
-    <select id="outlineFieldDropdown" class="small-font">
-      <option value="None">None</option>
-      <option value="imd">Index of Multiple Deprivation</option>
-      <option value="pop">Population</option>
-      <option value="carav">Car Availability</option>
-      <option value="hh_fut">Future Dwellings</option>
-      <!-- Add more options as needed -->
-    </select>
-    <br>
-    <div class="field-container">
-      <div>
-        <label for="minOutlineValue">Minimum Value:</label>
-        <input type="number" id="minOutlineValue" class="small-font">
-        <label for="maxOutlineValue">Maximum Value:</label>
-        <input type="number" id="maxOutlineValue" class="small-font">
-      </div>
-      <div>
-        <button id="resetOutlineButton" class="small-font">Reset</button>
-      </div>
-    </div>
-    <div class="field-container">
-      <div>
-        <label for="outlineExponent">Contrast - <em id="outlineExponentValue">60</em></label>
-        <input type="range" id="outlineExponent" min="0" max="100" step="5" value="60" class="small-font">
-      </div>
-      <div class="button-container">
-        <button id="inverseOutlineScaleButton" class="small-font">Inverse Scale</button>
+      <div class="field-container">
+        <div>
+          <label for="outlineExponent" class="medium-font">Contrast - <em id="outlineExponentValue">60</em></label>
+          <input type="range" id="outlineExponent" min="0" max="100" step="5" value="60" class="small-font">
+        </div>
+        <div class="button-container">
+          <button id="inverseOutlineScaleButton" class="small-font">Inverse Scale</button>
+        </div>
       </div>
     </div>
   </div>
@@ -188,6 +202,15 @@
       // Initialize values
       opacityExponentValue.innerHTML = `<em>${opacityExponentInput.value}</em>`;
       outlineExponentValue.innerHTML = `<em>${outlineExponentInput.value}</em>`;
+
+      // Handle collapsible settings panel
+      const collapsible = document.querySelector(".collapsible");
+      const content = document.querySelector(".collapsible-content");
+
+      collapsible.addEventListener("click", function() {
+        this.classList.toggle("active");
+        content.style.display = content.style.display === "block" ? "none" : "block";
+      });
     });
   </script>
 </body>
