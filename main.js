@@ -190,16 +190,18 @@ function updateLegend() {
   } else {
     // Display 10 classes for years without '-'
     const classes = [
-      { range: "0-10", color: "#440154" },
-      { range: "10-20", color: "#482777" },
-      { range: "20-30", color: "#3e4989" },
-      { range: "30-40", color: "#31688e" },
-      { range: "40-50", color: "#26828e" },
-      { range: "50-60", color: "#1f9e89" },
-      { range: "60-70", color: "#35b779" },
-      { range: "70-80", color: "#6ece58" },
+      { range: "90-100 - 10% of region's population with best access to amenities", color: "#fde725" },
       { range: "80-90", color: "#b5de2b" },
-      { range: "90-100", color: "#fde725" }
+      { range: "80-90", color: "#b5de2b" },
+      { range: "70-80", color: "#6ece58" },
+      { range: "60-70", color: "#35b779" },
+      { range: "50-60", color: "#1f9e89" },
+      { range: "40-50", color: "#26828e" },
+      { range: "30-40", color: "#31688e" },
+      { range: "20-30", color: "#3e4989" },
+      { range: "10-20", color: "#482777" },
+      { range: "0-10", color: "#440154" },
+      { range: "80-90 - 10% of region's population with worst access to amenities", color: "#b5de2b" }
     ];
     classes.forEach(c => {
       const div = document.createElement("div");
