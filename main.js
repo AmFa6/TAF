@@ -171,7 +171,7 @@ function updateLegend() {
   const selectedYear = yearDropdown.value;
   const legendContent = document.getElementById("legend-content");
 
-  legendContent.innerHTML = ""; // Clear the legend content
+  legendContent.innerHTML = "<p style='font-size: 1em; margin: 5px 0;'><strong>Accessibility Score - <em>Population Based Percentile</em> (minimum score - maximum score)</strong></p>"; // Clear the legend content and add the new text
 
   if (selectedYear.includes('-')) {
     // Display 7 classes for years with '-'
@@ -205,7 +205,7 @@ function updateLegend() {
     ];
     classes.forEach(c => {
       const div = document.createElement("div");
-      div.innerHTML = `<span style="display: inline-block; width: 20px; height: 20px; background-color: ${c.color};"></span> ${c.range} Accessibility score - Population based percentiles`;
+      div.innerHTML = `<span style="display: inline-block; width: 20px; height: 20px; background-color: ${c.color};"></span> ${c.range}`;
       legendContent.appendChild(div);
     });
   }
