@@ -171,8 +171,6 @@ function updateLegend() {
   const selectedYear = yearDropdown.value;
   const legendContent = document.getElementById("legend-content");
 
-  legendContent.innerHTML = "<p style='font-size: 1em; margin: 5px 0;'><strong>Accessibility Score - <em>Population Based Percentile</em> (minimum score - maximum score)</strong></p>"; // Clear the legend content and add the new text
-
   if (selectedYear.includes('-')) {
     // Display 7 classes for years with '-'
     const classes = [
