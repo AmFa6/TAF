@@ -63,10 +63,10 @@
       align-items: center;
     }
     .field-container > div:first-child {
-      flex: 1.5;
+      flex: 1.25;
     }
     .field-container > div:last-child {
-      flex: 1;
+      flex: 0.75;
       margin-left: 10px;
     }
     .button-container {
@@ -131,9 +131,8 @@
     </div>
     <div class="field-container">
       <div>
-        <label for="opacityExponent">Contrast:</label>
+        <label for="opacityExponent">Contrast - <em id="opacityExponentValue">10</em></label>
         <input type="range" id="opacityExponent" min="0" max="100" step="5" value="10">
-        <span id="opacityExponentValue">Contrast - <em>10</em></span>
       </div>
       <div class="button-container">
         <button id="inverseOpacityScaleButton">Inverse Scale</button>
@@ -163,9 +162,8 @@
     </div>
     <div class="field-container">
       <div>
-        <label for="outlineExponent">Contrast:</label>
+        <label for="outlineExponent">Contrast - <em id="outlineExponentValue">60</em></label>
         <input type="range" id="outlineExponent" min="0" max="100" step="5" value="60">
-        <span id="outlineExponentValue">Contrast - <em>60</em></span>
       </div>
       <div class="button-container">
         <button id="inverseOutlineScaleButton">Inverse Scale</button>
@@ -178,18 +176,18 @@
       const opacityExponentInput = document.getElementById('opacityExponent');
       const opacityExponentValue = document.getElementById('opacityExponentValue');
       opacityExponentInput.addEventListener('input', function() {
-        opacityExponentValue.innerHTML = `Contrast - <em>${opacityExponentInput.value}</em>`;
+        opacityExponentValue.innerHTML = `<em>${opacityExponentInput.value}</em>`;
       });
 
       const outlineExponentInput = document.getElementById('outlineExponent');
       const outlineExponentValue = document.getElementById('outlineExponentValue');
       outlineExponentInput.addEventListener('input', function() {
-        outlineExponentValue.innerHTML = `Contrast - <em>${outlineExponentInput.value}</em>`;
+        outlineExponentValue.innerHTML = `<em>${outlineExponentInput.value}</em>`;
       });
 
       // Initialize values
-      opacityExponentValue.innerHTML = `Contrast - <em>${opacityExponentInput.value}</em>`;
-      outlineExponentValue.innerHTML = `Contrast - <em>${outlineExponentInput.value}</em>`;
+      opacityExponentValue.innerHTML = `<em>${opacityExponentInput.value}</em>`;
+      outlineExponentValue.innerHTML = `<em>${outlineExponentInput.value}</em>`;
     });
   </script>
 </body>
