@@ -143,6 +143,7 @@ function updateLayerVisibility() {
         maxOutline = Math.ceil(maxOutline * 100) / 100;
       }
 
+      // Calculate maxAbsValue
       const maxAbsValue = Math.max(...filteredFeatures.map(feature => Math.abs(feature.properties[fieldToDisplay])));
 
       // Update the input fields with the calculated min and max values if auto-update is enabled
@@ -154,13 +155,12 @@ function updateLayerVisibility() {
         minOutlineValueInput.value = minOutline;
         maxOutlineValueInput.value = maxOutline;
       }
-    }
 
       const filteredGeoJson = {
         type: "FeatureCollection",
         features: filteredFeatures
       };
-  
+
       const geoJsonLayer = L.geoJSON(filteredGeoJson, {
         style: feature => styleFeature(feature, fieldToDisplay, opacityField, outlineField, parseFloat(minOpacityValueInput.value), parseFloat(maxOpacityValueInput.value), parseFloat(opacityExponentInput.value), parseFloat(minOutlineValueInput.value), parseFloat(maxOutlineValueInput.value), parseFloat(outlineExponentInput.value), selectedYear, maxAbsValue)
       }).addTo(map);
