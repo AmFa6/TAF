@@ -2,8 +2,8 @@
 const map = L.map('map').setView([51.480, -2.591], 11);
 
 // Add a base layer
-const baseLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '&copy; OpenStreetMap contributors'
+const baseLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}.png', {
+  attribution: '&copy; OpenStreetMap contributors & CartoDB'
 }).addTo(map);
 
 // List of GeoJSON files and corresponding years
