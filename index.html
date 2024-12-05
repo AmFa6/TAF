@@ -173,21 +173,23 @@
   </div>
   <script src="main.js"></script>
   <script>
-    const opacityExponentInput = document.getElementById('opacityExponent');
-    const opacityExponentValue = document.getElementById('opacityExponentValue');
-    opacityExponentInput.addEventListener('input', function() {
-      opacityExponentValue.textContent = opacityExponentInput.value;
-    });
+    document.addEventListener('DOMContentLoaded', (event) => {
+      const opacityExponentInput = document.getElementById('opacityExponent');
+      const opacityExponentValue = document.getElementById('opacityExponentValue');
+      opacityExponentInput.addEventListener('input', function() {
+        opacityExponentValue.textContent = opacityExponentInput.value;
+      });
 
-    const outlineExponentInput = document.getElementById('outlineExponent');
-    const outlineExponentValue = document.getElementById('outlineExponentValue');
-    outlineExponentInput.addEventListener('input', function() {
+      const outlineExponentInput = document.getElementById('outlineExponent');
+      const outlineExponentValue = document.getElementById('outlineExponentValue');
+      outlineExponentInput.addEventListener('input', function() {
+        outlineExponentValue.textContent = outlineExponentInput.value;
+      });
+
+      // Initialize values
+      opacityExponentValue.textContent = opacityExponentInput.value;
       outlineExponentValue.textContent = outlineExponentInput.value;
     });
-
-    // Initialize values
-    opacityExponentValue.textContent = opacityExponentInput.value;
-    outlineExponentValue.textContent = outlineExponentInput.value;
   </script>
 </body>
 </html>
