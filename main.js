@@ -200,8 +200,7 @@ function updateLegend() {
       { range: "30-40", color: "#31688e" },
       { range: "20-30", color: "#3e4989" },
       { range: "10-20", color: "#482777" },
-      { range: "0-10", color: "#440154" },
-      { range: "80-90 - 10% of region's population with worst access to amenities", color: "#b5de2b" }
+      { range: "0-10 - 10% of region's population with worst access to amenities", color: "#440154" }
     ];
     classes.forEach(c => {
       const div = document.createElement("div");
