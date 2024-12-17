@@ -201,11 +201,11 @@ function updateLegend() {
 
   legendContent.innerHTML = '';
 
-  const maxAbsValue = Math.round(calculateMaxAbsValue(selectedYear) / 10) * 10;
+  const maxAbsValue = Math.round(calculateMaxAbsValue(selectedYear) * 100); // convert to percentage
   const halfMax = Math.round((maxAbsValue / 2) / 10) * 10;
   const quarterMax = Math.round((maxAbsValue / 4) / 10) * 10;
 
-  const headerText = selectedYear.includes('-') ? "Score Difference" : "Population Percentiles";
+  const headerText = selectedYear.includes('-') ? "Score Difference (%)" : "Population Percentiles";
   const headerDiv = document.createElement("div");
   headerDiv.innerHTML = `${headerText}`;
   headerDiv.style.fontSize = "1.1em";
@@ -215,13 +215,13 @@ function updateLegend() {
   if (selectedYear.includes('-')) {
     // Display dynamic classes for years with '-'
     const classes = [
-      { range: `> ${halfMax}`, color: "#1a9641" },
-      { range: `${quarterMax} to ${halfMax}`, color: "#77c35c" },
-      { range: `0 to ${quarterMax}`, color: "#c4e687" },
-      { range: `0`, color: "rgba(0, 0, 0, 0)" },
-      { range: `-0 to -${quarterMax}`, color: "#fec981" },
-      { range: `-${quarterMax} to -${halfMax}`, color: "#f07c4a" },
-      { range: `< -${halfMax}`, color: "#d7191c" }
+      { range: `> ${halfMax}%`, color: "#1a9641" },
+      { range: `${quarterMax}% to ${halfMax}%`, color: "#77c35c" },
+      { range: `0% to ${quarterMax}%`, color: "#c4e687" },
+      { range: `0%`, color: "rgba(0, 0, 0, 0)" },
+      { range: `-0% to -${quarterMax}%`, color: "#fec981" },
+      { range: `-${quarterMax}% to -${halfMax}%`, color: "#f07c4a" },
+      { range: `< -${halfMax}%`, color: "#d7191c" }
     ];
     classes.forEach(c => {
       const div = document.createElement("div");
