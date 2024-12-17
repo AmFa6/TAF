@@ -205,7 +205,7 @@ function updateLegend() {
   const halfMax = Math.round((maxAbsValue / 2) / 10) * 10;
   const quarterMax = Math.round((maxAbsValue / 4) / 10) * 10;
 
-  const headerText = selectedYear.includes('-') ? "Score Difference" : "Population Percentiles - (<i>Scores</i>)";
+  const headerText = selectedYear.includes('-') ? "Score Difference" : "Population Percentiles";
   const headerDiv = document.createElement("div");
   headerDiv.innerHTML = `${headerText}`;
   headerDiv.style.fontSize = "1.1em";
@@ -229,37 +229,17 @@ function updateLegend() {
       legendContent.appendChild(div);
     });
   } else {
-    // Find the feature with the value closest to 10, 20, 30, etc. for purpose_mode_100
-    const fieldToDisplay = `${purposeMap[purposeDropdown.value]}_${modeMap[modeDropdown.value]}_100`;
-    const fieldToRound = `${purposeMap[purposeDropdown.value]}_${modeMap[modeDropdown.value]}`;
-    const selectedLayer = layers[selectedYear];
-    const filteredFeatures = selectedLayer.features.filter(feature => feature.properties[fieldToDisplay] !== undefined);
-
     const values = [10, 20, 30, 40, 50, 60, 70, 80, 90];
-    const scores = values.map(val => {
-      let closestFeature = null;
-      let closestDifference = Infinity;
-      filteredFeatures.forEach(feature => {
-        const difference = Math.abs(feature.properties[fieldToDisplay] - val);
-        if (difference < closestDifference) {
-          closestDifference = difference;
-          closestFeature = feature;
-        }
-      });
-      return closestFeature ? Math.round(closestFeature.properties[fieldToRound] / 10) * 10 : 0;
-    });
-
-    // Display 10 classes for years without '-'
     const classes = [
       { range: `90-100 - 10% of region's population with best access to amenities`, color: "#fde725" },
-      { range: `80-90 - (<i>${scores[7]}-${scores[8]}</i>)`, color: "#b5de2b" },
-      { range: `70-80 - (<i>${scores[6]}-${scores[7]}</i>)`, color: "#6ece58" },
-      { range: `60-70 - (<i>${scores[5]}-${scores[6]}</i>)`, color: "#35b779" },
-      { range: `50-60 - (<i>${scores[4]}-${scores[5]}</i>)`, color: "#1f9e89" },
-      { range: `40-50 - (<i>${scores[3]}-${scores[4]}</i>)`, color: "#26828e" },
-      { range: `30-40 - (<i>${scores[2]}-${scores[3]}</i>)`, color: "#31688e" },
-      { range: `20-30 - (<i>${scores[1]}-${scores[2]}</i>)`, color: "#3e4989" },
-      { range: `10-20 - (<i>${scores[0]}-${scores[1]}</i>)`, color: "#482777" },
+      { range: `80-90`, color: "#b5de2b" },
+      { range: `70-80`, color: "#6ece58" },
+      { range: `60-70`, color: "#35b779" },
+      { range: `50-60`, color: "#1f9e89" },
+      { range: `40-50`, color: "#26828e" },
+      { range: `30-40`, color: "#31688e" },
+      { range: `20-30`, color: "#3e4989" },
+      { range: `10-20`, color: "#482777" },
       { range: `0-10 - 10% of region's population with worst access to amenities`, color: "#440154" }
     ];
     classes.forEach(c => {
