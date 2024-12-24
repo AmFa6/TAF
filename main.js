@@ -178,7 +178,8 @@ function onEachFeature(feature, layer, selectedYear) {
       const properties = feature.properties;
       const getValue = (prop) => (properties[prop] !== undefined && properties[prop] !== null) ? properties[prop] : '-';
       const hexId = getValue('Hex_ID');
-      const score = getValue(`${purposeMap[purposeDropdown.value]}_${modeMap[modeDropdown.value]}`) !== '-' ? Math.round(getValue(`${purposeMap[purposeDropdown.value]}_${modeMap[modeDropdown.value]}`) * 100) + '%' : '-';
+      const scoreValue = getValue(`${purposeMap[purposeDropdown.value]}_${modeMap[modeDropdown.value]}`);
+      const score = selectedYear.includes('-') && scoreValue !== '-' ? Math.round(scoreValue * 100) + '%' : scoreValue;
       const percentile = getValue(`${purposeMap[purposeDropdown.value]}_${modeMap[modeDropdown.value]}_100`) !== '-' ? Math.round(getValue(`${purposeMap[purposeDropdown.value]}_${modeMap[modeDropdown.value]}_100`)) : '-';
       const population = getValue('pop') !== '-' ? Math.round(getValue('pop')) : '-';
       const imd = population === 0 ? '-' : (getValue('imd') !== '-' ? getValue('imd').toFixed(2) : '-');
@@ -201,53 +202,31 @@ function updateLegend() {
 
   legendContent.innerHTML = '';
 
-  const maxAbsValue = Math.round(calculateMaxAbsValue(selectedYear) * 100); // convert to percentage
-  const halfMax = Math.round((maxAbsValue / 2) / 10) * 10;
-  const quarterMax = Math.round((maxAbsValue / 4) / 10) * 10;
-
   const headerText = selectedYear.includes('-') ? "Score Difference (%)" : "Population Percentiles";
   const headerDiv = document.createElement("div");
   headerDiv.innerHTML = `${headerText}`;
   headerDiv.style.fontSize = "1.1em";
   headerDiv.style.marginBottom = "10px";
   legendContent.appendChild(headerDiv);
-  
-  if (selectedYear.includes('-')) {
-    // Display dynamic classes for years with '-'
-    const classes = [
-      { range: `> ${halfMax}%`, color: "#1a9641" },
-      { range: `${quarterMax}% to ${halfMax}%`, color: "#77c35c" },
-      { range: `0% to ${quarterMax}%`, color: "#c4e687" },
-      { range: `0%`, color: "rgba(0, 0, 0, 0)" },
-      { range: `-0% to -${quarterMax}%`, color: "#fec981" },
-      { range: `-${quarterMax}% to -${halfMax}%`, color: "#f07c4a" },
-      { range: `< -${halfMax}%`, color: "#d7191c" }
-    ];
-    classes.forEach(c => {
-      const div = document.createElement("div");
-      div.innerHTML = `<span style="display: inline-block; width: 20px; height: 20px; background-color: ${c.color};"></span> ${c.range}`;
-      legendContent.appendChild(div);
-    });
-  } else {
-    const values = [10, 20, 30, 40, 50, 60, 70, 80, 90];
-    const classes = [
-      { range: `90-100 - 10% of region's population with best access to amenities`, color: "#fde725" },
-      { range: `80-90`, color: "#b5de2b" },
-      { range: `70-80`, color: "#6ece58" },
-      { range: `60-70`, color: "#35b779" },
-      { range: `50-60`, color: "#1f9e89" },
-      { range: `40-50`, color: "#26828e" },
-      { range: `30-40`, color: "#31688e" },
-      { range: `20-30`, color: "#3e4989" },
-      { range: `10-20`, color: "#482777" },
-      { range: `0-10 - 10% of region's population with worst access to amenities`, color: "#440154" }
-    ];
-    classes.forEach(c => {
-      const div = document.createElement("div");
-      div.innerHTML = `<span style="display: inline-block; width: 20px; height: 20px; background-color: ${c.color};"></span> ${c.range}`;
-      legendContent.appendChild(div);
-    });
-  }
+
+  const values = [10, 20, 30, 40, 50, 60, 70, 80, 90];
+  const classes = [
+    { range: `90-100 - 10% of region's population with best access to amenities`, color: "#fde725" },
+    { range: `80-90`, color: "#b5de2b" },
+    { range: `70-80`, color: "#6ece58" },
+    { range: `60-70`, color: "#35b779" },
+    { range: `50-60`, color: "#1f9e89" },
+    { range: `40-50`, color: "#26828e" },
+    { range: `30-40`, color: "#31688e" },
+    { range: `20-30`, color: "#3e4989" },
+    { range: `10-20`, color: "#482777" },
+    { range: `0-10 - 10% of region's population with worst access to amenities`, color: "#440154" }
+  ];
+  classes.forEach(c => {
+    const div = document.createElement("div");
+    div.innerHTML = `<span style="display: inline-block; width: 20px; height: 20px; background-color: ${c.color};"></span> ${c.range}`;
+    legendContent.appendChild(div);
+  });
 }
 
 function calculateMaxAbsValue(selectedYear) {
