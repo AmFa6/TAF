@@ -178,14 +178,14 @@ function onEachFeature(feature, layer) {
       const properties = feature.properties;
       const getValue = (prop) => (properties[prop] !== undefined && properties[prop] !== null) ? properties[prop] : '-';
       const hexId = getValue('Hex_ID');
-      const score = getValue(`${purposeMap[purposeDropdown.value]}_${modeMap[modeDropdown.value]}`) !== '-' ? Math.round(getValue(`${purposeMap[purposeDropdown.value]}_${modeMap[modeDropdown.value]}`) * 100) + '%' : '-';
-      const percentile = getValue(`${purposeMap[purposeDropdown.value]}_${modeMap[modeDropdown.value]}_100`) !== '-' ? Math.round(getValue(`${purposeMap[purposeDropdown.value]}_${modeDropdown.value]}_100`)) : '-';
+      const score = getValue(`${purposeMap[purposeDropdown.value]}_${modeMap[modeDropdown.value]}`) !== '-' ? Math.round(getValue(`${purposeMap[purposeDropdown.value]}_${modeMap[modeDropdown.value]}`)) : '-';
+      const percentile = getValue(`${purposeMap[purposeDropdown.value]}_${modeMap[modeDropdown.value]}_100`) !== '-' ? Math.round(getValue(`${purposeMap[purposeDropdown.value]}_${modeMap[modeDropdown.value]}_100`)) : '-';
       const population = getValue('pop') !== '-' ? Math.round(getValue('pop')) : '-';
       const imd = population === 0 ? '-' : (getValue('imd') !== '-' ? getValue('imd').toFixed(2) : '-');
       const carAvailability = population === 0 ? '-' : (getValue('carav') !== '-' ? getValue('carav').toFixed(2) : '-');
       const futureDwellings = getValue('hh_fut') === 0 ? '-' : (getValue('hh_fut') !== '-' ? Math.round(getValue('hh_fut')) : '-');
       
-      let popupContent = `<strong>Hex_ID:</strong> ${hexId}<br><strong>${selectedYear.includes('-') ? 'Score Difference' : 'Score'}:</strong> ${score}<br><strong>Percentile:</strong> ${percentile}<br><strong>Population:</strong> ${population}<br><strong>IMD:</strong> ${imd}<br><strong>Car Availability:</strong> ${carAvailability}<br><strong>Future Dwellings:</strong> ${futureDwellings}`;
+      let popupContent = `<strong>Hex_ID:</strong> ${hexId}<br><strong>Score:</strong> ${score}<br><strong>Percentile:</strong> ${percentile}<br><strong>Population:</strong> ${population}<br><strong>Index of Multiple Deprivation:</strong> ${imd}<br><strong>Car Availability:</strong> ${carAvailability}<br><strong>Future Dwellings:</strong> ${futureDwellings}`;
       
       L.popup()
         .setLatLng(e.latlng)
