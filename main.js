@@ -185,7 +185,7 @@ function onEachFeature(feature, layer) {
       const carAvailability = population === 0 ? '-' : (getValue('carav') !== '-' ? getValue('carav').toFixed(2) : '-');
       const futureDwellings = getValue('hh_fut') === 0 ? '-' : (getValue('hh_fut') !== '-' ? Math.round(getValue('hh_fut')) : '-');
       
-      let popupContent = `<strong>Hex_ID:</strong> ${hexId}<br><strong>Score:</strong> ${score}<br><strong>Percentile:</strong> ${percentile}<br><strong>Population:</strong> ${population}<br><strong>IMD:</strong> ${imd}<br><strong>Car Availability:</strong> ${carAvailability}<br><strong>Future Dwellings:</strong> ${futureDwellings}`;
+      let popupContent = `<strong>Hex_ID:</strong> ${hexId}<br><strong>${selectedYear.includes('-') ? 'Score Difference' : 'Score'}:</strong> ${score}<br><strong>Percentile:</strong> ${percentile}<br><strong>Population:</strong> ${population}<br><strong>IMD:</strong> ${imd}<br><strong>Car Availability:</strong> ${carAvailability}<br><strong>Future Dwellings:</strong> ${futureDwellings}`;
       
       L.popup()
         .setLatLng(e.latlng)
