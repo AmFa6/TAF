@@ -163,7 +163,7 @@ function updateLayerVisibility() {
 
       const geoJsonLayer = L.geoJSON(filteredGeoJson, {
         style: feature => styleFeature(feature, fieldToDisplay, opacityField, outlineField, parseFloat(minOpacityValueInput.value), parseFloat(maxOpacityValueInput.value), parseFloat(opacityExponentInput.value), parseFloat(minOutlineValueInput.value), parseFloat(maxOutlineValueInput.value), parseFloat(outlineExponentInput.value), selectedYear, maxAbsValue),
-        onEachFeature: onEachFeature
+        onEachFeature: (feature, layer) => onEachFeature(feature, layer, selectedYear)
       }).addTo(map);
     }
   }
@@ -172,7 +172,7 @@ function updateLayerVisibility() {
 }
 
 // Function to display pop-up on feature click
-function onEachFeature(feature, layer) {
+function onEachFeature(feature, layer, selectedYear) {
   layer.on({
     click: function (e) {
       const properties = feature.properties;
