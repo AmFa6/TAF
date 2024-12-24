@@ -179,14 +179,25 @@ function onEachFeature(feature, layer, selectedYear) {
       const getValue = (prop) => (properties[prop] !== undefined && properties[prop] !== null) ? properties[prop] : '-';
       const hexId = getValue('Hex_ID');
       const scoreValue = getValue(`${purposeMap[purposeDropdown.value]}_${modeMap[modeDropdown.value]}`);
-      const score = scoreValue !== '-' ? Math.round(scoreValue) : '-';
+      let score = '-';
+      let scoreLabel = 'Score';
+
+      if (scoreValue !== '-') {
+        if (selectedYear.includes('-')) {
+          score = Math.round(scoreValue * 100) + '%';
+          scoreLabel = 'Score Difference';
+        } else {
+          score = Math.round(scoreValue);
+        }
+      }
+      
       const percentile = getValue(`${purposeMap[purposeDropdown.value]}_${modeMap[modeDropdown.value]}_100`) !== '-' ? Math.round(getValue(`${purposeMap[purposeDropdown.value]}_${modeMap[modeDropdown.value]}_100`)) : '-';
       const population = getValue('pop') !== '-' ? Math.round(getValue('pop')) : '-';
       const imd = population === 0 ? '-' : (getValue('imd') !== '-' ? getValue('imd').toFixed(2) : '-');
       const carAvailability = population === 0 ? '-' : (getValue('carav') !== '-' ? getValue('carav').toFixed(2) : '-');
       const futureDwellings = getValue('hh_fut') === 0 ? '-' : (getValue('hh_fut') !== '-' ? Math.round(getValue('hh_fut')) : '-');
       
-      let popupContent = `<strong>Hex_ID:</strong> ${hexId}<br><strong>Score:</strong> ${score}<br><strong>Percentile:</strong> ${percentile}<br><strong>Population:</strong> ${population}<br><strong>IMD:</strong> ${imd}<br><strong>Car Availability:</strong> ${carAvailability}<br><strong>Future Dwellings:</strong> ${futureDwellings}`;
+      let popupContent = `<strong>Hex_ID:</strong> ${hexId}<br><strong>${scoreLabel}:</strong> ${score}<br><strong>Percentile:</strong> ${percentile}<br><strong>Population:</strong> ${population}<br><strong>IMD:</strong> ${imd}<br><strong>Car Availability:</strong> ${carAvailability}<br><strong>Future Dwellings:</strong> ${futureDwellings}`;
       
       L.popup()
         .setLatLng(e.latlng)
@@ -194,6 +205,19 @@ function onEachFeature(feature, layer, selectedYear) {
         .openOn(map);
     }
   });
+}
+
+function getColor(value) {
+  return value > 90 ? '#fde725' :
+         value > 80 ? '#b5de2b' :
+         value > 70 ? '#6ece58' :
+         value > 60 ? '#35b779' :
+         value > 50 ? '#1f9e89' :
+         value > 40 ? '#26828e' :
+         value > 30 ? '#31688e' :
+         value > 20 ? '#3e4989' :
+         value > 10 ? '#482777' :
+                      '#440154';
 }
 
 function updateLegend() {
@@ -325,20 +349,6 @@ function styleFeature(feature, fieldToDisplay, opacityField, outlineField, minOp
     color: 'black',
     fillOpacity: opacity
   };
-}
-
-// Function to get color based on value and year
-function getColor(value) {
-  return value > 90 ? '#fde725' :
-         value > 80 ? '#b5de2b' :
-         value > 70 ? '#6ece58' :
-         value > 60 ? '#35b779' :
-         value > 50 ? '#1f9e89' :
-         value > 40 ? '#26828e' :
-         value > 30 ? '#31688e' :
-         value > 20 ? '#3e4989' :
-         value > 10 ? '#482777' :
-                      '#440154';
 }
 
 // Function to scale values exponentially
