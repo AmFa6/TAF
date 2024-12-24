@@ -179,14 +179,14 @@ function onEachFeature(feature, layer, selectedYear) {
       const getValue = (prop) => (properties[prop] !== undefined && properties[prop] !== null) ? properties[prop] : '-';
       const hexId = getValue('Hex_ID');
       const scoreValue = getValue(`${purposeMap[purposeDropdown.value]}_${modeMap[modeDropdown.value]}`);
-      const score = selectedYear.includes('-') && scoreValue !== '-' ? Math.round(scoreValue * 100) + '%' : scoreValue;
+      const score = scoreValue !== '-' ? Math.round(scoreValue) : '-';
       const percentile = getValue(`${purposeMap[purposeDropdown.value]}_${modeMap[modeDropdown.value]}_100`) !== '-' ? Math.round(getValue(`${purposeMap[purposeDropdown.value]}_${modeMap[modeDropdown.value]}_100`)) : '-';
       const population = getValue('pop') !== '-' ? Math.round(getValue('pop')) : '-';
       const imd = population === 0 ? '-' : (getValue('imd') !== '-' ? getValue('imd').toFixed(2) : '-');
       const carAvailability = population === 0 ? '-' : (getValue('carav') !== '-' ? getValue('carav').toFixed(2) : '-');
       const futureDwellings = getValue('hh_fut') === 0 ? '-' : (getValue('hh_fut') !== '-' ? Math.round(getValue('hh_fut')) : '-');
       
-      let popupContent = `<strong>Hex_ID:</strong> ${hexId}<br><strong>${selectedYear.includes('-') ? 'Score Difference' : 'Score'}:</strong> ${score}<br><strong>Percentile:</strong> ${percentile}<br><strong>Population:</strong> ${population}<br><strong>IMD:</strong> ${imd}<br><strong>Car Availability:</strong> ${carAvailability}<br><strong>Future Dwellings:</strong> ${futureDwellings}`;
+      let popupContent = `<strong>Hex_ID:</strong> ${hexId}<br><strong>Score:</strong> ${score}<br><strong>Percentile:</strong> ${percentile}<br><strong>Population:</strong> ${population}<br><strong>IMD:</strong> ${imd}<br><strong>Car Availability:</strong> ${carAvailability}<br><strong>Future Dwellings:</strong> ${futureDwellings}`;
       
       L.popup()
         .setLatLng(e.latlng)
@@ -202,7 +202,7 @@ function updateLegend() {
 
   legendContent.innerHTML = '';
 
-  const headerText = selectedYear.includes('-') ? "Score Difference (%)" : "Population Percentiles";
+  const headerText = "Population Percentiles";
   const headerDiv = document.createElement("div");
   headerDiv.innerHTML = `${headerText}`;
   headerDiv.style.fontSize = "1.1em";
@@ -328,31 +328,17 @@ function styleFeature(feature, fieldToDisplay, opacityField, outlineField, minOp
 }
 
 // Function to get color based on value and year
-function getColor(value, year, maxAbsValue) {
-  const roundedMaxAbsValue = Math.round(maxAbsValue / 10) * 10;
-  const halfMax = Math.round((roundedMaxAbsValue / 2) / 10) * 10;
-  const quarterMax = Math.round((roundedMaxAbsValue / 4) / 10) * 10;
-
-  if (year.includes('-')) {
-    return value > halfMax ? '#1a9641' :
-           value > quarterMax ? '#77c35c' :
-           value > 0 ? '#c4e687' :
-           value === 0 ? 'rgba(0, 0, 0, 0)' :
-           value > -quarterMax ? '#fec981' :
-           value > -halfMax ? '#f07c4a' :
-                              '#d7191c';
-  } else {
-    return value > 90 ? '#fde725' :
-           value > 80 ? '#b5de2b' :
-           value > 70 ? '#6ece58' :
-           value > 60 ? '#35b779' :
-           value > 50 ? '#1f9e89' :
-           value > 40 ? '#26828e' :
-           value > 30 ? '#31688e' :
-           value > 20 ? '#3e4989' :
-           value > 10 ? '#482777' :
-                        '#440154';
-  }
+function getColor(value) {
+  return value > 90 ? '#fde725' :
+         value > 80 ? '#b5de2b' :
+         value > 70 ? '#6ece58' :
+         value > 60 ? '#35b779' :
+         value > 50 ? '#1f9e89' :
+         value > 40 ? '#26828e' :
+         value > 30 ? '#31688e' :
+         value > 20 ? '#3e4989' :
+         value > 10 ? '#482777' :
+                      '#440154';
 }
 
 // Function to scale values exponentially
