@@ -103,8 +103,7 @@ function updateLayerVisibility() {
   });
 
   // Determine the field to display based on the selected purpose and mode
-  const fieldToDisplay = selectedYear.includes('-') ? `${purposeMap[selectedPurpose]}_${modeMap[selectedMode]}` : `${purposeMap[selectedPurpose]}_${modeMap[selectedMode]}_100`;
-
+  const fieldToDisplay = `${purposeMap[selectedPurpose]}_${modeMap[selectedMode]}_100`;
   // Show the selected layer
   const selectedLayer = layers[selectedYear];
   if (selectedLayer) {
