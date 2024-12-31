@@ -202,18 +202,20 @@
       });
 
       // Initialize values
-      opacityExponentValue.innerHTML = `<em>${opacityExponentInput.value}</em>`;
-      outlineExponentValue.innerHTML = `<em>${outlineExponentInput.value}</em>`;
+      if(opacityExponentInput) opacityExponentValue.innerHTML = `<em>${opacityExponentInput.value}</em>`;
+      if(outlineExponentInput) outlineExponentValue.innerHTML = `<em>${outlineExponentInput.value}</em>`;
 
       // Handle collapsible settings panel
       const collapsible = document.querySelector(".collapsible");
       const content = document.querySelector(".collapsible-content");
 
-      collapsible.addEventListener("click", function() {
-        this.classList.toggle("active");
-        content.style.display = content.style.display === "block" ? "none" : "block";
-        this.classList.toggle("collapsed", content.style.display === "none");
-      });
+      if (collapsible && content) {
+        collapsible.addEventListener("click", function() {
+          this.classList.toggle("active");
+          content.style.display = content.style.display === "block" ? "none" : "block";
+          this.classList.toggle("collapsed", content.style.display === "none");
+        });
+      }
     });
   </script>
 </body>
