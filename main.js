@@ -95,7 +95,6 @@ function updateLayerVisibility() {
   const opacityField = opacityFieldDropdown.value;
   const outlineField = outlineFieldDropdown.value;
 
-  // Hide all layers except the base layer
   map.eachLayer(layer => {
     if (layer !== baseLayer) {
       map.removeLayer(layer);
@@ -103,9 +102,9 @@ function updateLayerVisibility() {
   });
 
   // Determine the field to display based on the selected purpose and mode
-  const fieldToDisplay = `${purposeMap[selectedPurpose]}_${modeMap[selectedMode]}_100`;
-  // Show the selected layer
+  const fieldToDisplay = selectedYear.includes('-') ? `${purposeMap[selectedPurpose]}_${modeMap[selectedMode]}` : `${purposeMap[selectedPurpose]}_${modeMap[selectedMode]}_100`;
   const selectedLayer = layers[selectedYear];
+
   if (selectedLayer) {
     const filteredFeatures = selectedLayer.features.filter(feature => {
       return feature.properties[fieldToDisplay] !== undefined;
@@ -116,7 +115,6 @@ function updateLayerVisibility() {
       minOpacityValueInput.value = '';
       maxOpacityValueInput.value = '';
     } else {
-      // Calculate min and max values for opacity and outline fields
       const opacityValues = filteredFeatures.map(feature => feature.properties[opacityField]).filter(value => value !== null && value !== 0);
       const outlineValues = filteredFeatures.map(feature => feature.properties[outlineField]).filter(value => value !== null && value !== 0);
 
@@ -125,7 +123,6 @@ function updateLayerVisibility() {
       let minOutline = outlineValues.length > 0 ? Math.min(...outlineValues) : 0;
       let maxOutline = outlineValues.length > 0 ? Math.max(...outlineValues) : 1;
 
-      // Round values based on field type
       if (opacityField === 'pop' || opacityField === 'hh_fut') {
         minOpacity = Math.floor(minOpacity);
         maxOpacity = Math.ceil(maxOpacity);
@@ -142,10 +139,8 @@ function updateLayerVisibility() {
         maxOutline = Math.ceil(maxOutline * 100) / 100;
       }
 
-      // Calculate maxAbsValue
       const maxAbsValue = Math.max(...filteredFeatures.map(feature => Math.abs(feature.properties[fieldToDisplay])));
 
-      // Update the input fields with the calculated min and max values if auto-update is enabled
       if (autoUpdateOpacity) {
         minOpacityValueInput.value = minOpacity;
         maxOpacityValueInput.value = maxOpacity;
