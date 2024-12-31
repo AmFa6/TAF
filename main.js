@@ -52,11 +52,11 @@ const purposeDropdown = document.getElementById("purposeDropdown");
 const modeDropdown = document.getElementById("modeDropdown");
 const opacityFieldDropdown = document.getElementById("opacityFieldDropdown");
 const outlineFieldDropdown = document.getElementById("outlineFieldDropdown");
-const minOpacityRange = document.getElementById("minOpacityRange");
-const maxOpacityRange = document.getElementById("maxOpacityRange");
+const minOpacityValueInput = document.getElementById("minOpacityValue");
+const maxOpacityValueInput = document.getElementById("maxOpacityValue");
 const opacityExponentInput = document.getElementById("opacityExponent");
-const minOutlineRange = document.getElementById("minOutlineRange");
-const maxOutlineRange = document.getElementById("maxOutlineRange");
+const minOutlineValueInput = document.getElementById("minOutlineValue");
+const maxOutlineValueInput = document.getElementById("maxOutlineValue");
 const outlineExponentInput = document.getElementById("outlineExponent");
 
 // Ensure 'Population' is the default value for opacityFieldDropdown
@@ -114,8 +114,8 @@ function updateLayerVisibility() {
     });
 
     if (opacityField === 'None') {
-      minOpacityRange.value = '0';
-      maxOpacityRange.value = '1';
+      minOpacityValueInput.value = '';
+      maxOpacityValueInput.value = '';
     } else {
       const opacityValues = filteredFeatures.map(feature => feature.properties[opacityField]).filter(value => value !== null && value !== 0);
       const outlineValues = filteredFeatures.map(feature => feature.properties[outlineField]).filter(value => value !== null && value !== 0);
@@ -142,12 +142,12 @@ function updateLayerVisibility() {
       }
 
       if (autoUpdateOpacity) {
-        minOpacityRange.value = minOpacity;
-        maxOpacityRange.value = maxOpacity;
+        minOpacityValueInput.value = minOpacity;
+        maxOpacityValueInput.value = maxOpacity;
       }
       if (autoUpdateOutline) {
-        minOutlineRange.value = minOutline;
-        maxOutlineRange.value = maxOutline;
+        minOutlineValueInput.value = minOutline;
+        maxOutlineValueInput.value = maxOutline;
       }
 
       const filteredGeoJson = {
@@ -156,7 +156,7 @@ function updateLayerVisibility() {
       };
 
       const geoJsonLayer = L.geoJSON(filteredGeoJson, {
-        style: feature => styleFeature(feature, fieldToDisplay, opacityField, outlineField, parseFloat(minOpacityRange.value), parseFloat(maxOpacityRange.value), parseFloat(opacityExponentInput.value), parseFloat(minOutlineRange.value), parseFloat(maxOutlineRange.value), parseFloat(outlineExponentInput.value), selectedYear),
+        style: feature => styleFeature(feature, fieldToDisplay, opacityField, outlineField, parseFloat(minOpacityValueInput.value), parseFloat(maxOpacityValueInput.value), parseFloat(opacityExponentInput.value), parseFloat(minOutlineValueInput.value), parseFloat(maxOutlineValueInput.value), parseFloat(outlineExponentInput.value), selectedYear),
         onEachFeature: (feature, layer) => onEachFeature(feature, layer, selectedYear)
       }).addTo(map);
     }
@@ -328,20 +328,20 @@ outlineFieldDropdown.addEventListener("change", () => {
   autoUpdateOutline = true;
   updateLayerVisibility();
 });
-minOpacityRange.addEventListener("input", () => {
+minOpacityValueInput.addEventListener("blur", () => {
   autoUpdateOpacity = false;
   updateLayerVisibility();
 });
-maxOpacityRange.addEventListener("input", () => {
+maxOpacityValueInput.addEventListener("blur", () => {
   autoUpdateOpacity = false;
   updateLayerVisibility();
 });
 opacityExponentInput.addEventListener("input", updateLayerVisibility);
-minOutlineRange.addEventListener("input", () => {
+minOutlineValueInput.addEventListener("blur", () => {
   autoUpdateOutline = false;
   updateLayerVisibility();
 });
-maxOutlineRange.addEventListener("input", () => {
+maxOutlineValueInput.addEventListener("blur", () => {
   autoUpdateOutline = false;
   updateLayerVisibility();
 });
