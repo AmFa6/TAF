@@ -5,9 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Transport Accessibility Framework</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.6.0/nouislider.min.css" />
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.6.0/nouislider.min.js"></script>
   <style>
     html, body {
       height: 100%;
@@ -43,8 +41,25 @@
       color: black;
       box-sizing: border-box;
     }
-    .noUi-target {
-      margin-bottom: 10px;
+    #panel select:focus, #panel input:focus {
+      outline: none;
+      border-color: #007bff;
+      box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+    }
+    #panel input[type="range"] {
+      width: 100%;
+    }
+    .field-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .field-container > div:first-child {
+      flex: 1.05;
+    }
+    .field-container > div:last-child {
+      flex: 0.95;
+      margin-left: 10px;
     }
     .button-container {
       display: flex;
@@ -142,13 +157,25 @@
         <option value="hh_fut">Future Dwellings</option>
       </select>
       <br>
-      <label for="slider-range" class="medium-font">Opacity Range:</label>
-      <div id="slider-range"></div>
-      <input type="text" id="minOpacityValue" readonly class="small-font">
-      <input type="text" id="maxOpacityValue" readonly class="small-font">
-      <div class="button-container">
-        <button id="resetOpacityButton" class="small-font">Reset Values</button>
-        <button id="inverseOpacityScaleButton" class="small-font">Inverse Scale</button>
+      <div class="field-container">
+        <div>
+          <label for="minOpacityValue" class="medium-font">Minimum:</label>
+          <input type="number" id="minOpacityValue" class="small-font">
+          <label for="maxOpacityValue" class="medium-font">Maximum:</label>
+          <input type="number" id="maxOpacityValue" class="small-font">
+        </div>
+        <div>
+          <button id="resetOpacityButton" class="small-font">Reset Values</button>
+        </div>
+      </div>
+      <div class="field-container">
+        <div>
+          <label for="opacityExponent" class="medium-font">Contrast - <em id="opacityExponentValue">10</em></label>
+          <input type="range" id="opacityExponent" min="0" max="100" step="5" value="10" class="small-font">
+        </div>
+        <div class="button-container">
+          <button id="inverseOpacityScaleButton" class="small-font">Inverse Scale</button>
+        </div>
       </div>
       <br>
       <label for="outlineFieldDropdown" class="medium-font">Scale Outline Width from:</label>
@@ -202,20 +229,18 @@
       });
 
       // Initialize values
-      if(opacityExponentInput) opacityExponentValue.innerHTML = `<em>${opacityExponentInput.value}</em>`;
-      if(outlineExponentInput) outlineExponentValue.innerHTML = `<em>${outlineExponentInput.value}</em>`;
+      opacityExponentValue.innerHTML = `<em>${opacityExponentInput.value}</em>`;
+      outlineExponentValue.innerHTML = `<em>${outlineExponentInput.value}</em>`;
 
       // Handle collapsible settings panel
       const collapsible = document.querySelector(".collapsible");
       const content = document.querySelector(".collapsible-content");
 
-      if (collapsible && content) {
-        collapsible.addEventListener("click", function() {
-          this.classList.toggle("active");
-          content.style.display = content.style.display === "block" ? "none" : "block";
-          this.classList.toggle("collapsed", content.style.display === "none");
-        });
-      }
+      collapsible.addEventListener("click", function() {
+        this.classList.toggle("active");
+        content.style.display = content.style.display === "block" ? "none" : "block";
+        this.classList.toggle("collapsed", content.style.display === "none");
+      });
     });
   </script>
 </body>
