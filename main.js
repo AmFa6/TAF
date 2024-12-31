@@ -52,6 +52,9 @@ const purposeDropdown = document.getElementById("purposeDropdown");
 const modeDropdown = document.getElementById("modeDropdown");
 const opacityFieldDropdown = document.getElementById("opacityFieldDropdown");
 const outlineFieldDropdown = document.getElementById("outlineFieldDropdown");
+const minOpacityValueInput = document.getElementById("minOpacityValue");
+const maxOpacityValueInput = document.getElementById("maxOpacityValue");
+const opacityExponentInput = document.getElementById("opacityExponent");
 const minOutlineValueInput = document.getElementById("minOutlineValue");
 const maxOutlineValueInput = document.getElementById("maxOutlineValue");
 const outlineExponentInput = document.getElementById("outlineExponent");
@@ -111,10 +114,51 @@ function updateLayerVisibility() {
     });
 
     if (opacityField === 'None') {
-      // Handle opacity values
+      minOpacityValueInput.value = '';
+      maxOpacityValueInput.value = '';
     } else {
       const opacityValues = filteredFeatures.map(feature => feature.properties[opacityField]).filter(value => value !== null && value !== 0);
-      // Handle min and max opacity values with slider
+      const outlineValues = filteredFeatures.map(feature => feature.properties[outlineField]).filter(value => value !== null && value !== 0);
+
+      let minOpacity = opacityValues.length > 0 ? Math.min(...opacityValues) : 0;
+      let maxOpacity = opacityValues.length > 0 ? Math.max(...opacityValues) : 1;
+      let minOutline = outlineValues.length > 0 ? Math.min(...outlineValues) : 0;
+      let maxOutline = outlineValues.length > 0 ? Math.max(...outlineValues) : 1;
+
+      if (opacityField === 'pop' || opacityField === 'hh_fut') {
+        minOpacity = Math.floor(minOpacity);
+        maxOpacity = Math.ceil(maxOpacity);
+      } else {
+        minOpacity = Math.floor(minOpacity * 100) / 100;
+        maxOpacity = Math.ceil(maxOpacity * 100) / 100;
+      }
+
+      if (outlineField === 'pop' || outlineField === 'hh_fut') {
+        minOutline = Math.floor(minOutline);
+        maxOutline = Math.ceil(maxOutline);
+      } else {
+        minOutline = Math.floor(minOutline * 100) / 100;
+        maxOutline = Math.ceil(maxOutline * 100) / 100;
+      }
+
+      if (autoUpdateOpacity) {
+        minOpacityValueInput.value = minOpacity;
+        maxOpacityValueInput.value = maxOpacity;
+      }
+      if (autoUpdateOutline) {
+        minOutlineValueInput.value = minOutline;
+        maxOutlineValueInput.value = maxOutline;
+      }
+
+      const filteredGeoJson = {
+        type: "FeatureCollection",
+        features: filteredFeatures
+      };
+
+      const geoJsonLayer = L.geoJSON(filteredGeoJson, {
+        style: feature => styleFeature(feature, fieldToDisplay, opacityField, outlineField, parseFloat(minOpacityValueInput.value), parseFloat(maxOpacityValueInput.value), parseFloat(opacityExponentInput.value), parseFloat(minOutlineValueInput.value), parseFloat(maxOutlineValueInput.value), parseFloat(outlineExponentInput.value), selectedYear),
+        onEachFeature: (feature, layer) => onEachFeature(feature, layer, selectedYear)
+      }).addTo(map);
     }
   }
 
@@ -132,7 +176,14 @@ function onEachFeature(feature, layer, selectedYear) {
       let score = '-';
       let scoreLabel = 'Score';
 
-      if (scoreValue !== '-') {…}
+      if (scoreValue !== '-') {
+        if (selectedYear.includes('-')) {
+          score = Math.round(scoreValue * 100) + '%';
+          scoreLabel = 'Score Difference';
+        } else {
+          score = Math.round(scoreValue);
+        }
+      }
       
       const percentile = getValue(`${purposeMap[purposeDropdown.value]}_${modeMap[modeDropdown.value]}_100`) !== '-' ? Math.round(getValue(`${purposeMap[purposeDropdown.value]}_${modeMap[modeDropdown.value]}_100`)) : '-';
       const population = getValue('pop') !== '-' ? Math.round(getValue('pop')) : '-';
@@ -157,7 +208,21 @@ function getColor(value, selectedYear) {
   }
 
   if (selectedYear.includes('-')) {
-    if (value <= -0.2) {…} else
+    if (value <= -0.2) {
+      return '#FF0000'; // Red
+    } else if (value > -0.2 && value <= -0.1) {
+      return '#FF5500'; // Orange-Red
+    } else if (value > -0.1 && value < 0) {
+      return '#FFAA00'; // Orange
+    } else if (value === 0) {
+      return 'transparent'; // No colour or 100% transparency
+    } else if (value > 0 && value <= 0.1) {
+      return '#B0E200'; // Light Green
+    } else if (value >= 0.1 && value < 0.2) {
+      return '#6EC500'; // Green
+    } else {
+      return '#38A800'; // Dark Green
+    }
   } else {
     return value > 90 ? '#fde725' :
            value > 80 ? '#b5de2b' :
@@ -263,6 +328,23 @@ outlineFieldDropdown.addEventListener("change", () => {
   autoUpdateOutline = true;
   updateLayerVisibility();
 });
+minOpacityValueInput.addEventListener("blur", () => {
+  autoUpdateOpacity = false;
+  updateLayerVisibility();
+});
+maxOpacityValueInput.addEventListener("blur", () => {
+  autoUpdateOpacity = false;
+  updateLayerVisibility();
+});
+opacityExponentInput.addEventListener("input", updateLayerVisibility);
+minOutlineValueInput.addEventListener("blur", () => {
+  autoUpdateOutline = false;
+  updateLayerVisibility();
+});
+maxOutlineValueInput.addEventListener("blur", () => {
+  autoUpdateOutline = false;
+  updateLayerVisibility();
+});
 outlineExponentInput.addEventListener("input", updateLayerVisibility);
 
 // Function to style features
@@ -290,20 +372,3 @@ function scaleExp(value, minVal, maxVal, exponent, minScale, maxScale, order) {
   const scaledValue = Math.pow(normalizedValue, exponent / 20);
   return order === 'low-to-high' ? minScale + scaledValue * (maxScale - minScale) : maxScale - scaledValue * (maxScale - minScale);
 }
-
-// Slider for min and max opacity values
-const opacitySlider = document.getElementById("opacitySlider");
-const minOpacityToggle = document.getElementById("minOpacityToggle");
-const maxOpacityToggle = document.getElementById("maxOpacityToggle");
-
-opacitySlider.addEventListener("input", function() {
-  const minValue = minOpacityToggle.value;
-  const maxValue = maxOpacityToggle.value;
-  // Update the min and max values based on the slider positions
-  minOpacityValueInput.value = minValue;
-  maxOpacityValueInput.value = maxValue;
-});
-
-// Initialize slider values
-minOpacityToggle.value = minOpacityValueInput.value || 0;
-maxOpacityToggle.value = maxOpacityValueInput.value || 100;
