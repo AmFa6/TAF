@@ -200,17 +200,22 @@ function onEachFeature(feature, layer, selectedYear) {
 }
 
 function getColor(value, selectedYear, percentileValue) {
-  if (value === 0) {
-    return 'transparent';
-  }
   if (selectedYear.includes('-')) {
-    return value < -percentileValue / 2 ? '#FF0000' :
-           value < -percentileValue / 4 ? '#FF5500' :
-           value < 0 ? '#FFAA00' :
-           value === 0 ? '#828282' :
-           value < percentileValue / 4 ? '#B0E200' :
-           value < percentileValue / 2 ? '#6EC500' :
-                                         '#38A800';
+    if (value <= -1) {
+      return '#FF0000'; // Red
+    } else if (value > -1 && value <= -0.5) {
+      return '#FF5500'; // Orange-Red
+    } else if (value > -0.5 && value < 0) {
+      return '#FFAA00'; // Orange
+    } else if (value === 0) {
+      return 'transparent'; // No colour or 100% transparency
+    } else if (value > 0 && value <= 0.5) {
+      return '#B0E200'; // Light Green
+    } else if (value >= 0.5 && value < 1) {
+      return '#6EC500'; // Green
+    } else {
+      return '#38A800'; // Dark Green
+    }
   } else {
     return value > 90 ? '#fde725' :
            value > 80 ? '#b5de2b' :
@@ -343,12 +348,11 @@ maxOutlineValueInput.addEventListener("blur", () => {
 outlineExponentInput.addEventListener("input", updateLayerVisibility);
 
 // Function to style features
-function styleFeature(feature, fieldToDisplay, opacityField, outlineField, minOpacityValue, maxOpacityValue, opacityExponent, minOutlineValue, maxOutlineValue, outlineExponent, selectedYear, percentileValue) {
+function styleFeature(feature, fieldToDisplay, opacityField, outlineField, minOpacityValue, maxOpacityValue, opacityExponent, minOutlineValue, maxOutlineValue, outlineExponent) {
   const value = feature.properties[fieldToDisplay];
-  const color = getColor(value, selectedYear, percentileValue);
+  const color = getColor(value);
 
-  // Set opacity to 100% transparency if purpose_mode is 0
-  const opacity = value === 0 ? 0 : (opacityField === 'None' ? 0.75 : (feature.properties[opacityField] === 0 || feature.properties[opacityField] === null ? 0.05 : scaleExp(feature.properties[opacityField], minOpacityValue, maxOpacityValue, opacityExponent, 0.05, 0.75, opacityOrder)));
+  const opacity = opacityField === 'None' ? 0.75 : (feature.properties[opacityField] === 0 || feature.properties[opacityField] === null ? 0.05 : scaleExp(feature.properties[opacityField], minOpacityValue, maxOpacityValue, opacityExponent, 0.05, 0.75, opacityOrder));
   const weight = outlineField === 'None' ? 0 : (feature.properties[outlineField] === 0 || feature.properties[outlineField] === null ? 0 : scaleExp(feature.properties[outlineField], minOutlineValue, maxOutlineValue, outlineExponent, 0, 3, outlineOrder));
   
   return {
