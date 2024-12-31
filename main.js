@@ -141,8 +141,6 @@ function updateLayerVisibility() {
         maxOutline = Math.ceil(maxOutline * 100) / 100;
       }
 
-      const percentileValue = calculate95thPercentileValue(selectedYear);
-
       if (autoUpdateOpacity) {
         minOpacityValueInput.value = minOpacity;
         maxOpacityValueInput.value = maxOpacity;
