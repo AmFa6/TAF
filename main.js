@@ -90,6 +90,10 @@ let outlineOrder = 'low-to-high';
 // Function to update layer visibility
 function updateLayerVisibility() {
   const selectedYear = yearDropdown.value;
+  if (!selectedYear) {
+    console.error('No year selected');
+    return;
+  }
   const selectedPurpose = purposeDropdown.value;
   const selectedMode = modeDropdown.value;
   const opacityField = opacityFieldDropdown.value;
@@ -137,6 +141,8 @@ function updateLayerVisibility() {
         maxOutline = Math.ceil(maxOutline * 100) / 100;
       }
 
+      const percentileValue = calculate95thPercentileValue(selectedYear);
+
       if (autoUpdateOpacity) {
         minOpacityValueInput.value = minOpacity;
         maxOpacityValueInput.value = maxOpacity;
@@ -152,7 +158,7 @@ function updateLayerVisibility() {
       };
 
       const geoJsonLayer = L.geoJSON(filteredGeoJson, {
-        style: feature => styleFeature(feature, fieldToDisplay, opacityField, outlineField, parseFloat(minOpacityValueInput.value), parseFloat(maxOpacityValueInput.value), parseFloat(opacityExponentInput.value), parseFloat(minOutlineValueInput.value), parseFloat(maxOutlineValueInput.value), parseFloat(outlineExponentInput.value), selectedYear),
+        style: feature => styleFeature(feature, fieldToDisplay, opacityField, outlineField, parseFloat(minOpacityValueInput.value), parseFloat(maxOpacityValueInput.value), parseFloat(opacityExponentInput.value), parseFloat(minOutlineValueInput.value), parseFloat(maxOutlineValueInput.value), parseFloat(outlineExponentInput.value), selectedYear, percentileValue),
         onEachFeature: (feature, layer) => onEachFeature(feature, layer, selectedYear)
       }).addTo(map);
     }
@@ -196,6 +202,7 @@ function onEachFeature(feature, layer, selectedYear) {
     }
   });
 }
+
 
 function getColor(value, selectedYear) {
   if (!selectedYear) {
