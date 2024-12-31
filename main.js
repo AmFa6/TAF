@@ -200,6 +200,9 @@ function onEachFeature(feature, layer, selectedYear) {
 }
 
 function getColor(value, selectedYear, percentileValue) {
+  if (value === 0) {
+    return 'transparent';
+  }
   if (selectedYear.includes('-')) {
     return value < -percentileValue / 2 ? '#FF0000' :
            value < -percentileValue / 4 ? '#FF5500' :
@@ -344,7 +347,8 @@ function styleFeature(feature, fieldToDisplay, opacityField, outlineField, minOp
   const value = feature.properties[fieldToDisplay];
   const color = getColor(value, selectedYear, percentileValue);
 
-  const opacity = opacityField === 'None' ? 0.75 : (feature.properties[opacityField] === 0 || feature.properties[opacityField] === null ? 0.05 : scaleExp(feature.properties[opacityField], minOpacityValue, maxOpacityValue, opacityExponent, 0.05, 0.75, opacityOrder));
+  // Set opacity to 100% transparency if purpose_mode is 0
+  const opacity = value === 0 ? 0 : (opacityField === 'None' ? 0.75 : (feature.properties[opacityField] === 0 || feature.properties[opacityField] === null ? 0.05 : scaleExp(feature.properties[opacityField], minOpacityValue, maxOpacityValue, opacityExponent, 0.05, 0.75, opacityOrder)));
   const weight = outlineField === 'None' ? 0 : (feature.properties[outlineField] === 0 || feature.properties[outlineField] === null ? 0 : scaleExp(feature.properties[outlineField], minOutlineValue, maxOutlineValue, outlineExponent, 0, 3, outlineOrder));
   
   return {
