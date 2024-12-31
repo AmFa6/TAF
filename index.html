@@ -160,9 +160,9 @@
       <div class="field-container">
         <div>
           <label for="minOpacityValue" class="medium-font">Minimum:</label>
-          <input type="number" id="minOpacityValue" class="small-font">
+          <input type="range" id="minOpacityValue" min="0" max="100" step="1" value="0" class="small-font">
           <label for="maxOpacityValue" class="medium-font">Maximum:</label>
-          <input type="number" id="maxOpacityValue" class="small-font">
+          <input type="range" id="maxOpacityValue" min="0" max="100" step="1" value="100" class="small-font">
         </div>
         <div>
           <button id="resetOpacityButton" class="small-font">Reset Values</button>
@@ -190,9 +190,9 @@
       <div class="field-container">
         <div>
           <label for="minOutlineValue" class="medium-font">Minimum:</label>
-          <input type="number" id="minOutlineValue" class="small-font">
+          <input type="range" id="minOutlineValue" min="0" max="100" step="1" value="0" class="small-font">
           <label for="maxOutlineValue" class="medium-font">Maximum:</label>
-          <input type="number" id="maxOutlineValue" class="small-font">
+          <input type="range" id="maxOutlineValue" min="0" max="100" step="1" value="100" class="small-font">
         </div>
         <div>
           <button id="resetOutlineButton" class="small-font">Reset Values</button>
@@ -228,9 +228,31 @@
         outlineExponentValue.innerHTML = `<em>${outlineExponentInput.value}</em>`;
       });
 
+      const minOpacityValueInput = document.getElementById('minOpacityValue');
+      const maxOpacityValueInput = document.getElementById('maxOpacityValue');
+      const minOutlineValueInput = document.getElementById('minOutlineValue');
+      const maxOutlineValueInput = document.getElementById('maxOutlineValue');
+
+      minOpacityValueInput.addEventListener('input', function() {
+        document.getElementById('minOpacityValueDisplay').innerText = minOpacityValueInput.value;
+      });
+      maxOpacityValueInput.addEventListener('input', function() {
+        document.getElementById('maxOpacityValueDisplay').innerText = maxOpacityValueInput.value;
+      });
+      minOutlineValueInput.addEventListener('input', function() {
+        document.getElementById('minOutlineValueDisplay').innerText = minOutlineValueInput.value;
+      });
+      maxOutlineValueInput.addEventListener('input', function() {
+        document.getElementById('maxOutlineValueDisplay').innerText = maxOutlineValueInput.value;
+      });
+
       // Initialize values
       opacityExponentValue.innerHTML = `<em>${opacityExponentInput.value}</em>`;
       outlineExponentValue.innerHTML = `<em>${outlineExponentInput.value}</em>`;
+      document.getElementById('minOpacityValueDisplay').innerText = minOpacityValueInput.value;
+      document.getElementById('maxOpacityValueDisplay').innerText = maxOpacityValueInput.value;
+      document.getElementById('minOutlineValueDisplay').innerText = minOutlineValueInput.value;
+      document.getElementById('maxOutlineValueDisplay').innerText = maxOutlineValueInput.value;
 
       // Handle collapsible settings panel
       const collapsible = document.querySelector(".collapsible");
