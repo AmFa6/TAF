@@ -201,17 +201,27 @@ function onEachFeature(feature, layer, selectedYear) {
   });
 }
 
-function getColor(value) {
-  return value > 90 ? '#fde725' :
-         value > 80 ? '#b5de2b' :
-         value > 70 ? '#6ece58' :
-         value > 60 ? '#35b779' :
-         value > 50 ? '#1f9e89' :
-         value > 40 ? '#26828e' :
-         value > 30 ? '#31688e' :
-         value > 20 ? '#3e4989' :
-         value > 10 ? '#482777' :
-                      '#440154';
+function getColor(value, selectedYear) {
+  if (selectedYear.includes('-')) {
+    return value < -maxAbsValue / 2 ? '#FF0000' :
+           value < -maxAbsValue / 4 ? '#FF5500' :
+           value < 0 ? '#FFAA00' :
+           value === 0 ? '#828282' :
+           value < maxAbsValue / 4 ? '#B0E200' :
+           value < maxAbsValue / 2 ? '#6EC500' :
+                                     '#38A800';
+  } else {
+    return value > 90 ? '#fde725' :
+           value > 80 ? '#b5de2b' :
+           value > 70 ? '#6ece58' :
+           value > 60 ? '#35b779' :
+           value > 50 ? '#1f9e89' :
+           value > 40 ? '#26828e' :
+           value > 30 ? '#31688e' :
+           value > 20 ? '#3e4989' :
+           value > 10 ? '#482777' :
+                        '#440154';
+  }
 }
 
 function updateLegend() {
@@ -333,9 +343,11 @@ outlineExponentInput.addEventListener("input", updateLayerVisibility);
 // Function to style features
 function styleFeature(feature, fieldToDisplay, opacityField, outlineField, minOpacityValue, maxOpacityValue, opacityExponent, minOutlineValue, maxOutlineValue, outlineExponent, selectedYear, maxAbsValue) {
   const value = feature.properties[fieldToDisplay];
-  const color = getColor(value, selectedYear, maxAbsValue);
-  const opacity = opacityField === 'None' ? 0.75 : (feature.properties[opacityField] === 0 || feature.properties[opacityField] === null ? 0.05 : scaleExp(feature.properties[opacityField], minOpacityValue, maxOpacityValue, opacityExponent, 0.05, 0.95, opacityOrder));
-  const weight = outlineField === 'None' ? 0 : (feature.properties[outlineField] === 0 || feature.properties[outlineField] === null ? 0 : scaleExp(feature.properties[outlineField], minOutlineValue, maxOutlineValue, outlineExponent, 0, 3, outlineOrder));
+  const color = getColor(value, selectedYear);
+
+  const opacity = opacityField === 'None' ? 0.75 : (feature.properties[opacityField] === 0 || feature.properties[opacityField] === null ? 0.05 : scaleExp(feature.properties[opacityField], minOpacityValue, maxOpacityValue, opacityExponent, 0, 0.75, opacityOrder));
+  const weight = outlineField === 'None' ? 0 : (feature.properties[outlineField] === 0 || feature.properties[outlineField] === null ? 0 : scaleExp(feature.properties[outlineField], minOutlineValue, maxOutlineValue, outlineExponent, 0, 10, outlineOrder));
+  
   return {
     fillColor: color,
     weight: weight,
