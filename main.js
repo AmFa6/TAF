@@ -38,7 +38,8 @@ geoJsonFiles.forEach(file => {
     .catch(error => console.error(`Error loading GeoJSON: ${error.message}`));
 });
 
-document.addEventListener('DOMContentLoaded', () => {
+// Ensure DOM is fully loaded before running the script
+document.addEventListener('DOMContentLoaded', (event) => {
   // Populate year dropdown
   const yearDropdown = document.getElementById("yearDropdown");
   geoJsonFiles.forEach(file => {
@@ -154,7 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         const geoJsonLayer = L.geoJSON(filteredGeoJson, {
-          style: feature => styleFeature(feature, fieldToDisplay, opacityField, outlineField, parseFloat(document.getElementById('minOpacityValue').value), parseFloat(document.getElementById('maxOpacityValue').value), parseFloat(document.getElementById('opacityExponent').value), minOutline, maxOutline, outlineExponent, selectedYear),
+          style: feature => styleFeature(feature, fieldToDisplay, opacityField, outlineField, parseFloat(document.getElementById('minOpacityValue').value), parseFloat(document.getElementById('maxOpacityValue').value), parseFloat(document.getElementById('opacityExponent').value), minOutline, maxOutline, parseFloat(document.getElementById('outlineExponent').value), selectedYear),
           onEachFeature: (feature, layer) => onEachFeature(feature, layer, selectedYear)
         }).addTo(map);
       }
@@ -182,15 +183,15 @@ document.addEventListener('DOMContentLoaded', () => {
             score = Math.round(scoreValue);
           }
         }
-        
+
         const percentile = getValue(`${purposeMap[purposeDropdown.value]}_${modeMap[modeDropdown.value]}_100`) !== '-' ? Math.round(getValue(`${purposeMap[purposeDropdown.value]}_${modeMap[modeDropdown.value]}_100`)) : '-';
         const population = getValue('pop') !== '-' ? Math.round(getValue('pop')) : '-';
         const imd = population === 0 ? '-' : (getValue('imd') !== '-' ? getValue('imd').toFixed(2) : '-');
         const carAvailability = population === 0 ? '-' : (getValue('carav') !== '-' ? getValue('carav').toFixed(2) : '-');
         const futureDwellings = getValue('hh_fut') === 0 ? '-' : (getValue('hh_fut') !== '-' ? Math.round(getValue('hh_fut')) : '-');
-        
+
         let popupContent = `<strong>Hex_ID:</strong> ${hexId}<br><strong>${scoreLabel}:</strong> ${score}<br><strong>Percentile:</strong> ${percentile}<br><strong>Population:</strong> ${population}<br><strong>IMD:</strong> ${imd}<br><strong>Car Availability:</strong> ${carAvailability}<br><strong>Future Dwellings:</strong> ${futureDwellings}`;
-        
+
         L.popup()
           .setLatLng(e.latlng)
           .setContent(popupContent)
@@ -216,7 +217,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return 'transparent'; // No colour or 100% transparency
       } else if (value > 0 && value <= 0.1) {
         return '#B0E200'; // Light Green
-      } else if (value >= 0.1 && value < 0.2) { // Corrected here
+      } else if (value >= 0.1 && value < 0.2) {
         return '#6EC500'; // Green
       } else {
         return '#38A800'; // Dark Green
