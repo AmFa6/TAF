@@ -137,8 +137,6 @@ function updateLayerVisibility() {
         maxOutline = Math.ceil(maxOutline * 100) / 100;
       }
 
-      const maxAbsValue = Math.max(...filteredFeatures.map(feature => Math.abs(feature.properties[fieldToDisplay])));
-
       if (autoUpdateOpacity) {
         minOpacityValueInput.value = minOpacity;
         maxOpacityValueInput.value = maxOpacity;
@@ -154,7 +152,7 @@ function updateLayerVisibility() {
       };
 
       const geoJsonLayer = L.geoJSON(filteredGeoJson, {
-        style: feature => styleFeature(feature, fieldToDisplay, opacityField, outlineField, parseFloat(minOpacityValueInput.value), parseFloat(maxOpacityValueInput.value), parseFloat(opacityExponentInput.value), parseFloat(minOutlineValueInput.value), parseFloat(maxOutlineValueInput.value), parseFloat(outlineExponentInput.value), selectedYear, maxAbsValue),
+        style: feature => styleFeature(feature, fieldToDisplay, opacityField, outlineField, parseFloat(minOpacityValueInput.value), parseFloat(maxOpacityValueInput.value), parseFloat(opacityExponentInput.value), parseFloat(minOutlineValueInput.value), parseFloat(maxOutlineValueInput.value), parseFloat(outlineExponentInput.value), selectedYear),
         onEachFeature: (feature, layer) => onEachFeature(feature, layer, selectedYear)
       }).addTo(map);
     }
@@ -261,21 +259,6 @@ function updateLegend() {
     div.innerHTML = `<span style="display: inline-block; width: 20px; height: 20px; background-color: ${c.color};"></span> ${c.range}`;
     legendContent.appendChild(div);
   });
-}
-
-function calculate95thPercentile(values) {
-  if (values.length === 0) return 0;
-  values.sort((a, b) => a - b);
-  const index = Math.ceil(0.95 * values.length) - 1;
-  return values[index];
-}
-
-function calculate95thPercentileValue(selectedYear) {
-  const selectedLayer = layers[selectedYear];
-  const fieldToDisplay = `${purposeMap[purposeDropdown.value]}_${modeMap[modeDropdown.value]}`;
-  const filteredFeatures = selectedLayer.features.filter(feature => feature.properties[fieldToDisplay] !== undefined);
-  const values = filteredFeatures.map(feature => feature.properties[fieldToDisplay]);
-  return calculate95thPercentile(values);
 }
 
 // Function to reset opacity values to default
