@@ -101,7 +101,6 @@ function updateLayerVisibility() {
     }
   });
 
-  // Determine the field to display based on the selected purpose and mode
   const fieldToDisplay = selectedYear.includes('-') ? `${purposeMap[selectedPurpose]}_${modeMap[selectedMode]}` : `${purposeMap[selectedPurpose]}_${modeMap[selectedMode]}_100`;
   const selectedLayer = layers[selectedYear];
 
@@ -110,7 +109,6 @@ function updateLayerVisibility() {
       return feature.properties[fieldToDisplay] !== undefined;
     });
 
-    // Handle 'None' option for opacity field
     if (opacityField === 'None') {
       minOpacityValueInput.value = '';
       maxOpacityValueInput.value = '';
@@ -201,7 +199,7 @@ function onEachFeature(feature, layer, selectedYear) {
   });
 }
 
-function getColor(value, selectedYear) {
+function getColor(value, selectedYear, maxAbsValue) {
   if (selectedYear.includes('-')) {
     return value < -maxAbsValue / 2 ? '#FF0000' :
            value < -maxAbsValue / 4 ? '#FF5500' :
@@ -343,7 +341,7 @@ outlineExponentInput.addEventListener("input", updateLayerVisibility);
 // Function to style features
 function styleFeature(feature, fieldToDisplay, opacityField, outlineField, minOpacityValue, maxOpacityValue, opacityExponent, minOutlineValue, maxOutlineValue, outlineExponent, selectedYear, maxAbsValue) {
   const value = feature.properties[fieldToDisplay];
-  const color = getColor(value, selectedYear);
+  const color = getColor(value, selectedYear, maxAbsValue);
 
   const opacity = opacityField === 'None' ? 0.75 : (feature.properties[opacityField] === 0 || feature.properties[opacityField] === null ? 0.05 : scaleExp(feature.properties[opacityField], minOpacityValue, maxOpacityValue, opacityExponent, 0, 0.75, opacityOrder));
   const weight = outlineField === 'None' ? 0 : (feature.properties[outlineField] === 0 || feature.properties[outlineField] === null ? 0 : scaleExp(feature.properties[outlineField], minOutlineValue, maxOutlineValue, outlineExponent, 0, 10, outlineOrder));
