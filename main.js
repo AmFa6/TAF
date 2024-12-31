@@ -251,13 +251,13 @@ function updateLegend() {
   legendContent.appendChild(headerDiv);
 
   const classes = selectedYear.includes('-') ? [
-    { range: `<= -0.2`, color: "#FF0000" },
-    { range: `> -0.2 and <= -0.1`, color: "#FF5500" },
-    { range: `> -0.1 and < 0`, color: "#FFAA00" },
+    { range: `<= -20%`, color: "#FF0000" },
+    { range: `> -20% and <= -10%`, color: "#FF5500" },
+    { range: `> -10% and < 0`, color: "#FFAA00" },
     { range: `= 0`, color: "transparent" },
-    { range: `> 0 and <= 0.1`, color: "#B0E200" },
-    { range: `>= 0.1 and < 0.2`, color: "#6EC500" },
-    { range: `>= 0.2`, color: "#38A800" }
+    { range: `> 0 and <= 10%`, color: "#B0E200" },
+    { range: `>= 10% and < 20%`, color: "#6EC500" },
+    { range: `>= 20%`, color: "#38A800" }
   ] : [
     { range: `90-100 - 10% of region's population with best access to amenities`, color: "#fde725" },
     { range: `80-90`, color: "#b5de2b" },
