@@ -209,17 +209,17 @@ function getColor(value, selectedYear) {
   }
 
   if (selectedYear.includes('-')) {
-    if (value <= -1) {
+    if (value <= -0.2) {
       return '#FF0000'; // Red
-    } else if (value > -1 && value <= -0.5) {
+    } else if (value > -0.2 && value <= -0.1) {
       return '#FF5500'; // Orange-Red
-    } else if (value > -0.5 && value < 0) {
+    } else if (value > -0.1 && value < 0) {
       return '#FFAA00'; // Orange
     } else if (value === 0) {
       return 'transparent'; // No colour or 100% transparency
-    } else if (value > 0 && value <= 0.5) {
+    } else if (value > 0 && value <= 0.1) {
       return '#B0E200'; // Light Green
-    } else if (value >= 0.5 && value < 1) {
+    } else if (value >= 0.1 && value < 0.2) {
       return '#6EC500'; // Green
     } else {
       return '#38A800'; // Dark Green
