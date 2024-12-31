@@ -201,7 +201,6 @@ function onEachFeature(feature, layer, selectedYear) {
   });
 }
 
-
 function getColor(value, selectedYear) {
   if (!selectedYear) {
     console.error('No year selected');
@@ -244,15 +243,22 @@ function updateLegend() {
 
   legendContent.innerHTML = '';
 
-  const headerText = "Population Percentiles";
+  const headerText = selectedYear.includes('-') ? "Score Difference" : "Population Percentiles";
   const headerDiv = document.createElement("div");
   headerDiv.innerHTML = `${headerText}`;
   headerDiv.style.fontSize = "1.1em";
   headerDiv.style.marginBottom = "10px";
   legendContent.appendChild(headerDiv);
 
-  const values = [10, 20, 30, 40, 50, 60, 70, 80, 90];
-  const classes = [
+  const classes = selectedYear.includes('-') ? [
+    { range: `<= -0.2`, color: "#FF0000" },
+    { range: `> -0.2 and <= -0.1`, color: "#FF5500" },
+    { range: `> -0.1 and < 0`, color: "#FFAA00" },
+    { range: `= 0`, color: "transparent" },
+    { range: `> 0 and <= 0.1`, color: "#B0E200" },
+    { range: `>= 0.1 and < 0.2`, color: "#6EC500" },
+    { range: `>= 0.2`, color: "#38A800" }
+  ] : [
     { range: `90-100 - 10% of region's population with best access to amenities`, color: "#fde725" },
     { range: `80-90`, color: "#b5de2b" },
     { range: `70-80`, color: "#6ece58" },
@@ -264,6 +270,7 @@ function updateLegend() {
     { range: `10-20`, color: "#482777" },
     { range: `0-10 - 10% of region's population with worst access to amenities`, color: "#440154" }
   ];
+
   classes.forEach(c => {
     const div = document.createElement("div");
     div.innerHTML = `<span style="display: inline-block; width: 20px; height: 20px; background-color: ${c.color};"></span> ${c.range}`;
