@@ -218,7 +218,7 @@ function getColor(value, selectedYear) {
       return 'transparent'; // No colour or 100% transparency
     } else if (value > 0 && value <= 0.1) {
       return '#B0E200'; // Light Green
-    } else if (value >= 0.1 && value < 0.22) {
+    } else if (value >= 0.1 && value < 0.2) {
       return '#6EC500'; // Green
     } else {
       return '#38A800'; // Dark Green
