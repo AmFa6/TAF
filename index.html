@@ -20,7 +20,7 @@
       position: absolute;
       top: 10px;
       left: 10px;
-      z-index: 1000; /* Ensure the controls are always on top */
+      z-index: 1000;
       background: white;
       padding: 10px;
       border-radius: 5px;
@@ -30,9 +30,9 @@
     }
     #panel label, #panel select, #panel input {
       display: block;
-      margin-bottom: 5px; /* Reduce space between elements */
+      margin-bottom: 5px;
     }
-    #panel select, #panel input {
+    #panel select {
       width: 100%;
       padding: 5px;
       border: 1px solid #ccc;
@@ -41,72 +41,17 @@
       color: black;
       box-sizing: border-box;
     }
-    #panel select:focus, #panel input:focus {
-      outline: none;
-      border-color: #007bff;
-      box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
-    }
-    #panel input[type="range"] {
-      width: 100%;
-    }
-    .field-container {
+    #panel .slider {
       display: flex;
-      justify-content: space-between;
       align-items: center;
     }
-    .field-container > div:first-child {
-      flex: 1.05;
-    }
-    .field-container > div:last-child {
-      flex: 0.95;
-      margin-left: 10px;
-    }
-    .button-container {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .button-container > button {
+    .slider input[type="range"] {
       flex: 1;
-      margin-left: 10px;
+      margin: 0 10px;
     }
-    .button-container > button:first-child {
-      margin-left: 0;
-    }
-    .large-font {
-      font-size: 1.2em;
-    }
-    .medium-font {
-      font-size: 1em;
-    }
-    .small-font {
-      font-size: 0.8em;
-    }
-    .collapsible {
-      cursor: pointer;
-      border: none;
-      text-align: left;
-      outline: none;
-      font-size: 1em;
-      background: #f0f0f0;
-      margin-bottom: 10px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px;
-      border-radius: 5px;
-    }
-    .collapsible:after {
-      content: '\25BC';
-      font-size: 0.8em;
-      margin-left: 5px;
-    }
-    .collapsible-content {
-      display: none;
-      overflow: hidden;
-      background-color: #f0f0f0;
-      padding: 10px;
-      border-radius: 5px;
+    .slider-value {
+      width: 50px;
+      text-align: center;
     }
     #legend {
       position: absolute;
@@ -125,11 +70,11 @@
 <body>
   <div id="map"></div>
   <div id="panel">
-    <label for="yearDropdown" class="large-font">Year:</label>
-    <select id="yearDropdown" class="medium-font"></select>
+    <label for="yearDropdown">Year:</label>
+    <select id="yearDropdown"></select>
     <br>
-    <label for="purposeDropdown" class="large-font">Purpose of Travel:</label>
-    <select id="purposeDropdown" class="medium-font">
+    <label for="purposeDropdown">Purpose of Travel:</label>
+    <select id="purposeDropdown">
       <option value="All Amenities">All Amenities</option>
       <option value="Education">Education</option>
       <option value="Employment">Employment</option>
@@ -137,8 +82,8 @@
       <option value="Health">Health</option>
     </select>
     <br>
-    <label for="modeDropdown" class="large-font">Mode of Travel:</label>
-    <select id="modeDropdown" class="medium-font">
+    <label for="modeDropdown">Mode of Travel:</label>
+    <select id="modeDropdown">
       <option value="All Modes">All Modes</option>
       <option value="Walk">Walk</option>
       <option value="Cycle">Cycle</option>
@@ -146,100 +91,69 @@
       <option value="Car">Car</option>
     </select>
     <br>
-    <button type="button" class="collapsible">Settings</button>
-    <div class="collapsible-content">
-      <label for="opacityFieldDropdown" class="medium-font">Scale Opacity from:</label>
-      <select id="opacityFieldDropdown" class="small-font">
-        <option value="None">None</option>
-        <option value="pop">Population</option>
-        <option value="imd">Index of Multiple Deprivation</option>
-        <option value="carav">Car Availability</option>
-        <option value="hh_fut">Future Dwellings</option>
-      </select>
-      <br>
-      <div class="field-container">
-        <div>
-          <label for="minOpacityValue" class="medium-font">Minimum:</label>
-          <input type="number" id="minOpacityValue" class="small-font">
-          <label for="maxOpacityValue" class="medium-font">Maximum:</label>
-          <input type="number" id="maxOpacityValue" class="small-font">
-        </div>
-        <div>
-          <button id="resetOpacityButton" class="small-font">Reset Values</button>
-        </div>
-      </div>
-      <div class="field-container">
-        <div>
-          <label for="opacityExponent" class="medium-font">Contrast - <em id="opacityExponentValue">10</em></label>
-          <input type="range" id="opacityExponent" min="0" max="100" step="5" value="10" class="small-font">
-        </div>
-        <div class="button-container">
-          <button id="inverseOpacityScaleButton" class="small-font">Inverse Scale</button>
-        </div>
-      </div>
-      <br>
-      <label for="outlineFieldDropdown" class="medium-font">Scale Outline Width from:</label>
-      <select id="outlineFieldDropdown" class="small-font">
-        <option value="None">None</option>
-        <option value="imd">Index of Multiple Deprivation</option>
-        <option value="pop">Population</option>
-        <option value="carav">Car Availability</option>
-        <option value="hh_fut">Future Dwellings</option>
-      </select>
-      <br>
-      <div class="field-container">
-        <div>
-          <label for="minOutlineValue" class="medium-font">Minimum:</label>
-          <input type="number" id="minOutlineValue" class="small-font">
-          <label for="maxOutlineValue" class="medium-font">Maximum:</label>
-          <input type="number" id="maxOutlineValue" class="small-font">
-        </div>
-        <div>
-          <button id="resetOutlineButton" class="small-font">Reset Values</button>
-        </div>
-      </div>
-      <div class="field-container">
-        <div>
-          <label for="outlineExponent" class="medium-font">Contrast - <em id="outlineExponentValue">60</em></label>
-          <input type="range" id="outlineExponent" min="0" max="100" step="5" value="60" class="small-font">
-        </div>
-        <div class="button-container">
-          <button id="inverseOutlineScaleButton" class="small-font">Inverse Scale</button>
-        </div>
-      </div>
+    <label for="opacityFieldDropdown">Scale Opacity from:</label>
+    <select id="opacityFieldDropdown">
+      <option value="None">None</option>
+      <option value="pop">Population</option>
+      <option value="imd">Index of Multiple Deprivation</option>
+      <option value="carav">Car Availability</option>
+      <option value="hh_fut">Future Dwellings</option>
+    </select>
+    <br>
+    <div class="slider">
+      <input type="range" id="minOpacityValue" min="0" max="100" value="0">
+      <input type="range" id="maxOpacityValue" min="0" max="100" value="100">
+      <span class="slider-value" id="minOpacityDisplay">0</span>
+      <span class="slider-value" id="maxOpacityDisplay">100</span>
+    </div>
+    <br>
+    <label for="outlineFieldDropdown">Scale Outline Width from:</label>
+    <select id="outlineFieldDropdown">
+      <option value="None">None</option>
+      <option value="imd">Index of Multiple Deprivation</option>
+      <option value="pop">Population</option>
+      <option value="carav">Car Availability</option>
+      <option value="hh_fut">Future Dwellings</option>
+    </select>
+    <br>
+    <div class="slider">
+      <input type="range" id="minOutlineValue" min="0" max="100" value="0">
+      <input type="range" id="maxOutlineValue" min="0" max="100" value="100">
+      <span class="slider-value" id="minOutlineDisplay">0</span>
+      <span class="slider-value" id="maxOutlineDisplay">100</span>
     </div>
   </div>
   <div id="legend">
-    <h4 style="font-size: 1.2em; margin-top: 0;">Legend</h4>
+    <h4>Legend</h4>
     <div id="legend-content"></div>
   </div>
   <script src="main.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', (event) => {
-      const opacityExponentInput = document.getElementById('opacityExponent');
-      const opacityExponentValue = document.getElementById('opacityExponentValue');
-      opacityExponentInput.addEventListener('input', function() {
-        opacityExponentValue.innerHTML = `<em>${opacityExponentInput.value}</em>`;
+      const minOpacityValueInput = document.getElementById('minOpacityValue');
+      const maxOpacityValueInput = document.getElementById('maxOpacityValue');
+      const minOpacityDisplay = document.getElementById('minOpacityDisplay');
+      const maxOpacityDisplay = document.getElementById('maxOpacityDisplay');
+
+      minOpacityValueInput.addEventListener('input', function() {
+        minOpacityDisplay.textContent = minOpacityValueInput.value;
       });
 
-      const outlineExponentInput = document.getElementById('outlineExponent');
-      const outlineExponentValue = document.getElementById('outlineExponentValue');
-      outlineExponentInput.addEventListener('input', function() {
-        outlineExponentValue.innerHTML = `<em>${outlineExponentInput.value}</em>`;
+      maxOpacityValueInput.addEventListener('input', function() {
+        maxOpacityDisplay.textContent = maxOpacityValueInput.value;
       });
 
-      // Initialize values
-      opacityExponentValue.innerHTML = `<em>${opacityExponentInput.value}</em>`;
-      outlineExponentValue.innerHTML = `<em>${outlineExponentInput.value}</em>`;
+      const minOutlineValueInput = document.getElementById('minOutlineValue');
+      const maxOutlineValueInput = document.getElementById('maxOutlineValue');
+      const minOutlineDisplay = document.getElementById('minOutlineDisplay');
+      const maxOutlineDisplay = document.getElementById('maxOutlineDisplay');
 
-      // Handle collapsible settings panel
-      const collapsible = document.querySelector(".collapsible");
-      const content = document.querySelector(".collapsible-content");
+      minOutlineValueInput.addEventListener('input', function() {
+        minOutlineDisplay.textContent = minOutlineValueInput.value;
+      });
 
-      collapsible.addEventListener("click", function() {
-        this.classList.toggle("active");
-        content.style.display = content.style.display === "block" ? "none" : "block";
-        this.classList.toggle("collapsed", content.style.display === "none");
+      maxOutlineValueInput.addEventListener('input', function() {
+        maxOutlineDisplay.textContent = maxOutlineValueInput.value;
       });
     });
   </script>
