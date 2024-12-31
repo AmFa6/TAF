@@ -197,7 +197,12 @@ function onEachFeature(feature, layer, selectedYear) {
   });
 }
 
-function getColor(value, selectedYear, percentileValue) {
+function getColor(value, selectedYear) {
+  if (!selectedYear) {
+    console.error('No year selected');
+    return 'transparent';
+  }
+
   if (selectedYear.includes('-')) {
     if (value <= -1) {
       return '#FF0000'; // Red
