@@ -199,15 +199,15 @@ function onEachFeature(feature, layer, selectedYear) {
   });
 }
 
-function getColor(value, selectedYear, maxAbsValue) {
+function getColor(value, selectedYear, percentileValue) {
   if (selectedYear.includes('-')) {
-    return value < -maxAbsValue / 2 ? '#FF0000' :
-           value < -maxAbsValue / 4 ? '#FF5500' :
+    return value < -percentileValue / 2 ? '#FF0000' :
+           value < -percentileValue / 4 ? '#FF5500' :
            value < 0 ? '#FFAA00' :
            value === 0 ? '#828282' :
-           value < maxAbsValue / 4 ? '#B0E200' :
-           value < maxAbsValue / 2 ? '#6EC500' :
-                                     '#38A800';
+           value < percentileValue / 4 ? '#B0E200' :
+           value < percentileValue / 2 ? '#6EC500' :
+                                         '#38A800';
   } else {
     return value > 90 ? '#fde725' :
            value > 80 ? '#b5de2b' :
@@ -255,18 +255,19 @@ function updateLegend() {
   });
 }
 
-function calculateMaxAbsValue(selectedYear) {
-  const selectedLayer = layers[selectedYear];
-  const fieldToDisplay = `${purposeMap[purposeDropdown.value]}_${modeMap[modeDropdown.value]}`;
-  const filteredFeatures = selectedLayer.features.filter(feature => feature.properties[fieldToDisplay] !== undefined);
-  return Math.max(...filteredFeatures.map(feature => Math.abs(feature.properties[fieldToDisplay])));
+function calculate95thPercentile(values) {
+  if (values.length === 0) return 0;
+  values.sort((a, b) => a - b);
+  const index = Math.ceil(0.95 * values.length) - 1;
+  return values[index];
 }
 
-function calculateMaxAbsValue(selectedYear) {
+function calculate95thPercentileValue(selectedYear) {
   const selectedLayer = layers[selectedYear];
   const fieldToDisplay = `${purposeMap[purposeDropdown.value]}_${modeMap[modeDropdown.value]}`;
   const filteredFeatures = selectedLayer.features.filter(feature => feature.properties[fieldToDisplay] !== undefined);
-  return Math.max(...filteredFeatures.map(feature => Math.abs(feature.properties[fieldToDisplay])));
+  const values = filteredFeatures.map(feature => feature.properties[fieldToDisplay]);
+  return calculate95thPercentile(values);
 }
 
 // Function to reset opacity values to default
@@ -339,12 +340,12 @@ maxOutlineValueInput.addEventListener("blur", () => {
 outlineExponentInput.addEventListener("input", updateLayerVisibility);
 
 // Function to style features
-function styleFeature(feature, fieldToDisplay, opacityField, outlineField, minOpacityValue, maxOpacityValue, opacityExponent, minOutlineValue, maxOutlineValue, outlineExponent, selectedYear, maxAbsValue) {
+function styleFeature(feature, fieldToDisplay, opacityField, outlineField, minOpacityValue, maxOpacityValue, opacityExponent, minOutlineValue, maxOutlineValue, outlineExponent, selectedYear, percentileValue) {
   const value = feature.properties[fieldToDisplay];
-  const color = getColor(value, selectedYear, maxAbsValue);
+  const color = getColor(value, selectedYear, percentileValue);
 
-  const opacity = opacityField === 'None' ? 0.75 : (feature.properties[opacityField] === 0 || feature.properties[opacityField] === null ? 0.05 : scaleExp(feature.properties[opacityField], minOpacityValue, maxOpacityValue, opacityExponent, 0, 0.75, opacityOrder));
-  const weight = outlineField === 'None' ? 0 : (feature.properties[outlineField] === 0 || feature.properties[outlineField] === null ? 0 : scaleExp(feature.properties[outlineField], minOutlineValue, maxOutlineValue, outlineExponent, 0, 10, outlineOrder));
+  const opacity = opacityField === 'None' ? 0.75 : (feature.properties[opacityField] === 0 || feature.properties[opacityField] === null ? 0.05 : scaleExp(feature.properties[opacityField], minOpacityValue, maxOpacityValue, opacityExponent, 0.05, 0.75, opacityOrder));
+  const weight = outlineField === 'None' ? 0 : (feature.properties[outlineField] === 0 || feature.properties[outlineField] === null ? 0 : scaleExp(feature.properties[outlineField], minOutlineValue, maxOutlineValue, outlineExponent, 0, 3, outlineOrder));
   
   return {
     fillColor: color,
