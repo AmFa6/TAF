@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -121,38 +120,6 @@
       width: 250px;
       word-wrap: break-word;
     }
-    .range-slider {
-      position: relative;
-      width: 100%;
-    }
-    .range-slider input[type="range"] {
-      position: absolute;
-      width: 100%;
-      pointer-events: none;
-      -webkit-appearance: none;
-      appearance: none;
-      background: transparent;
-    }
-    .range-slider input[type="range"]::-webkit-slider-thumb {
-      pointer-events: all;
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      background: #007bff;
-      cursor: pointer;
-      -webkit-appearance: none;
-      appearance: none;
-    }
-    .range-slider input[type="range"]::-moz-range-thumb {
-      pointer-events: all;
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      background: #007bff;
-      cursor: pointer;
-      -webkit-appearance: none;
-      appearance: none;
-    }
   </style>
 </head>
 <body>
@@ -192,11 +159,10 @@
       <br>
       <div class="field-container">
         <div>
-          <label for="opacityRange" class="medium-font">Opacity Range:</label>
-          <div class="range-slider">
-            <input type="range" id="minOpacityRange" min="0" max="1" step="0.01" value="0">
-            <input type="range" id="maxOpacityRange" min="0" max="1" step="0.01" value="1">
-          </div>
+          <label for="minOpacityValue" class="medium-font">Minimum:</label>
+          <input type="number" id="minOpacityValue" class="small-font">
+          <label for="maxOpacityValue" class="medium-font">Maximum:</label>
+          <input type="number" id="maxOpacityValue" class="small-font">
         </div>
         <div>
           <button id="resetOpacityButton" class="small-font">Reset Values</button>
@@ -223,11 +189,10 @@
       <br>
       <div class="field-container">
         <div>
-          <label for="outlineRange" class="medium-font">Outline Range:</label>
-          <div class="range-slider">
-            <input type="range" id="minOutlineRange" min="0" max="4" step="0.1" value="0">
-            <input type="range" id="maxOutlineRange" min="0" max="4" step="0.1" value="4">
-          </div>
+          <label for="minOutlineValue" class="medium-font">Minimum:</label>
+          <input type="number" id="minOutlineValue" class="small-font">
+          <label for="maxOutlineValue" class="medium-font">Maximum:</label>
+          <input type="number" id="maxOutlineValue" class="small-font">
         </div>
         <div>
           <button id="resetOutlineButton" class="small-font">Reset Values</button>
@@ -275,34 +240,6 @@
         this.classList.toggle("active");
         content.style.display = content.style.display === "block" ? "none" : "block";
         this.classList.toggle("collapsed", content.style.display === "none");
-      });
-
-      // Sync the two range inputs for opacity
-      const minOpacityRange = document.getElementById('minOpacityRange');
-      const maxOpacityRange = document.getElementById('maxOpacityRange');
-      minOpacityRange.addEventListener('input', function() {
-        if (parseFloat(minOpacityRange.value) > parseFloat(maxOpacityRange.value)) {
-          maxOpacityRange.value = minOpacityRange.value;
-        }
-      });
-      maxOpacityRange.addEventListener('input', function() {
-        if (parseFloat(maxOpacityRange.value) < parseFloat(minOpacityRange.value)) {
-          minOpacityRange.value = maxOpacityRange.value;
-        }
-      });
-
-      // Sync the two range inputs for outline
-      const minOutlineRange = document.getElementById('minOutlineRange');
-      const maxOutlineRange = document.getElementById('maxOutlineRange');
-      minOutlineRange.addEventListener('input', function() {
-        if (parseFloat(minOutlineRange.value) > parseFloat(maxOutlineRange.value)) {
-          maxOutlineRange.value = minOutlineRange.value;
-        }
-      });
-      maxOutlineRange.addEventListener('input', function() {
-        if (parseFloat(maxOutlineRange.value) < parseFloat(minOutlineRange.value)) {
-          minOutlineRange.value = maxOutlineRange.value;
-        }
       });
     });
   </script>
