@@ -6,6 +6,8 @@
   <title>Transport Accessibility Framework</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.5.0/nouislider.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.5.0/nouislider.min.js"></script>
   <style>
     html, body {
       height: 100%;
@@ -20,7 +22,7 @@
       position: absolute;
       top: 10px;
       left: 10px;
-      z-index: 1000; /* Ensure the controls are always on top */
+      z-index: 1000;
       background: white;
       padding: 10px;
       border-radius: 5px;
@@ -30,7 +32,7 @@
     }
     #panel label, #panel select, #panel input {
       display: block;
-      margin-bottom: 5px; /* Reduce space between elements */
+      margin-bottom: 5px;
     }
     #panel select, #panel input {
       width: 100%;
@@ -46,87 +48,13 @@
       border-color: #007bff;
       box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
     }
-    #panel input[type="range"] {
-      width: 100%;
-    }
-    .field-container {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .field-container > div:first-child {
-      flex: 1.05;
-    }
-    .field-container > div:last-child {
-      flex: 0.95;
-      margin-left: 10px;
-    }
-    .button-container {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .button-container > button {
-      flex: 1;
-      margin-left: 10px;
-    }
-    .button-container > button:first-child {
-      margin-left: 0;
-    }
-    .large-font {
-      font-size: 1.2em;
-    }
-    .medium-font {
-      font-size: 1em;
-    }
-    .small-font {
-      font-size: 0.8em;
-    }
-    .collapsible {
-      cursor: pointer;
-      border: none;
-      text-align: left;
-      outline: none;
-      font-size: 1em;
-      background: #f0f0f0;
-      margin-bottom: 10px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px;
-      border-radius: 5px;
-    }
-    .collapsible:after {
-      content: '\25BC';
-      font-size: 0.8em;
-      margin-left: 5px;
-    }
-    .collapsible-content {
-      display: none;
-      overflow: hidden;
-      background-color: #f0f0f0;
-      padding: 10px;
-      border-radius: 5px;
-    }
-    #legend {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      background: white;
-      padding: 5px;
-      border-radius: 5px;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-      z-index: 1000;
-      width: 250px;
-      word-wrap: break-word;
-    }
     .range-slider-container {
       display: flex;
-      align-items: center;
+      flex-direction: column;
       gap: 10px;
     }
-    .range-slider-container input[type="range"] {
-      flex: 1;
+    .nouislider-container {
+      margin-bottom: 20px;
     }
   </style>
 </head>
@@ -165,10 +93,7 @@
         <option value="hh_fut">Future Dwellings</option>
       </select>
       <br>
-      <div class="range-slider-container">
-        <label for="range" class="medium-font">Range:</label>
-        <input type="range" id="range" min="0" max="100" step="1" multiple>
-      </div>
+      <div class="nouislider-container" id="opacityRangeContainer"></div>
       <button id="resetOpacityButton" class="small-font">Reset Values</button>
       <div class="field-container">
         <div>
@@ -189,10 +114,7 @@
         <option value="hh_fut">Future Dwellings</option>
       </select>
       <br>
-      <div class="range-slider-container">
-        <label for="outlineRange" class="medium-font">Range:</label>
-        <input type="range" id="outlineRange" min="0" max="100" step="1" multiple>
-      </div>
+      <div class="nouislider-container" id="outlineRangeContainer"></div>
       <button id="resetOutlineButton" class="small-font">Reset Values</button>
       <div class="field-container">
         <div>
@@ -227,6 +149,38 @@
       // Initialize values
       opacityExponentValue.innerHTML = `<em>${opacityExponentInput.value}</em>`;
       outlineExponentValue.innerHTML = `<em>${outlineExponentInput.value}</em>`;
+
+      // Initialize noUiSlider for opacity range
+      const opacityRangeContainer = document.getElementById('opacityRangeContainer');
+      noUiSlider.create(opacityRangeContainer, {
+        start: [0, 100],
+        connect: true,
+        range: {
+          'min': 0,
+          'max': 100
+        },
+        tooltips: [true, true],
+        format: {
+          to: value => Math.round(value),
+          from: value => Number(value)
+        }
+      });
+
+      // Initialize noUiSlider for outline range
+      const outlineRangeContainer = document.getElementById('outlineRangeContainer');
+      noUiSlider.create(outlineRangeContainer, {
+        start: [0, 100],
+        connect: true,
+        range: {
+          'min': 0,
+          'max': 100
+        },
+        tooltips: [true, true],
+        format: {
+          to: value => Math.round(value),
+          from: value => Number(value)
+        }
+      });
 
       // Handle collapsible settings panel
       const collapsible = document.querySelector(".collapsible");
