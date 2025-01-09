@@ -120,12 +120,12 @@
       width: 250px;
       word-wrap: break-word;
     }
-    .dual-slider-container {
+    .range-slider-container {
       display: flex;
       align-items: center;
       gap: 10px;
     }
-    .dual-slider-container input[type="range"] {
+    .range-slider-container input[type="range"] {
       flex: 1;
     }
   </style>
@@ -165,11 +165,9 @@
         <option value="hh_fut">Future Dwellings</option>
       </select>
       <br>
-      <div class="dual-slider-container">
-        <label for="minOpacityValue" class="medium-font">Min:</label>
-        <input type="range" id="minOpacityValue" min="0" max="100" step="1">
-        <label for="maxOpacityValue" class="medium-font">Max:</label>
-        <input type="range" id="maxOpacityValue" min="0" max="100" step="1">
+      <div class="range-slider-container">
+        <label for="range" class="medium-font">Range:</label>
+        <input type="range" id="range" min="0" max="100" step="1" multiple>
       </div>
       <button id="resetOpacityButton" class="small-font">Reset Values</button>
       <div class="field-container">
@@ -191,11 +189,9 @@
         <option value="hh_fut">Future Dwellings</option>
       </select>
       <br>
-      <div class="dual-slider-container">
-        <label for="minOutlineValue" class="medium-font">Min:</label>
-        <input type="range" id="minOutlineValue" min="0" max="100" step="1">
-        <label for="maxOutlineValue" class="medium-font">Max:</label>
-        <input type="range" id="maxOutlineValue" min="0" max="100" step="1">
+      <div class="range-slider-container">
+        <label for="outlineRange" class="medium-font">Range:</label>
+        <input type="range" id="outlineRange" min="0" max="100" step="1" multiple>
       </div>
       <button id="resetOutlineButton" class="small-font">Reset Values</button>
       <div class="field-container">
