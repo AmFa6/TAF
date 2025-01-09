@@ -87,7 +87,35 @@ let autoUpdateOutline = true;
 let opacityOrder = 'low-to-high';
 let outlineOrder = 'low-to-high';
 
-// Function to update layer visibility
+// Add a slider with two toggles for min and max values
+const sliderContainer = document.getElementById("sliderContainer");
+noUiSlider.create(sliderContainer, {
+  start: [0, 100], // Initial values for min and max
+  connect: true,
+  range: {
+    'min': 0,
+    'max': 100
+  },
+  tooltips: [true, true],
+  format: {
+    to: value => Math.round(value),
+    from: value => Number(value)
+  }
+});
+
+// Event listener for slider changes
+sliderContainer.noUiSlider.on('update', (values, handle) => {
+  const minValue = values[0];
+  const maxValue = values[1];
+
+  // Update min and max inputs
+  minOpacityValueInput.value = minValue;
+  maxOpacityValueInput.value = maxValue;
+
+  // Update layer visibility based on new values
+  updateLayerVisibility();
+});
+
 function updateLayerVisibility() {
   const selectedYear = yearDropdown.value;
   if (!selectedYear) {
@@ -353,7 +381,7 @@ function styleFeature(feature, fieldToDisplay, opacityField, outlineField, minOp
   const color = getColor(value, selectedYear);
 
   const opacity = opacityField === 'None' ? 0.75 : (feature.properties[opacityField] === 0 || feature.properties[opacityField] === null ? 0.05 : scaleExp(feature.properties[opacityField], minOpacityValue, maxOpacityValue, opacityExponent, 0.05, 0.75, opacityOrder));
-  const weight = outlineField === 'None' ? 0 : (feature.properties[outlineField] === 0 || feature.properties[outlineField] === null ? 0 : scaleExp(feature.properties[outlineField], minOutlineValue, maxOutlineValue, outlineExponent, 0.5, 2, outlineOrder));
+  const weight = outlineField === 'None' ? 0 : (feature.properties[outlineField] === 0 || feature.properties[outlineField] === null ? 0 : scaleExp(feature.properties[outlineField], minOutlineValue, maxOutlineValue, outlineExponent, 0, 3, outlineOrder));
   
   return {
     fillColor: color,
@@ -370,5 +398,4 @@ function scaleExp(value, minVal, maxVal, exponent, minScale, maxScale, order) {
   if (value >= maxVal) return order === 'low-to-high' ? maxScale : minScale;
   const normalizedValue = (value - minVal) / (maxVal - minVal);
   const scaledValue = Math.pow(normalizedValue, exponent / 20);
-  return order === 'low-to-high' ? minScale + scaledValue * (maxScale - minScale) : maxScale - scaledValue * (maxScale - minScale);
-}
+  return order === 'low-to-high' ? minScale + scaledValue * (maxScale - min
