@@ -384,7 +384,7 @@ function styleFeature(feature, fieldToDisplay, opacityField, outlineField, minOp
   const color = getColor(value, selectedYear);
 
   const opacity = opacityField === 'None' ? 0.75 : (feature.properties[opacityField] === 0 || feature.properties[opacityField] === null ? 0.05 : scaleExp(feature.properties[opacityField], minOpacityValue, maxOpacityValue, opacityExponent, 0.05, 0.75, opacityOrder));
-  const weight = outlineField === 'None' ? 0 : (feature.properties[outlineField] === 0 || feature.properties[outlineField] === null ? 0 : scaleExp(feature.properties[outlineField], minOutlineValue, maxOutlineValue, outlineExponent, 0, 5, outlineOrder));
+  const weight = outlineField === 'None' ? 0 : (feature.properties[outlineField] === 0 || feature.properties[outlineField] === null ? 0 : scaleExp(feature.properties[outlineField], minOutlineValue, maxOutlineValue, outlineExponent, 0, 6, outlineOrder));
   
   return {
     fillColor: color,
@@ -401,4 +401,4 @@ function scaleExp(value, minVal, maxVal, exponent, minScale, maxScale, order) {
   if (value >= maxVal) return order === 'low-to-high' ? maxScale : minScale;
   const normalizedValue = (value - minVal) / (maxVal - minVal);
   const scaledValue = Math.pow(normalizedValue, exponent / 20);
-  return order === 'low-to-high' ? min
+  return order
