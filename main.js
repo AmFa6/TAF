@@ -88,7 +88,10 @@ let opacityOrder = 'low-to-high';
 let outlineOrder = 'low-to-high';
 
 // Add a slider with two toggles for min and max values
-const sliderContainer = document.getElementById("sliderContainer");
+const sliderContainer = document.createElement('div');
+sliderContainer.id = 'sliderContainer';
+document.querySelector('.range-slider-container').appendChild(sliderContainer);
+
 noUiSlider.create(sliderContainer, {
   start: [0, 100], // Initial values for min and max
   connect: true,
@@ -381,7 +384,7 @@ function styleFeature(feature, fieldToDisplay, opacityField, outlineField, minOp
   const color = getColor(value, selectedYear);
 
   const opacity = opacityField === 'None' ? 0.75 : (feature.properties[opacityField] === 0 || feature.properties[opacityField] === null ? 0.05 : scaleExp(feature.properties[opacityField], minOpacityValue, maxOpacityValue, opacityExponent, 0.05, 0.75, opacityOrder));
-  const weight = outlineField === 'None' ? 0 : (feature.properties[outlineField] === 0 || feature.properties[outlineField] === null ? 0 : scaleExp(feature.properties[outlineField], minOutlineValue, maxOutlineValue, outlineExponent, 0, 3, outlineOrder));
+  const weight = outlineField === 'None' ? 0 : (feature.properties[outlineField] === 0 || feature.properties[outlineField] === null ? 0 : scaleExp(feature.properties[outlineField], minOutlineValue, maxOutlineValue, outlineExponent, 0, 5, outlineOrder));
   
   return {
     fillColor: color,
@@ -398,4 +401,4 @@ function scaleExp(value, minVal, maxVal, exponent, minScale, maxScale, order) {
   if (value >= maxVal) return order === 'low-to-high' ? maxScale : minScale;
   const normalizedValue = (value - minVal) / (maxVal - minVal);
   const scaledValue = Math.pow(normalizedValue, exponent / 20);
-  return order === 'low-to-high' ? minScale + scaledValue * (maxScale - min
+  return order === 'low-to-high' ? min
