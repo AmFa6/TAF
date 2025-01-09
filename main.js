@@ -328,20 +328,20 @@ outlineFieldDropdown.addEventListener("change", () => {
   autoUpdateOutline = true;
   updateLayerVisibility();
 });
-minOpacityValueInput.addEventListener("blur", () => {
+minOpacityValueInput.addEventListener("input", () => {
   autoUpdateOpacity = false;
   updateLayerVisibility();
 });
-maxOpacityValueInput.addEventListener("blur", () => {
+maxOpacityValueInput.addEventListener("input", () => {
   autoUpdateOpacity = false;
   updateLayerVisibility();
 });
 opacityExponentInput.addEventListener("input", updateLayerVisibility);
-minOutlineValueInput.addEventListener("blur", () => {
+minOutlineValueInput.addEventListener("input", () => {
   autoUpdateOutline = false;
   updateLayerVisibility();
 });
-maxOutlineValueInput.addEventListener("blur", () => {
+maxOutlineValueInput.addEventListener("input", () => {
   autoUpdateOutline = false;
   updateLayerVisibility();
 });
@@ -353,7 +353,7 @@ function styleFeature(feature, fieldToDisplay, opacityField, outlineField, minOp
   const color = getColor(value, selectedYear);
 
   const opacity = opacityField === 'None' ? 0.75 : (feature.properties[opacityField] === 0 || feature.properties[opacityField] === null ? 0.05 : scaleExp(feature.properties[opacityField], minOpacityValue, maxOpacityValue, opacityExponent, 0.05, 0.75, opacityOrder));
-  const weight = outlineField === 'None' ? 0 : (feature.properties[outlineField] === 0 || feature.properties[outlineField] === null ? 0 : scaleExp(feature.properties[outlineField], minOutlineValue, maxOutlineValue, outlineExponent, 0, 4, outlineOrder));
+  const weight = outlineField === 'None' ? 0 : (feature.properties[outlineField] === 0 || feature.properties[outlineField] === null ? 0 : scaleExp(feature.properties[outlineField], minOutlineValue, maxOutlineValue, outlineExponent, 0.5, 2, outlineOrder));
   
   return {
     fillColor: color,
