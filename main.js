@@ -8,15 +8,15 @@ const baseLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/lig
 
 // List of GeoJSON files and corresponding years
 const geoJsonFiles = [
-  { year: '2024', path: 'https://AmFa6.github.io/TAF_test/2024_connectscore.geojson' },
-  { year: '2023', path: 'https://AmFa6.github.io/TAF_test/2023_connectscore.geojson' },
-  { year: '2022', path: 'https://AmFa6.github.io/TAF_test/2022_connectscore.geojson' },
-  { year: '2019', path: 'https://AmFa6.github.io/TAF_test/2019_connectscore.geojson' },
-  { year: '2023-2024', path: 'https://AmFa6.github.io/TAF_test/2023-2024_connectscore.geojson' },
-  { year: '2019-2024', path: 'https://AmFa6.github.io/TAF_test/2019-2024_connectscore.geojson' },
-  { year: '2022-2023', path: 'https://AmFa6.github.io/TAF_test/2022-2023_connectscore.geojson' },
-  { year: '2019-2023', path: 'https://AmFa6.github.io/TAF_test/2019-2023_connectscore.geojson' }, 
-  { year: '2019-2022', path: 'https://AmFa6.github.io/TAF_test/2019-2022_connectscore.geojson' }
+  { year: '2024', path: 'https://AmFa6.github.io/TAF/2024_connectscore.geojson' },
+  { year: '2023', path: 'https://AmFa6.github.io/TAF/2023_connectscore.geojson' },
+  { year: '2022', path: 'https://AmFa6.github.io/TAF/2022_connectscore.geojson' },
+  { year: '2019', path: 'https://AmFa6.github.io/TAF/2019_connectscore.geojson' },
+  { year: '2023-2024', path: 'https://AmFa6.github.io/TAF/2023-2024_connectscore.geojson' },
+  { year: '2019-2024', path: 'https://AmFa6.github.io/TAF/2019-2024_connectscore.geojson' },
+  { year: '2022-2023', path: 'https://AmFa6.github.io/TAF/2022-2023_connectscore.geojson' },
+  { year: '2019-2023', path: 'https://AmFa6.github.io/TAF/2019-2023_connectscore.geojson' }, 
+  { year: '2019-2022', path: 'https://AmFa6.github.io/TAF/2019-2022_connectscore.geojson' }
 ];
 
 // Load GeoJSON layers
