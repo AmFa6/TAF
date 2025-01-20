@@ -3,9 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Transport Accessibility Framework</title>
+  <title>Connectivity Tool</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.5.0/nouislider.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.5.0/nouislider.min.js"></script>
   <style>
     html, body {
       height: 100%;
@@ -120,6 +122,45 @@
       width: 250px;
       word-wrap: break-word;
     }
+    .noUi-target {
+      background: #f0f0f0; /* Background of the slider */
+      border-radius: 5px;
+      box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.1);
+      height: 0.5em;
+    }
+    .noUi-connect {
+      background: linear-gradient(to right, rgba(118, 118, 118, 0) 0%, rgba(118, 118, 118, 1) 50%, #767676 50%); /* Gradient from transparent to grey, then solid grey */
+      height: 0.5em;
+    }
+    .noUi-connect-right-solid {
+      background: #767676 !important; /* Solid grey fill */
+    }
+    .noUi-handle {
+      background: #767676 !important; /* Handle color */
+      border: none !important;
+      border-radius: 50% !important;
+      box-shadow: none !important;
+      width: 14px !important; /* Adjust this value if needed */
+      height: 14px !important; /* Adjust this value if needed */
+      cursor: pointer !important;
+      top: 50%; /* Vertically center the handle */
+      transform: translate(-50%, 5%) !important; /* Center the handle over its position */
+    }
+    .noUi-handle-left {
+      background: rgba(255, 255, 255, 0.0) !important; /* Transparent inside */
+      border: 2px solid #767676 !important; /* Grey outline */
+    }
+    .noUi-handle:before,
+    .noUi-handle:after {
+      display: none !important; /* Remove the additional bars */
+    }
+    .noUi-tooltip {
+      background: #007bff;
+      color: #fff;
+      border-radius: 3px;
+      padding: 5px;
+      font-size: 0.8em;
+    }
   </style>
 </head>
 <body>
@@ -148,7 +189,7 @@
     <br>
     <button type="button" class="collapsible">Settings</button>
     <div class="collapsible-content">
-      <label for="opacityFieldDropdown" class="medium-font">Scale Opacity from:</label>
+      <label for="opacityFieldDropdown" class="medium-font">Set Hexagon Transparency to:</label>
       <select id="opacityFieldDropdown" class="small-font">
         <option value="None">None</option>
         <option value="pop">Population</option>
@@ -159,26 +200,17 @@
       <br>
       <div class="field-container">
         <div>
-          <label for="minOpacityValue" class="medium-font">Minimum:</label>
-          <input type="number" id="minOpacityValue" class="small-font">
-          <label for="maxOpacityValue" class="medium-font">Maximum:</label>
-          <input type="number" id="maxOpacityValue" class="small-font">
-        </div>
-        <div>
-          <button id="resetOpacityButton" class="small-font">Reset Values</button>
+          <label for="opacityRangeSlider" class="medium-font">Range: <span id="opacityRangeMin">0</span> - <span id="opacityRangeMax">1</span></label>
+          <div id="opacityRangeSlider"></div>
         </div>
       </div>
       <div class="field-container">
-        <div>
-          <label for="opacityExponent" class="medium-font">Contrast - <em id="opacityExponentValue">10</em></label>
-          <input type="range" id="opacityExponent" min="0" max="100" step="5" value="10" class="small-font">
-        </div>
         <div class="button-container">
           <button id="inverseOpacityScaleButton" class="small-font">Inverse Scale</button>
         </div>
       </div>
       <br>
-      <label for="outlineFieldDropdown" class="medium-font">Scale Outline Width from:</label>
+      <label for="outlineFieldDropdown" class="medium-font">Set Hexagon Outline to:</label>
       <select id="outlineFieldDropdown" class="small-font">
         <option value="None">None</option>
         <option value="imd">Index of Multiple Deprivation</option>
@@ -189,20 +221,11 @@
       <br>
       <div class="field-container">
         <div>
-          <label for="minOutlineValue" class="medium-font">Minimum:</label>
-          <input type="number" id="minOutlineValue" class="small-font">
-          <label for="maxOutlineValue" class="medium-font">Maximum:</label>
-          <input type="number" id="maxOutlineValue" class="small-font">
-        </div>
-        <div>
-          <button id="resetOutlineButton" class="small-font">Reset Values</button>
+          <label for="outlineRangeSlider" class="medium-font">Range: <span id="outlineRangeMin">0</span> - <span id="outlineRangeMax">4</span></label>
+          <div id="outlineRangeSlider"></div>
         </div>
       </div>
       <div class="field-container">
-        <div>
-          <label for="outlineExponent" class="medium-font">Contrast - <em id="outlineExponentValue">60</em></label>
-          <input type="range" id="outlineExponent" min="0" max="100" step="5" value="60" class="small-font">
-        </div>
         <div class="button-container">
           <button id="inverseOutlineScaleButton" class="small-font">Inverse Scale</button>
         </div>
@@ -216,22 +239,6 @@
   <script src="main.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', (event) => {
-      const opacityExponentInput = document.getElementById('opacityExponent');
-      const opacityExponentValue = document.getElementById('opacityExponentValue');
-      opacityExponentInput.addEventListener('input', function() {
-        opacityExponentValue.innerHTML = `<em>${opacityExponentInput.value}</em>`;
-      });
-
-      const outlineExponentInput = document.getElementById('outlineExponent');
-      const outlineExponentValue = document.getElementById('outlineExponentValue');
-      outlineExponentInput.addEventListener('input', function() {
-        outlineExponentValue.innerHTML = `<em>${outlineExponentInput.value}</em>`;
-      });
-
-      // Initialize values
-      opacityExponentValue.innerHTML = `<em>${opacityExponentInput.value}</em>`;
-      outlineExponentValue.innerHTML = `<em>${outlineExponentInput.value}</em>`;
-
       // Handle collapsible settings panel
       const collapsible = document.querySelector(".collapsible");
       const content = document.querySelector(".collapsible-content");
