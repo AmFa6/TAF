@@ -8,15 +8,15 @@ const baseLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/lig
 
 // List of GeoJSON files and corresponding years
 const geoJsonFiles = [
-  { year: '2024', path: 'https://AmFa6.github.io/TAF/2024_connectscore.geojson' },
-  { year: '2023', path: 'https://AmFa6.github.io/TAF/2023_connectscore.geojson' },
-  { year: '2022', path: 'https://AmFa6.github.io/TAF/2022_connectscore.geojson' },
-  { year: '2019', path: 'https://AmFa6.github.io/TAF/2019_connectscore.geojson' },
-  { year: '2023-2024', path: 'https://AmFa6.github.io/TAF/2023-2024_connectscore.geojson' },
-  { year: '2019-2024', path: 'https://AmFa6.github.io/TAF/2019-2024_connectscore.geojson' },
-  { year: '2022-2023', path: 'https://AmFa6.github.io/TAF/2022-2023_connectscore.geojson' },
-  { year: '2019-2023', path: 'https://AmFa6.github.io/TAF/2019-2023_connectscore.geojson' }, 
-  { year: '2019-2022', path: 'https://AmFa6.github.io/TAF/2019-2022_connectscore.geojson' }
+  { year: '2024', path: 'https://AmFa6.github.io/TAF_test/2024_connectscore.geojson' },
+  { year: '2023', path: 'https://AmFa6.github.io/TAF_test/2023_connectscore.geojson' },
+  { year: '2022', path: 'https://AmFa6.github.io/TAF_test/2022_connectscore.geojson' },
+  { year: '2019', path: 'https://AmFa6.github.io/TAF_test/2019_connectscore.geojson' },
+  { year: '2023-2024', path: 'https://AmFa6.github.io/TAF_test/2023-2024_connectscore.geojson' },
+  { year: '2019-2024', path: 'https://AmFa6.github.io/TAF_test/2019-2024_connectscore.geojson' },
+  { year: '2022-2023', path: 'https://AmFa6.github.io/TAF_test/2022-2023_connectscore.geojson' },
+  { year: '2019-2023', path: 'https://AmFa6.github.io/TAF_test/2019-2023_connectscore.geojson' }, 
+  { year: '2019-2022', path: 'https://AmFa6.github.io/TAF_test/2019-2022_connectscore.geojson' }
 ];
 
 // Load GeoJSON layers
@@ -32,6 +32,8 @@ geoJsonFiles.forEach(file => {
       console.log(`Loaded GeoJSON for year ${file.year}`);
       layersLoaded++;
       if (layersLoaded === totalLayers) {
+        initializeSliders();
+        updateSliderRanges();
         updateLayerVisibility();
       }
     })
@@ -52,12 +54,6 @@ const purposeDropdown = document.getElementById("purposeDropdown");
 const modeDropdown = document.getElementById("modeDropdown");
 const opacityFieldDropdown = document.getElementById("opacityFieldDropdown");
 const outlineFieldDropdown = document.getElementById("outlineFieldDropdown");
-const minOpacityValueInput = document.getElementById("minOpacityValue");
-const maxOpacityValueInput = document.getElementById("maxOpacityValue");
-const opacityExponentInput = document.getElementById("opacityExponent");
-const minOutlineValueInput = document.getElementById("minOutlineValue");
-const maxOutlineValueInput = document.getElementById("maxOutlineValue");
-const outlineExponentInput = document.getElementById("outlineExponent");
 
 // Ensure 'Population' is the default value for opacityFieldDropdown
 opacityFieldDropdown.value = "pop";
@@ -87,6 +83,187 @@ let autoUpdateOutline = true;
 let opacityOrder = 'low-to-high';
 let outlineOrder = 'low-to-high';
 
+let opacityRangeSlider;
+let outlineRangeSlider;
+
+function initializeSliders() {
+  // Initialize noUiSlider for opacity range
+  opacityRangeSlider = document.getElementById('opacityRangeSlider');
+  noUiSlider.create(opacityRangeSlider, {
+    start: [0, 0],
+    connect: [false, true, true], // Set left connect to false and right to true
+    range: {
+      'min': 0,
+      'max': 0
+    },
+    step: 1,
+    tooltips: false,
+    format: {
+      to: value => parseFloat(value).toFixed(2), // Ensure two decimal places
+      from: value => parseFloat(value)
+    }
+  });
+
+  // Apply the class to the left handle
+  const handles = opacityRangeSlider.querySelectorAll('.noUi-handle');
+  if (handles.length > 0) {
+    handles[0].classList.add('noUi-handle-left');
+  }
+
+  // Apply the class to the right connect element
+  const connectElements = opacityRangeSlider.querySelectorAll('.noUi-connect');
+  if (connectElements.length > 1) {
+    connectElements[1].classList.add('noUi-connect-right');
+    connectElements[1].classList.add('noUi-connect-right-solid');
+  }
+
+  // Initialize noUiSlider for outline width range
+  outlineRangeSlider = document.getElementById('outlineRangeSlider');
+  noUiSlider.create(outlineRangeSlider, {
+    start: [0, 0],
+    connect: [false, true, true],
+    range: {
+      'min': 0,
+      'max': 0
+    },
+    step: 1,
+    tooltips: false,
+    format: {
+      to: value => parseFloat(value).toFixed(2), // Ensure two decimal places
+      from: value => parseFloat(value)
+    }
+  });
+
+  const outlineHandles = outlineRangeSlider.querySelectorAll('.noUi-handle');
+  if (outlineHandles.length > 0) {
+    outlineHandles[0].classList.add('noUi-handle-left');
+  }
+
+  // Apply the class to the right connect element
+  const outlineConnectElements = outlineRangeSlider.querySelectorAll('.noUi-connect');
+  if (outlineConnectElements.length > 1) {
+    outlineConnectElements[1].classList.add('noUi-connect-right');
+    outlineConnectElements[1].classList.add('noUi-connect-right-solid');
+  }
+
+  // Add event listeners to update map rendering when sliders are adjusted
+  opacityRangeSlider.noUiSlider.on('update', updateLayerVisibility);
+  outlineRangeSlider.noUiSlider.on('update', updateLayerVisibility);
+
+  // Add event listeners to update range labels
+  opacityRangeSlider.noUiSlider.on('update', function(values, handle) {
+    document.getElementById('opacityRangeMin').innerText = formatValue(values[0], opacityRangeSlider.noUiSlider.options.step);
+    document.getElementById('opacityRangeMax').innerText = formatValue(values[1], opacityRangeSlider.noUiSlider.options.step);
+  });
+
+  outlineRangeSlider.noUiSlider.on('update', function(values, handle) {
+    document.getElementById('outlineRangeMin').innerText = formatValue(values[0], outlineRangeSlider.noUiSlider.options.step);
+    document.getElementById('outlineRangeMax').innerText = formatValue(values[1], outlineRangeSlider.noUiSlider.options.step);
+  });
+}
+
+// Function to format values based on step size for display
+function formatValue(value, step) {
+  if (step >= 1) {
+    return parseFloat(value).toFixed(0);
+  } else if (step >= 0.1) {
+    return parseFloat(value).toFixed(1);
+  } else if (step >= 0.01) {
+    return parseFloat(value).toFixed(2);
+  } else {
+    return value.toString();
+  }
+}
+
+function updateSliderRanges() {
+  const opacityField = opacityFieldDropdown.value;
+  const outlineField = outlineFieldDropdown.value;
+
+  const selectedYear = yearDropdown.value;
+  const selectedLayer = layers[selectedYear];
+
+  if (selectedLayer) {
+    const opacityValues = opacityField !== "None" ? selectedLayer.features.map(feature => feature.properties[opacityField]).filter(value => value !== null && value !== 0) : [];
+    const outlineValues = outlineField !== "None" ? selectedLayer.features.map(feature => feature.properties[outlineField]).filter(value => value !== null && value !== 0) : [];
+
+    const minOpacity = Math.min(...opacityValues);
+    const maxOpacity = Math.max(...opacityValues);
+    const minOutline = Math.min(...outlineValues);
+    const maxOutline = Math.max(...outlineValues);
+
+    const roundedMaxOpacity = Math.pow(10, Math.ceil(Math.log10(maxOpacity)));
+    const roundedMaxOutline = Math.pow(10, Math.ceil(Math.log10(maxOutline)));
+
+    let opacityStep = roundedMaxOpacity / 100;
+    let outlineStep = roundedMaxOutline / 100;
+
+    if (isNaN(opacityStep) || opacityStep <= 0) {
+      opacityStep = 1;
+    }
+    if (isNaN(outlineStep) || outlineStep <= 0) {
+      outlineStep = 1;
+    }
+
+    const adjustedMaxOpacity = Math.floor(maxOpacity / opacityStep) * opacityStep;
+    const adjustedMinOpacity = Math.ceil(minOpacity / opacityStep) * opacityStep;
+    const adjustedMaxOutline = Math.floor(maxOutline / outlineStep) * outlineStep;
+    const adjustedMinOutline = Math.ceil(minOutline / outlineStep) * outlineStep;
+
+    if (opacityField === "None") {
+      opacityRangeSlider.setAttribute('disabled', true);
+      opacityRangeSlider.noUiSlider.updateOptions({
+        range: {
+          'min': 0,
+          'max': 0
+        },
+        step: 1
+      });
+      opacityRangeSlider.noUiSlider.set([0, 0]);
+      document.getElementById('opacityRangeMin').innerText = '';
+      document.getElementById('opacityRangeMax').innerText = '';
+    } else {
+      opacityRangeSlider.removeAttribute('disabled');
+      opacityRangeSlider.noUiSlider.updateOptions({
+        range: {
+          'min': adjustedMinOpacity,
+          'max': adjustedMaxOpacity
+        },
+        step: opacityStep
+      });
+      opacityRangeSlider.noUiSlider.set([adjustedMinOpacity, adjustedMaxOpacity]);
+      document.getElementById('opacityRangeMin').innerText = formatValue(adjustedMinOpacity, opacityStep);
+      document.getElementById('opacityRangeMax').innerText = formatValue(adjustedMaxOpacity, opacityStep);
+    }
+    if (outlineField === "None") {
+      outlineRangeSlider.setAttribute('disabled', true);
+      outlineRangeSlider.noUiSlider.updateOptions({
+        range: {
+          'min': 0,
+          'max': 0
+        },
+        step: 1
+      });
+      outlineRangeSlider.noUiSlider.set([0, 0]);
+      document.getElementById('outlineRangeMin').innerText = '';
+      document.getElementById('outlineRangeMax').innerText = '';
+    } else {
+      outlineRangeSlider.removeAttribute('disabled');
+      outlineRangeSlider.noUiSlider.updateOptions({
+        range: {
+          'min': adjustedMinOutline,
+          'max': adjustedMaxOutline
+        },
+        step: parseFloat(outlineStep.toFixed(1))
+      });
+      outlineRangeSlider.noUiSlider.set([adjustedMinOutline, adjustedMaxOutline]);
+      document.getElementById('outlineRangeMin').innerText = formatValue(adjustedMinOutline, outlineStep);
+      document.getElementById('outlineRangeMax').innerText = formatValue(adjustedMaxOutline, outlineStep);
+    }
+  } else {
+    console.error('Selected layer not found for year:', selectedYear);
+  }
+}
+
 // Function to update layer visibility
 function updateLayerVisibility() {
   const selectedYear = yearDropdown.value;
@@ -113,53 +290,23 @@ function updateLayerVisibility() {
       return feature.properties[fieldToDisplay] !== undefined;
     });
 
-    if (opacityField === 'None') {
-      minOpacityValueInput.value = '';
-      maxOpacityValueInput.value = '';
-    } else {
-      const opacityValues = filteredFeatures.map(feature => feature.properties[opacityField]).filter(value => value !== null && value !== 0);
-      const outlineValues = filteredFeatures.map(feature => feature.properties[outlineField]).filter(value => value !== null && value !== 0);
+    let minOpacity = parseFloat(opacityRangeSlider.noUiSlider.get()[0]);
+    let maxOpacity = parseFloat(opacityRangeSlider.noUiSlider.get()[1]);
+    let minOutline = parseFloat(outlineRangeSlider.noUiSlider.get()[0]);
+    let maxOutline = parseFloat(outlineRangeSlider.noUiSlider.get()[1]);
 
-      let minOpacity = opacityValues.length > 0 ? Math.min(...opacityValues) : 0;
-      let maxOpacity = opacityValues.length > 0 ? Math.max(...opacityValues) : 1;
-      let minOutline = outlineValues.length > 0 ? Math.min(...outlineValues) : 0;
-      let maxOutline = outlineValues.length > 0 ? Math.max(...outlineValues) : 1;
+    console.log(`Opacity range: min=${minOpacity}, max=${maxOpacity}`);
+    console.log(`Outline range: min=${minOutline}, max=${maxOutline}`);
 
-      if (opacityField === 'pop' || opacityField === 'hh_fut') {
-        minOpacity = Math.floor(minOpacity);
-        maxOpacity = Math.ceil(maxOpacity);
-      } else {
-        minOpacity = Math.floor(minOpacity * 100) / 100;
-        maxOpacity = Math.ceil(maxOpacity * 100) / 100;
-      }
+    const filteredGeoJson = {
+      type: "FeatureCollection",
+      features: filteredFeatures
+    };
 
-      if (outlineField === 'pop' || outlineField === 'hh_fut') {
-        minOutline = Math.floor(minOutline);
-        maxOutline = Math.ceil(maxOutline);
-      } else {
-        minOutline = Math.floor(minOutline * 100) / 100;
-        maxOutline = Math.ceil(maxOutline * 100) / 100;
-      }
-
-      if (autoUpdateOpacity) {
-        minOpacityValueInput.value = minOpacity;
-        maxOpacityValueInput.value = maxOpacity;
-      }
-      if (autoUpdateOutline) {
-        minOutlineValueInput.value = minOutline;
-        maxOutlineValueInput.value = maxOutline;
-      }
-
-      const filteredGeoJson = {
-        type: "FeatureCollection",
-        features: filteredFeatures
-      };
-
-      const geoJsonLayer = L.geoJSON(filteredGeoJson, {
-        style: feature => styleFeature(feature, fieldToDisplay, opacityField, outlineField, parseFloat(minOpacityValueInput.value), parseFloat(maxOpacityValueInput.value), parseFloat(opacityExponentInput.value), parseFloat(minOutlineValueInput.value), parseFloat(maxOutlineValueInput.value), parseFloat(outlineExponentInput.value), selectedYear),
-        onEachFeature: (feature, layer) => onEachFeature(feature, layer, selectedYear)
-      }).addTo(map);
-    }
+    const geoJsonLayer = L.geoJSON(filteredGeoJson, {
+      style: feature => styleFeature(feature, fieldToDisplay, opacityField, outlineField, minOpacity, maxOpacity, minOutline, maxOutline, selectedYear),
+      onEachFeature: (feature, layer) => onEachFeature(feature, layer, selectedYear)
+    }).addTo(map);
   }
 
   updateLegend();
@@ -278,18 +425,29 @@ function updateLegend() {
   });
 }
 
-// Function to reset opacity values to default
-function resetOpacityValues() {
-  autoUpdateOpacity = true;
-  updateLayerVisibility();
+let isInverse = false;
+
+function toggleInverseScale() {
+  isInverse = !isInverse;
+  const opacityRangeSlider = document.getElementById('opacityRangeSlider');
+  const handles = opacityRangeSlider.querySelectorAll('.noUi-handle');
+  const connectElements = opacityRangeSlider.querySelectorAll('.noUi-connect');
+
+  if (isInverse) {
+    handles[0].classList.remove('noUi-handle-left');
+    handles[1].classList.add('noUi-handle-left');
+    connectElements[0].classList.remove('noUi-connect-right-solid');
+    connectElements[0].style.background = 'linear-gradient(to right, #767676 0%, rgba(118, 118, 118, 1) 50%, rgba(118, 118, 118, 0) 100%)';
+    connectElements[1].style.background = '#767676';
+  } else {
+    handles[1].classList.remove('noUi-handle-left');
+    handles[0].classList.add('noUi-handle-left');
+    connectElements[0].style.background = 'linear-gradient(to right, rgba(118, 118, 118, 0) 0%, rgba(118, 118, 118, 1) 50%, #767676 50%)';
+    connectElements[1].style.background = '#767676';
+  }
 }
 
-// Function to reset outline values to default
-function resetOutlineValues() {
-  autoUpdateOutline = true;
-  updateLayerVisibility();
-}
-
+document.getElementById('inverseOpacityScaleButton').addEventListener('click', toggleInverseScale);
 // Function to inverse opacity scale
 function inverseOpacityScale() {
   opacityOrder = opacityOrder === 'low-to-high' ? 'high-to-low' : 'low-to-high';
@@ -302,13 +460,6 @@ function inverseOutlineScale() {
   updateLayerVisibility();
 }
 
-// Add event listeners to reset buttons
-const resetOpacityButton = document.getElementById("resetOpacityButton");
-resetOpacityButton.addEventListener("click", resetOpacityValues);
-
-const resetOutlineButton = document.getElementById("resetOutlineButton");
-resetOutlineButton.addEventListener("click", resetOutlineValues);
-
 // Add event listeners to inverse scale buttons
 const inverseOpacityScaleButton = document.getElementById("inverseOpacityScaleButton");
 inverseOpacityScaleButton.addEventListener("click", inverseOpacityScale);
@@ -317,43 +468,30 @@ const inverseOutlineScaleButton = document.getElementById("inverseOutlineScaleBu
 inverseOutlineScaleButton.addEventListener("click", inverseOutlineScale);
 
 // Add event listeners to dropdowns and inputs
-yearDropdown.addEventListener("change", updateLayerVisibility);
+yearDropdown.addEventListener("change", () => {
+  updateSliderRanges();
+  updateLayerVisibility();
+});
 purposeDropdown.addEventListener("change", updateLayerVisibility);
 modeDropdown.addEventListener("change", updateLayerVisibility);
 opacityFieldDropdown.addEventListener("change", () => {
   autoUpdateOpacity = true;
+  updateSliderRanges();
   updateLayerVisibility();
 });
 outlineFieldDropdown.addEventListener("change", () => {
   autoUpdateOutline = true;
+  updateSliderRanges();
   updateLayerVisibility();
 });
-minOpacityValueInput.addEventListener("blur", () => {
-  autoUpdateOpacity = false;
-  updateLayerVisibility();
-});
-maxOpacityValueInput.addEventListener("blur", () => {
-  autoUpdateOpacity = false;
-  updateLayerVisibility();
-});
-opacityExponentInput.addEventListener("input", updateLayerVisibility);
-minOutlineValueInput.addEventListener("blur", () => {
-  autoUpdateOutline = false;
-  updateLayerVisibility();
-});
-maxOutlineValueInput.addEventListener("blur", () => {
-  autoUpdateOutline = false;
-  updateLayerVisibility();
-});
-outlineExponentInput.addEventListener("input", updateLayerVisibility);
 
 // Function to style features
-function styleFeature(feature, fieldToDisplay, opacityField, outlineField, minOpacityValue, maxOpacityValue, opacityExponent, minOutlineValue, maxOutlineValue, outlineExponent, selectedYear) {
+function styleFeature(feature, fieldToDisplay, opacityField, outlineField, minOpacityValue, maxOpacityValue, minOutlineValue, maxOutlineValue, selectedYear) {
   const value = feature.properties[fieldToDisplay];
   const color = getColor(value, selectedYear);
 
-  const opacity = opacityField === 'None' ? 0.75 : (feature.properties[opacityField] === 0 || feature.properties[opacityField] === null ? 0.05 : scaleExp(feature.properties[opacityField], minOpacityValue, maxOpacityValue, opacityExponent, 0.05, 0.75, opacityOrder));
-  const weight = outlineField === 'None' ? 0 : (feature.properties[outlineField] === 0 || feature.properties[outlineField] === null ? 0 : scaleExp(feature.properties[outlineField], minOutlineValue, maxOutlineValue, outlineExponent, 0, 4, outlineOrder));
+  const opacity = opacityField === 'None' ? 0.75 : (feature.properties[opacityField] === 0 || feature.properties[opacityField] === null ? 0.05 : scaleExp(feature.properties[opacityField], minOpacityValue, maxOpacityValue, 0.05, 0.75, opacityOrder));
+  const weight = outlineField === 'None' ? 0 : (feature.properties[outlineField] === 0 || feature.properties[outlineField] === null ? 0 : scaleExp(feature.properties[outlineField], minOutlineValue, maxOutlineValue, 0, 4, outlineOrder));
   
   return {
     fillColor: color,
@@ -364,11 +502,10 @@ function styleFeature(feature, fieldToDisplay, opacityField, outlineField, minOp
   };
 }
 
-// Function to scale values exponentially
-function scaleExp(value, minVal, maxVal, exponent, minScale, maxScale, order) {
-  if (value <= minVal) return order === 'low-to-high' ? minScale : maxScale;
-  if (value >= maxVal) return order === 'low-to-high' ? maxScale : minScale;
-  const normalizedValue = (value - minVal) / (maxVal - minVal);
-  const scaledValue = Math.pow(normalizedValue, exponent / 20);
-  return order === 'low-to-high' ? minScale + scaledValue * (maxScale - minScale) : maxScale - scaledValue * (maxScale - minScale);
+function scaleExp(value, minVal, maxVal, minScale, maxScale, order) {
+    if (value <= minVal) return order === 'low-to-high' ? minScale : maxScale;
+    if (value >= maxVal) return order === 'low-to-high' ? maxScale : minScale;
+    const normalizedValue = (value - minVal) / (maxVal - minVal);
+    const scaledValue = order === 'low-to-high' ? normalizedValue : 1 - normalizedValue;
+    return minScale + scaledValue * (maxScale - minScale);
 }
