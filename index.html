@@ -80,10 +80,22 @@
     }
     .button-container > button {
       flex: 1;
-      margin-left: 10px;
+      cursor: pointer;
+      text-align: center;
+      border-radius: 5px;
+      font-family: 'Trebuchet MS', sans-serif;
+      font-weight: normal;
     }
-    .button-container > button:first-child {
-      margin-left: 0;
+    .large-button {
+      font-size: 1em;
+      padding: 8px;
+      border: 0.2px solid #767676;
+      margin: 10px;
+    }
+    .small-button {
+      font-size: 0.8em;
+      padding: 1 5px;
+      border: 0.1px solid #767676;
     }
     .collapsible {
       cursor: pointer;
@@ -92,11 +104,11 @@
       outline: none;
       font-size: 1em;
       background: #f0f0f0;
-      margin-bottom: 10px;
+      margin: 10px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 10px;
+      padding: 7px;
       border-radius: 5px;
       font-family: 'Trebuchet MS', sans-serif;
       font-weight: normal;
@@ -237,11 +249,21 @@
 <body>
   <div id="map"></div>
   <div id="panel-container">
-    <div id="panel" class="panel">
+    <div id="Scores" class="panel">
       <button class="panel-header">Connectivity Scores</button>
       <div id="panel-content">
         <label for="yearScoresDropdown" class="large-font">Year:</label>
-        <select id="yearScoresDropdown" class="medium-font"></select>
+        <select id="yearScoresDropdown" class="medium-font">
+          <option value="2024">2024</option>
+          <option value="2023">2023</option>
+          <option value="2022">2022</option>
+          <option value="2019">2019</option>
+          <option value="2023-2024">2023-2024</option>
+          <option value="2019-2024">2019-2024</option>
+          <option value="2022-2023">2022-2023</option>
+          <option value="2019-2023">2019-2023</option>
+          <option value="2019-2022">2019-2022</option>
+        </select>
         <br>
         <label for="purposeScoresDropdown" class="large-font">Purpose of Travel:</label>
         <select id="purposeScoresDropdown" class="medium-font">
@@ -260,7 +282,6 @@
           <option value="PT">Public Transport</option>
           <option value="Ca">Car</option>
         </select>
-        <br>
         <button type="button" class="collapsible">Settings</button>
         <div class="collapsible-content">
           <label for="opacityFieldScoresDropdown" class="medium-font">Link Hexagon Transparency to:</label>
@@ -283,7 +304,7 @@
           </div>
           <div class="field-container">
             <div class="button-container">
-              <button id="inverseOpacityScaleScoresButton" class="small-font">Inverse Scale</button>
+              <button id="inverseOpacityScaleScoresButton" class="small-button">Inverse Scale</button>
             </div>
           </div>
           <br>
@@ -307,13 +328,13 @@
           </div>
           <div class="field-container">
             <div class="button-container">
-              <button id="inverseOutlineScaleScoresButton" class="small-font">Inverse Scale</button>
+              <button id="inverseOutlineScaleScoresButton" class="small-button">Inverse Scale</button>
             </div>
           </div>
         </div>
       </div>
     </div>
-    <div id="panel-amenities" class="panel">
+    <div id="Amenities" class="panel">
       <button class="panel-header">Journey Time Catchments - Amenities</button>
       <div id="panel-content">
         <label for="yearAmenitiesDropdown" class="large-font">Year:</label>
@@ -340,10 +361,7 @@
         <label class="checkbox-label"><input type="checkbox" value="MajCtr"> <span>Major Centre</span></label>
         <label class="checkbox-label"><input type="checkbox" value="DisCtr"> <span>District Centre</span></label>
         <label class="checkbox-label"><input type="checkbox" value="GP"> <span>General Practice</span></label>
-        <label class="checkbox-label"><input type="checkbox" value="Hospital"> <span>Hospital</span></label>
-        <br>
-        <button id="drawAmenitiesMap" class="medium-font">Draw Map</button>
-        <br>
+        <label class="checkbox-label"><input type="checkbox" value="Hos"> <span>Hospital</span></label>
         <button type="button" class="collapsible">Settings</button>
         <div class="collapsible-content">
           <label for="opacityFieldAmenitiesDropdown" class="medium-font">Link Hexagon Transparency to:</label>
@@ -366,7 +384,7 @@
           </div>
           <div class="field-container">
             <div class="button-container">
-              <button id="inverseOpacityScaleAmenitiesButton" class="small-font">Inverse Scale</button>
+              <button id="inverseOpacityScaleAmenitiesButton" class="small-button">Inverse Scale</button>
             </div>
           </div>
           <br>
@@ -390,29 +408,27 @@
           </div>
           <div class="field-container">
             <div class="button-container">
-              <button id="inverseOutlineScaleAmenitiesButton" class="small-font">Inverse Scale</button>
+              <button id="inverseOutlineScaleAmenitiesButton" class="small-button">Inverse Scale</button>
             </div>
           </div>
         </div>
       </div>
     </div>
-    <div id="panel-hexagons" class="panel">
+    <div id="Hexagons" class="panel">
       <button class="panel-header">Journey Time Catchments - Hexagons</button>
       <div id="panel-hexagons-content">
-        <label for="yearDropdownHexagons" class="large-font">Year:</label>
-        <select id="yearDropdownHexagons" class="medium-font">
+        <label for="yearHexagonsDropdown" class="large-font">Year:</label>
+        <select id="yearHexagonsDropdown" class="medium-font">
           <option value="2024">2024</option>
         </select>
         <br>
-        <label for="modeDropdownHexagons" class="large-font">Mode of Travel:</label>
-        <select id="modeDropdownHexagons" class="medium-font">
+        <label for="modeHexagonsDropdown" class="large-font">Mode of Travel:</label>
+        <select id="modeHexagonsDropdown" class="medium-font">
           <option value="Wa">Walk</option>
           <option value="Cy">Cycle</option>
           <option value="PT">Public Transport</option>
           <option value="Ca">Car</option>
         </select>
-        <br>
-        <button id="drawMapButton" class="medium-font">Draw Map</button>
       </div>
     </div>
   </div>
@@ -451,6 +467,15 @@
           });
           panelContent.style.display = panelContent.style.display === "block" ? "none" : "block";
           header.classList.toggle("collapsed", panelContent.style.display === "none");
+  
+          // Call the appropriate update function based on the panel that is expanded
+          if (panelContent.style.display === "block") {
+            if (header.textContent.includes("Connectivity Scores")) {
+              updateScoresLayer();
+            } else if (header.textContent.includes("Journey Time Catchments - Amenities")) {
+              updateAmenitiesLayer();
+            }
+          }
         });
       });
     });
