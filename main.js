@@ -5,15 +5,15 @@ const baseLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/lig
 }).addTo(map);
 
 const ScoresFiles = [
-  { year: '2024', path: 'https://AmFa6.github.io/TAF/2024_connectscore.geojson' },
-  { year: '2023', path: 'https://AmFa6.github.io/TAF/2023_connectscore.geojson' },
-  { year: '2022', path: 'https://AmFa6.github.io/TAF/2022_connectscore.geojson' },
-  { year: '2019', path: 'https://AmFa6.github.io/TAF/2019_connectscore.geojson' },
-  { year: '2023-2024', path: 'https://AmFa6.github.io/TAF/2023-2024_connectscore.geojson' },
-  { year: '2019-2024', path: 'https://AmFa6.github.io/TAF/2019-2024_connectscore.geojson' },
-  { year: '2022-2023', path: 'https://AmFa6.github.io/TAF/2022-2023_connectscore.geojson' },
-  { year: '2019-2023', path: 'https://AmFa6.github.io/TAF/2019-2023_connectscore.geojson' }, 
-  { year: '2019-2022', path: 'https://AmFa6.github.io/TAF/2019-2022_connectscore.geojson' }
+  { year: '2024', path: 'https://AmFa6.github.io/TAF_test/2024_connectscore.geojson' },
+  { year: '2023', path: 'https://AmFa6.github.io/TAF_test/2023_connectscore.geojson' },
+  { year: '2022', path: 'https://AmFa6.github.io/TAF_test/2022_connectscore.geojson' },
+  { year: '2019', path: 'https://AmFa6.github.io/TAF_test/2019_connectscore.geojson' },
+  { year: '2023-2024', path: 'https://AmFa6.github.io/TAF_test/2023-2024_connectscore.geojson' },
+  { year: '2019-2024', path: 'https://AmFa6.github.io/TAF_test/2019-2024_connectscore.geojson' },
+  { year: '2022-2023', path: 'https://AmFa6.github.io/TAF_test/2022-2023_connectscore.geojson' },
+  { year: '2019-2023', path: 'https://AmFa6.github.io/TAF_test/2019-2023_connectscore.geojson' }, 
+  { year: '2019-2022', path: 'https://AmFa6.github.io/TAF_test/2019-2022_connectscore.geojson' }
 ];
 
 const layers = {};
@@ -26,7 +26,9 @@ const outlineFieldScoresDropdown = document.getElementById("outlineFieldScoresDr
 const inverseOpacityScaleScoresButton = document.getElementById("inverseOpacityScaleScoresButton");
 const inverseOutlineScaleScoresButton = document.getElementById("inverseOutlineScaleScoresButton");
 const purposeAmenitiesDropdown = document.getElementById("purposeAmenitiesDropdown");
-const modeAmenitiesDropdown = document.getElementById("modeAmenitiessDropdown");
+const modeAmenitiesDropdown = document.getElementById("modeAmenitiesDropdown");
+const opacityFieldAmenitiesDropdown = document.getElementById("opacityFieldAmenitiesDropdown");
+const outlineFieldAmenitiesDropdown = document.getElementById("outlineFieldAmenitiesDropdown");
 const inverseOpacityScaleAmenitiesButton = document.getElementById("inverseOpacityScaleAmenitiesButton");
 const inverseOutlineScaleAmenitiesButton = document.getElementById("inverseOutlineScaleAmenitiesButton");
 const amenitiesCheckboxes = document.querySelectorAll('.checkbox-label input[type="checkbox"]');
@@ -39,15 +41,12 @@ ScoresFiles.forEach(file => {
       layers[file.year] = ScoresLayer;
       layersLoaded++;
       if (layersLoaded === totalLayers) {
-        initializeScoreSliders();
-        updateSliderScoresRanges();
+        initializeScoresSliders();
+        updateOpacitySliderScoresRanges();
+        updateOutlineSliderScoresRanges();
         updateScoresLayer();
       }
     })
-  const option = document.createElement("option");
-  option.value = file.year;
-  option.text = file.year;
-  yearScoresDropdown.add(option);
 });
 
 yearScoresDropdown.value = "";
@@ -74,6 +73,8 @@ let currentAmenitiesLayer = null;
 let hexTimeMap = {};
 let csvDataCache = {};
 
+initializeAmenitiesSliders()
+
 document.getElementById('inverseOpacityScaleScoresButton').addEventListener('click', toggleInverseOpacityScoresScale);
 document.getElementById('inverseOutlineScaleScoresButton').addEventListener('click', toggleInverseOutlineScoresScale);
 inverseOpacityScaleScoresButton.addEventListener("click", inverseOpacityScoresScale);
@@ -86,33 +87,37 @@ inverseOutlineScaleAmenitiesButton.addEventListener("click", inverseOutlineAmeni
 yearScoresDropdown.addEventListener("change", updateScoresLayer)
 purposeScoresDropdown.addEventListener("change", updateScoresLayer);
 modeScoresDropdown.addEventListener("change", updateScoresLayer);
+yearSelector.addEventListener("change", updateAmenitiesLayer);
+modeAmenitiesDropdown.addEventListener("change", updateAmenitiesLayer);
+amenitiesCheckboxes.forEach(checkbox => {
+  checkbox.addEventListener("change", updateAmenitiesLayer);
+});
 opacityFieldScoresDropdown.addEventListener("change", () => {
   autoUpdateOpacity = true;
-  updateSliderScoresRanges();
+  updateOpacitySliderScoresRanges();
   updateScoresLayer();
 });
 outlineFieldScoresDropdown.addEventListener("change", () => {
   autoUpdateOutline = true;
-  updateSliderScoresRanges();
+  updateOutlineSliderScoresRanges();
   updateScoresLayer();
 });
 opacityFieldAmenitiesDropdown.addEventListener("change", () => {
   autoUpdateOpacity = true;
-  updateSliderAmenitiesRanges();
+  updateOpacitySliderAmenitiesRanges();
   updateAmenitiesLayer();
 });
 outlineFieldAmenitiesDropdown.addEventListener("change", () => {
   autoUpdateOutline = true;
-  updateSliderAmenitiesRanges();
+  updateOutlineSliderAmenitiesRanges();
   updateAmenitiesLayer();
-});
-document.addEventListener('DOMContentLoaded', (event) => {
-  const drawMapButton = document.getElementById('drawAmenitiesMap');
-  drawMapButton.addEventListener('click', updateAmenitiesLayer);
-  initializeAmenitiesSliders();
 });
 
 function initializeSliders(sliderElement, updateCallback) {
+  if (sliderElement.noUiSlider) {
+    return;
+  }
+
   noUiSlider.create(sliderElement, {
     start: [0, 0],
     connect: [true, true, true],
@@ -404,7 +409,7 @@ function updateMasterCheckbox() {
   masterCheckbox.indeterminate = !allChecked && !noneChecked;
 }
 
-function initializeScoreSliders() {
+function initializeScoresSliders() {
   opacityRangeScoresSlider = document.getElementById('opacityRangeScoresSlider');
   outlineRangeScoresSlider = document.getElementById('outlineRangeScoresSlider');
   initializeSliders(opacityRangeScoresSlider, updateScoresLayer);
@@ -437,7 +442,7 @@ function toggleInverseOpacityScoresScale() {
     connectElements[1].classList.add('noUi-connect-gradient-right');
     connectElements[2].classList.add('noUi-connect-dark-grey');
   }
-  updateSliderScoresRanges();
+  updateOpacitySliderScoresRanges();
   updateScoresLayer();
 }
 
@@ -467,7 +472,7 @@ function toggleInverseOutlineScoresScale() {
     connectElements[1].classList.add('noUi-connect-gradient-right');
     connectElements[2].classList.add('noUi-connect-dark-grey');
   }
-  updateSliderScoresRanges();
+  updateOutlineSliderScoresRanges();
   updateScoresLayer();
 }
 
@@ -481,39 +486,24 @@ function inverseOutlineScoresScale() {
   updateScoresLayer();
 }
 
-function updateSliderScoresRanges() {
+function updateOpacitySliderScoresRanges() {
   const opacityField = opacityFieldScoresDropdown.value;
-  const outlineField = outlineFieldScoresDropdown.value;
-
   const selectedYear = yearScoresDropdown.value;
   const selectedLayer = layers[selectedYear];
 
   if (selectedLayer) {
     const opacityValues = opacityField !== "None" ? selectedLayer.features.map(feature => feature.properties[opacityField]).filter(value => value !== null && value !== 0) : [];
-    const outlineValues = outlineField !== "None" ? selectedLayer.features.map(feature => feature.properties[outlineField]).filter(value => value !== null && value !== 0) : [];
-
     const minOpacity = Math.min(...opacityValues);
     const maxOpacity = Math.max(...opacityValues);
-    const minOutline = Math.min(...outlineValues);
-    const maxOutline = Math.max(...outlineValues);
-
     const roundedMaxOpacity = Math.pow(10, Math.ceil(Math.log10(maxOpacity)));
-    const roundedMaxOutline = Math.pow(10, Math.ceil(Math.log10(maxOutline)));
-
     let opacityStep = roundedMaxOpacity / 100;
-    let outlineStep = roundedMaxOutline / 100;
 
     if (isNaN(opacityStep) || opacityStep <= 0) {
       opacityStep = 1;
     }
-    if (isNaN(outlineStep) || outlineStep <= 0) {
-      outlineStep = 1;
-    }
 
     const adjustedMaxOpacity = Math.ceil(maxOpacity / opacityStep) * opacityStep;
     const adjustedMinOpacity = Math.floor(minOpacity / opacityStep) * opacityStep;
-    const adjustedMaxOutline = Math.ceil(maxOutline / outlineStep) * outlineStep;
-    const adjustedMinOutline = Math.floor(minOutline / outlineStep) * outlineStep;
 
     if (opacityField === "None") {
       opacityRangeScoresSlider.setAttribute('disabled', true);
@@ -540,6 +530,28 @@ function updateSliderScoresRanges() {
       document.getElementById('opacityRangeScoresMin').innerText = formatValue(adjustedMinOpacity, opacityStep);
       document.getElementById('opacityRangeScoresMax').innerText = formatValue(adjustedMaxOpacity, opacityStep);
     }
+  }
+}
+
+function updateOutlineSliderScoresRanges() {
+  const outlineField = outlineFieldScoresDropdown.value;
+  const selectedYear = yearScoresDropdown.value;
+  const selectedLayer = layers[selectedYear];
+
+  if (selectedLayer) {
+    const outlineValues = outlineField !== "None" ? selectedLayer.features.map(feature => feature.properties[outlineField]).filter(value => value !== null && value !== 0) : [];
+    const minOutline = Math.min(...outlineValues);
+    const maxOutline = Math.max(...outlineValues);
+    const roundedMaxOutline = Math.pow(10, Math.ceil(Math.log10(maxOutline)));
+    let outlineStep = roundedMaxOutline / 100;
+
+    if (isNaN(outlineStep) || outlineStep <= 0) {
+      outlineStep = 1;
+    }
+
+    const adjustedMaxOutline = Math.ceil(maxOutline / outlineStep) * outlineStep;
+    const adjustedMinOutline = Math.floor(minOutline / outlineStep) * outlineStep;
+
     if (outlineField === "None") {
       outlineRangeScoresSlider.setAttribute('disabled', true);
       outlineRangeScoresSlider.noUiSlider.updateOptions({
@@ -646,7 +658,7 @@ function toggleInverseOpacityAmenitiesScale() {
     connectElements[1].classList.add('noUi-connect-gradient-right');
     connectElements[2].classList.add('noUi-connect-dark-grey');
   }
-  updateSliderAmenitiesRanges();
+  updateOpacitySliderAmenitiesRanges();
   updateAmenitiesLayer();
 }
 
@@ -676,7 +688,7 @@ function toggleInverseOutlineAmenitiesScale() {
     connectElements[1].classList.add('noUi-connect-gradient-right');
     connectElements[2].classList.add('noUi-connect-dark-grey');
   }
-  updateSliderAmenitiesRanges();
+  updateOutlineSliderAmenitiesRanges();
   updateAmenitiesLayer();
 }
 
@@ -690,39 +702,24 @@ function inverseOutlineAmenitiesScale() {
   updateAmenitiesLayer();
 }
 
-function updateSliderAmenitiesRanges() {
-  const opacityField = document.getElementById('opacityFieldAmenitiesDropdown').value;
-  const outlineField = document.getElementById('outlineFieldAmenitiesDropdown').value;
-
-  const selectedYear = yearSelector.value;
+function updateOpacitySliderAmenitiesRanges() {
+  const opacityField = opacityFieldAmenitiesDropdown.value;
+  const selectedYear = yearAmenitiesDropdown.value;
   const selectedLayer = layers[selectedYear];
 
   if (selectedLayer) {
     const opacityValues = opacityField !== "None" ? selectedLayer.features.map(feature => feature.properties[opacityField]).filter(value => value !== null && value !== 0) : [];
-    const outlineValues = outlineField !== "None" ? selectedLayer.features.map(feature => feature.properties[outlineField]).filter(value => value !== null && value !== 0) : [];
-
     const minOpacity = Math.min(...opacityValues);
     const maxOpacity = Math.max(...opacityValues);
-    const minOutline = Math.min(...outlineValues);
-    const maxOutline = Math.max(...outlineValues);
-
     const roundedMaxOpacity = Math.pow(10, Math.ceil(Math.log10(maxOpacity)));
-    const roundedMaxOutline = Math.pow(10, Math.ceil(Math.log10(maxOutline)));
-
     let opacityStep = roundedMaxOpacity / 100;
-    let outlineStep = roundedMaxOutline / 100;
 
     if (isNaN(opacityStep) || opacityStep <= 0) {
       opacityStep = 1;
     }
-    if (isNaN(outlineStep) || outlineStep <= 0) {
-      outlineStep = 1;
-    }
 
     const adjustedMaxOpacity = Math.ceil(maxOpacity / opacityStep) * opacityStep;
     const adjustedMinOpacity = Math.floor(minOpacity / opacityStep) * opacityStep;
-    const adjustedMaxOutline = Math.ceil(maxOutline / outlineStep) * outlineStep;
-    const adjustedMinOutline = Math.floor(minOutline / outlineStep) * outlineStep;
 
     if (opacityField === "None") {
       opacityRangeAmenitiesSlider.setAttribute('disabled', true);
@@ -749,6 +746,28 @@ function updateSliderAmenitiesRanges() {
       document.getElementById('opacityRangeAmenitiesMin').innerText = formatValue(adjustedMinOpacity, opacityStep);
       document.getElementById('opacityRangeAmenitiesMax').innerText = formatValue(adjustedMaxOpacity, opacityStep);
     }
+  }
+}
+
+function updateOutlineSliderAmenitiesRanges() {
+  const outlineField = outlineFieldAmenitiesDropdown.value;
+  const selectedYear = yearAmenitiesDropdown.value;
+  const selectedLayer = layers[selectedYear];
+
+  if (selectedLayer) {
+    const outlineValues = outlineField !== "None" ? selectedLayer.features.map(feature => feature.properties[outlineField]).filter(value => value !== null && value !== 0) : [];
+    const minOutline = Math.min(...outlineValues);
+    const maxOutline = Math.max(...outlineValues);
+    const roundedMaxOutline = Math.pow(10, Math.ceil(Math.log10(maxOutline)));
+    let outlineStep = roundedMaxOutline / 100;
+
+    if (isNaN(outlineStep) || outlineStep <= 0) {
+      outlineStep = 1;
+    }
+
+    const adjustedMaxOutline = Math.ceil(maxOutline / outlineStep) * outlineStep;
+    const adjustedMinOutline = Math.floor(minOutline / outlineStep) * outlineStep;
+
     if (outlineField === "None") {
       outlineRangeAmenitiesSlider.setAttribute('disabled', true);
       outlineRangeAmenitiesSlider.noUiSlider.updateOptions({
@@ -789,37 +808,45 @@ function updateAmenitiesLayer() {
     return;
   }
 
-  const selectedAmenity = selectedAmenities[0];
-  const cacheKey = `${selectedYear}_${selectedAmenity}_${selectedMode}`;
+  // Clear hexTimeMap to reflect the current state of selected amenities
+  hexTimeMap = {};
 
-  if (!csvDataCache[cacheKey]) {
-    const csvPath = `https://AmFa6.github.io/TAF/${selectedYear}_${selectedAmenity}_csv.csv`;
-
-    fetch(csvPath)
-      .then(response => response.text())
-      .then(csvText => {
-        const csvData = Papa.parse(csvText, { header: true }).data;
-        hexTimeMap = {};
-        csvData.forEach(row => {
-          if (row.Mode === selectedMode) {
-            const hexId = row.OriginName;
-            const time = parseFloat(row.Time);
-            if (!hexTimeMap[hexId] || time < hexTimeMap[hexId]) {
-              hexTimeMap[hexId] = time;
+  const cacheKeys = selectedAmenities.map(amenity => `${selectedYear}_${amenity}`);
+  const fetchPromises = cacheKeys.map(cacheKey => {
+    if (!csvDataCache[cacheKey]) {
+      const csvPath = `https://AmFa6.github.io/TAF_test/${cacheKey}_csv.csv`;
+      return fetch(csvPath)
+        .then(response => response.text())
+        .then(csvText => {
+          const csvData = Papa.parse(csvText, { header: true }).data;
+          csvData.forEach(row => {
+            if (row.Mode === selectedMode) {
+              const hexId = row.OriginName;
+              const time = parseFloat(row.Time);
+              if (!hexTimeMap[hexId] || time < hexTimeMap[hexId]) {
+                hexTimeMap[hexId] = time;
+              }
             }
-          }
+          });
+          csvDataCache[cacheKey] = csvData;
         });
+    } else {
+      const csvData = csvDataCache[cacheKey];
+      csvData.forEach(row => {
+        if (row.Mode === selectedMode) {
+          const hexId = row.OriginName;
+          const time = parseFloat(row.Time);
+          if (!hexTimeMap[hexId] || time < hexTimeMap[hexId]) {
+            hexTimeMap[hexId] = time;
+          }
+        }
+      });
+      return Promise.resolve();
+    }
+  });
 
-        csvDataCache[cacheKey] = hexTimeMap;
-        fetchAmenitiesLayer();
-      })
-  } else {
-    hexTimeMap = csvDataCache[cacheKey];
-    fetchAmenitiesLayer();
-  }
-
-  function fetchAmenitiesLayer() {
-    fetch('https://AmFa6.github.io/TAF/HexesSocioEco.geojson')
+  Promise.all(fetchPromises).then(() => {
+    fetch('https://AmFa6.github.io/TAF_test/HexesSocioEco.geojson')
       .then(response => response.json())
       .then(AmenitiesLayer => {
         map.eachLayer(layer => {
@@ -857,10 +884,10 @@ function updateAmenitiesLayer() {
             const opacityField = document.getElementById('opacityFieldAmenitiesDropdown').value;
             const outlineField = document.getElementById('outlineFieldAmenitiesDropdown').value;
 
-            const minOpacityValue = parseFloat(opacityRangeAmenitiesSlider.noUiSlider.get()[0]);
-            const maxOpacityValue = parseFloat(opacityRangeAmenitiesSlider.noUiSlider.get()[1]);
-            const minOutlineValue = parseFloat(outlineRangeAmenitiesSlider.noUiSlider.get()[0]);
-            const maxOutlineValue = parseFloat(outlineRangeAmenitiesSlider.noUiSlider.get()[1]);
+            const minOpacityValue = opacityRangeAmenitiesSlider && opacityRangeAmenitiesSlider.noUiSlider ? parseFloat(opacityRangeAmenitiesSlider.noUiSlider.get()[0]) : 0;
+            const maxOpacityValue = opacityRangeAmenitiesSlider && opacityRangeAmenitiesSlider.noUiSlider ? parseFloat(opacityRangeAmenitiesSlider.noUiSlider.get()[1]) : 0;
+            const minOutlineValue = outlineRangeAmenitiesSlider && outlineRangeAmenitiesSlider.noUiSlider ? parseFloat(outlineRangeAmenitiesSlider.noUiSlider.get()[0]) : 0;
+            const maxOutlineValue = outlineRangeAmenitiesSlider && outlineRangeAmenitiesSlider.noUiSlider ? parseFloat(outlineRangeAmenitiesSlider.noUiSlider.get()[1]) : 0;
 
             let opacity;
             if (opacityField === 'None') {
@@ -893,10 +920,10 @@ function updateAmenitiesLayer() {
               fillOpacity: opacity
             };
           },
-          onEachFeature: (feature, layer) => onEachFeature(feature, layer, selectedYear, selectedAmenity, selectedMode)
+          onEachFeature: (feature, layer) => onEachFeature(feature, layer, selectedYear, selectedAmenities.join(','), selectedMode)
         }).addTo(map);
 
         updateLegend();
-      })
-  }
+      });
+  });
 }
