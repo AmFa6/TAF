@@ -240,6 +240,8 @@ map.on('zoomend', () => {
     drawSelectedAmenities(selectedScoresAmenities);
   } else if (activeLayer === 'amenities') {
     drawSelectedAmenities(selectedAmenitiesAmenities);
+  } else {
+    drawSelectedAmenities([]);
   }
 });
 
