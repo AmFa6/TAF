@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.5.0/nouislider.min.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.5.0/nouislider.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
   <style>
     html, body {
       height: 100%;
@@ -244,6 +245,74 @@
     .checkbox-label span {
       margin-left: 6px !important;
     }
+    .dropdown {
+      position: relative;
+      display: inline-block;
+      width: 100%;
+    }
+    .dropdown-toggle {
+      width: 100%;
+      padding: 5px;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+      background-color: white;
+      color: black;
+      font-size: 1em;
+      text-align: left;
+      cursor: pointer;
+    }
+    .dropdown-menu {
+      display: none;
+      position: absolute;
+      background-color: white;
+      min-width: 100%;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+      z-index: 1001;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+    }
+    .dropdown-menu label {
+      display: block;
+      margin-bottom: 5px;
+    }
+    .dropdown-menu input {
+      margin-right: 5px;
+    }
+    .dropdown-menu.show {
+      display: block;
+    }
+    .pin {
+      position: relative;
+      display: inline-block;
+      width: 30px;
+      height: 30px;
+      bottom: 36px;
+      background-color: white;
+      border: 3px solid grey;
+      border-radius: 50%;
+      text-align: center;
+      line-height: 30px;
+    }
+    .pin::after {
+      content: '';
+      position: absolute;
+      top: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 17px solid transparent;
+      border-right: 17px solid transparent;
+      border-top: 35px solid grey;
+      z-index: -1;
+    }
+    .dot {
+      width: 10px;
+      height: 10px;
+      background-color: grey;
+      border-radius: 50%;
+    }
   </style>
 </head>
 <body>
@@ -286,7 +355,7 @@
         <div class="collapsible-content">
           <label for="opacityFieldScoresDropdown" class="medium-font">Link Hexagon Transparency to:</label>
           <select id="opacityFieldScoresDropdown" class="small-font">
-            <option value="None">None</option>
+            <option value="None">-</option>
             <option value="pop">Population</option>
             <option value="imd">Index of Multiple Deprivation</option>
             <option value="carav">Car Availability</option>
@@ -310,7 +379,7 @@
           <br>
           <label for="outlineFieldScoresDropdown" class="medium-font">Link Hexagon Outline to:</label>
           <select id="outlineFieldScoresDropdown" class="small-font">
-            <option value="None">None</option>
+            <option value="None">-</option>
             <option value="imd">Index of Multiple Deprivation</option>
             <option value="pop">Population</option>
             <option value="carav">Car Availability</option>
@@ -351,22 +420,27 @@
         </select>
         <br>
         <label class="large-font">Amenities:</label>
-        <label class="checkbox-label"><input type="checkbox" value="PriSch"> <span>Primary School</span></label>
-        <label class="checkbox-label"><input type="checkbox" value="SecSch"> <span>Secondary School</span></label>
-        <label class="checkbox-label"><input type="checkbox" value="FurEd"> <span>Further Education</span></label>
-        <label class="checkbox-label"><input type="checkbox" value="Em500"> <span>Employment (500+ jobs)</span></label>
-        <label class="checkbox-label"><input type="checkbox" value="Em5000"> <span>Employment (5000+ jobs)</span></label>
-        <label class="checkbox-label"><input type="checkbox" value="StrEmp"> <span>Strategic Employment</span></label>
-        <label class="checkbox-label"><input type="checkbox" value="CitCtr"> <span>City Centre</span></label>
-        <label class="checkbox-label"><input type="checkbox" value="MajCtr"> <span>Major Centre</span></label>
-        <label class="checkbox-label"><input type="checkbox" value="DisCtr"> <span>District Centre</span></label>
-        <label class="checkbox-label"><input type="checkbox" value="GP"> <span>General Practice</span></label>
-        <label class="checkbox-label"><input type="checkbox" value="Hos"> <span>Hospital</span></label>
+        <div class="dropdown">
+          <button type="button" class="dropdown-toggle" id="amenitiesDropdown">0 selected</button>
+          <div class="dropdown-menu" id="amenitiesCheckboxesContainer">
+            <label class="checkbox-label"><input type="checkbox" value="PriSch"> <span>Primary School</span></label>
+            <label class="checkbox-label"><input type="checkbox" value="SecSch"> <span>Secondary School</span></label>
+            <label class="checkbox-label"><input type="checkbox" value="FurEd"> <span>Further Education</span></label>
+            <label class="checkbox-label"><input type="checkbox" value="Em500"> <span>Employment (500+ jobs)</span></label>
+            <label class="checkbox-label"><input type="checkbox" value="Em5000"> <span>Employment (5000+ jobs)</span></label>
+            <label class="checkbox-label"><input type="checkbox" value="StrEmp"> <span>Strategic Employment</span></label>
+            <label class="checkbox-label"><input type="checkbox" value="CitCtr"> <span>City Centre</span></label>
+            <label class="checkbox-label"><input type="checkbox" value="MajCtr"> <span>Major Centre</span></label>
+            <label class="checkbox-label"><input type="checkbox" value="DisCtr"> <span>District Centre</span></label>
+            <label class="checkbox-label"><input type="checkbox" value="GP"> <span>General Practice</span></label>
+            <label class="checkbox-label"><input type="checkbox" value="Hos"> <span>Hospital</span></label>
+          </div>
+        </div>
         <button type="button" class="collapsible">Settings</button>
         <div class="collapsible-content">
           <label for="opacityFieldAmenitiesDropdown" class="medium-font">Link Hexagon Transparency to:</label>
           <select id="opacityFieldAmenitiesDropdown" class="small-font">
-            <option value="None">None</option>
+            <option value="None">-</option>
             <option value="pop">Population</option>
             <option value="imd">Index of Multiple Deprivation</option>
             <option value="carav">Car Availability</option>
@@ -390,7 +464,7 @@
           <br>
           <label for="outlineFieldAmenitiesDropdown" class="medium-font">Link Hexagon Outline to:</label>
           <select id="outlineFieldAmenitiesDropdown" class="small-font">
-            <option value="None">None</option>
+            <option value="None">-</option>
             <option value="imd">Index of Multiple Deprivation</option>
             <option value="pop">Population</option>
             <option value="carav">Car Availability</option>
@@ -437,48 +511,5 @@
     <div id="legend-content"></div>
   </div>
   <script src="main.js"></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', (event) => {
-      const collapsibleButtons = document.querySelectorAll(".collapsible");
-      collapsibleButtons.forEach(button => {
-        const content = button.nextElementSibling;
-        content.style.display = "none";
-        button.classList.add("collapsed");
-  
-        button.addEventListener("click", function() {
-          this.classList.toggle("active");
-          content.style.display = content.style.display === "block" ? "none" : "block";
-          this.classList.toggle("collapsed", content.style.display === "none");
-        });
-      });
-  
-      const panelHeaders = document.querySelectorAll(".panel-header");
-      panelHeaders.forEach(header => {
-        const panelContent = header.nextElementSibling;
-        panelContent.style.display = "none";
-        header.classList.add("collapsed");
-  
-        header.addEventListener("click", function() {
-          panelHeaders.forEach(otherHeader => {
-            if (otherHeader !== header) {
-              otherHeader.classList.add("collapsed");
-              otherHeader.nextElementSibling.style.display = "none";
-            }
-          });
-          panelContent.style.display = panelContent.style.display === "block" ? "none" : "block";
-          header.classList.toggle("collapsed", panelContent.style.display === "none");
-  
-          // Call the appropriate update function based on the panel that is expanded
-          if (panelContent.style.display === "block") {
-            if (header.textContent.includes("Connectivity Scores")) {
-              updateScoresLayer();
-            } else if (header.textContent.includes("Journey Time Catchments - Amenities")) {
-              updateAmenitiesLayer();
-            }
-          }
-        });
-      });
-    });
-  </script>
-</body>
+</body> 
 </html>
