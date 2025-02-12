@@ -197,6 +197,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
           }
         });
         activeLayer = null;
+        drawSelectedAmenities([]);
         updateLegend();
       }
     });
