@@ -675,7 +675,7 @@ function drawSelectedAmenities(amenities) {
     if (amenityLayer) {
       const layer = L.geoJSON(amenityLayer, {
         pointToLayer: (feature, latlng) => {
-          const icon = currentZoom >= minZoomLevel ? amenityIcons[amenity] : L.divIcon({ className: 'fa-icon', html: '<div class="dot"></div>', iconSize: [10, 10], iconAnchor: [5, 5] });
+          const icon = currentZoom >= minZoomLevel ? amenityIcons[amenity] : L.divIcon({ className: 'fa-icon', html: '<div class="dot"></div>', iconSize: [5, 5], iconAnchor: [5, 5] });
           return L.marker(latlng, { icon: icon });
         },
         onEachFeature: (feature, layer) => {
