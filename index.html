@@ -3,13 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MCA Connectivity Tool</title>
+  <title>Transport Accessibility Framework</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.5.0/nouislider.min.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.5.0/nouislider.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
   <style>
     html, body {
       height: 100%;
@@ -434,6 +436,11 @@
             <label class="checkbox-label"><input type="checkbox" value="DisCtr"> <span>District Centre</span></label>
             <label class="checkbox-label"><input type="checkbox" value="GP"> <span>General Practice</span></label>
             <label class="checkbox-label"><input type="checkbox" value="Hos"> <span>Hospital</span></label>
+          </div>
+        </div>
+        <div class="field-container">
+          <div class="button-container">
+            <button id="selectAmenitiesFromMap" class="large-button">Select from Map</button>
           </div>
         </div>
         <button type="button" class="collapsible">Settings</button>
