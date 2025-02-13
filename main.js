@@ -296,7 +296,6 @@ map.on(L.Draw.Event.CREATED, function (event) {
 });
 
 map.on('zoomend', () => {
-  console.log("Zoom end event triggered");
   if (activeLayer === 'scores') {
     drawSelectedAmenities(selectedScoresAmenities);
   } else if (activeLayer === 'amenities') {
@@ -661,7 +660,12 @@ function updateMasterCheckbox() {
 }
 
 function drawSelectedAmenities(amenities) {
+  const amenitiesCheckbox = document.getElementById('amenitiesCheckbox');
   amenitiesLayerGroup.clearLayers();
+
+  if (!amenitiesCheckbox || !amenitiesCheckbox.checked) {
+    return;
+  }
 
   if (amenities.length === 0) {
     amenities = Object.keys(amenityLayers);
