@@ -154,41 +154,31 @@ let initialLoadComplete = false;
 initializeAmenitiesSliders()
 
 ScoresYear.addEventListener("change", updateScoresLayer)
-console.log('ScoresYear change event fired - updateScoresLayer');
 ScoresPurpose.addEventListener("change", updateScoresLayer);
-console.log('ScoresPurpose change event fired - updateScoresLayer');
 ScoresMode.addEventListener("change", updateScoresLayer);
-console.log('ScoresMode change event fired - updateScoresLayer');
 AmenitiesYear.addEventListener("change", updateAmenitiesCatchmentLayer);
-console.log('AmenitiesPurpose change event fired - updateAmenitiesCatchmentLayer');
 AmenitiesMode.addEventListener("change", updateAmenitiesCatchmentLayer);
-console.log('AmenitiesMode change event fired - updateAmenitiesCatchmentLayer');
 AmenitiesPurpose.forEach(checkbox => {
   checkbox.addEventListener("change", updateAmenitiesCatchmentLayer);
 });
-console.log('AmenitiesPurpose change event fired - updateAmenitiesCatchmentLayer');
 ScoresOpacity.addEventListener("change", () => {
   autoUpdateOpacity = true;
   updateOpacitySliderScoresRanges();
-  console.log('ScoresOpacity change event fired - updateScoresLayer');
   updateScoresLayer();
 });
 ScoresOutline.addEventListener("change", () => {
   autoUpdateOutline = true;
   updateOutlineSliderScoresRanges();
-  console.log('ScoresOutline change event fired - updateScoresLayer');
   updateScoresLayer();
 });
 AmenitiesOpacity.addEventListener("change", () => {
   autoUpdateOpacity = true;
   updateOpacitySliderAmenitiesRanges();
-  console.log('AmenitiesOpacity change event fired - updateAmenitiesCatchmentLayer');
   updateAmenitiesCatchmentLayer();
 });
 AmenitiesOutline.addEventListener("change", () => {
   autoUpdateOutline = true;
   updateOutlineSliderAmenitiesRanges();
-  console.log('AmenitiesOutline change event fired - updateAmenitiesCatchmentLayer');
   updateAmenitiesCatchmentLayer();
 });
 ScoresInverseOpacity.addEventListener("click", toggleInverseOpacityScoresScale);
@@ -228,26 +218,21 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
       if (panelContent.style.display === "block") {
         if (header.textContent.includes("Connectivity Scores")) {
-          console.log('updateScoresLayer-231');
           updateScoresLayer();
         } else if (header.textContent.includes("Journey Time Catchments - Amenities")) {
-          console.log('updateAmenitiesCatchmentLayer-239');
           updateAmenitiesCatchmentLayer();
         }
       } else {
         if(ScoresLayer) {
           map.removeLayer(ScoresLayer);
           ScoresLayer = null;
-          console.log('ScoresLayer removed-251');
         }
         if(AmenitiesCatchmentLayer) {
           map.removeLayer(AmenitiesCatchmentLayer);
           AmenitiesCatchmentLayer = null;
-          console.log('AmenitiesCatchmentLayer removed-256');
         } 
         drawSelectedAmenities([]);
         updateLegend();
-        console.log('updatelegend-260')
       }
     });
   });
@@ -493,7 +478,6 @@ function isClassVisible(value, selectedYear) {
 }
 
 function updateFeatureVisibility() {
-  console.log('updateFeatureVisibility-495');
   if (AmenitiesCatchmentLayer) {
     const selectedYear = AmenitiesYear.value;
     const selectedMode = AmenitiesMode.value;
@@ -539,7 +523,6 @@ function updateLegend() {
   legendContent.innerHTML = '';
 
   if (!ScoresLayer && !AmenitiesCatchmentLayer) {
-    console.log('ScoresLayer and AmenitiesCatchmentLayer not found - legendContent cleared');
     return;
   }
 
@@ -771,7 +754,6 @@ function initializeScoresSliders() {
   ScoresOutlineRange = document.getElementById('outlineRangeScoresSlider');
   initializeSliders(ScoresOpacityRange, updateScoresLayer);
   initializeSliders(ScoresOutlineRange, updateScoresLayer);
-  console.log('initializeScoresSliders function called - 785');
 }
 
 function toggleInverseOpacityScoresScale() {
@@ -838,7 +820,6 @@ function toggleInverseOutlineScoresScale() {
   outlineScoresOrder = outlineScoresOrder === 'low-to-high' ? 'high-to-low' : 'low-to-high';
 
   updateOutlineSliderScoresRanges();
-  console.log('toggleInverseOutlineScoresScale function called - 852');
   updateScoresLayer();
 }
 
@@ -980,13 +961,11 @@ function updateScoresLayer() {
       style: feature => styleScoresFeature(feature, fieldToDisplay, opacityField, outlineField, minOpacity, maxOpacity, minOutline, maxOutline, selectedYear),
       onEachFeature: (feature, layer) => onEachFeature(feature, layer, selectedYear, selectedPurpose, selectedMode)
     }).addTo(map);
-    console.log('ScoresLayer drawn');
 
     selectedScoresAmenities = purposeToAmenitiesMap[selectedPurpose];
     drawSelectedAmenities(selectedScoresAmenities);
     updateLegend();
   }
-  console.log('ScoresLayer created');
 }
 
 function initializeAmenitiesSliders() {
@@ -994,7 +973,6 @@ function initializeAmenitiesSliders() {
   AmenitiesOutlineRange = document.getElementById('outlineRangeAmenitiesSlider');
   initializeSliders(AmenitiesOpacityRange, updateAmenitiesCatchmentLayer);
   initializeSliders(AmenitiesOutlineRange, updateAmenitiesCatchmentLayer);
-  console.log('initializeAmenitiesSliders function called - 990');
 }
 
 function toggleInverseOpacityAmenitiesScale() {
@@ -1027,7 +1005,6 @@ function toggleInverseOpacityAmenitiesScale() {
   opacityAmenitiesOrder = opacityAmenitiesOrder === 'low-to-high' ? 'high-to-low' : 'low-to-high';
 
   updateOpacitySliderAmenitiesRanges();
-  console.log('toggleInverseOpacityAmenitiesScale function called - 1023');
   updateAmenitiesCatchmentLayer();
 }
 
@@ -1061,7 +1038,6 @@ function toggleInverseOutlineAmenitiesScale() {
   outlineAmenitiesOrder = outlineAmenitiesOrder === 'low-to-high' ? 'high-to-low' : 'low-to-high';
 
   updateOutlineSliderAmenitiesRanges();
-  console.log('toggleInverseOutlineAmenitiesScale function called - 1057');
   updateAmenitiesCatchmentLayer();
 }
 
@@ -1300,8 +1276,6 @@ function updateAmenitiesCatchmentLayer() {
           initialLoad = false;
           initialLoadComplete = true;
         }
-        console.log('AmenitiesCatchmentLayer created and added to map');
       });
   });
-  console.log('AmenitiesCatchmentLayer creation process completed');
 }
