@@ -276,11 +276,11 @@ function initializeSliders(sliderElement, updateCallback) {
   }
 
   noUiSlider.create(sliderElement, {
-    start: [0, 0],
+    start: ['',''],
     connect: [true, true, true],
     range: {
-      'min': '',
-      'max': ''
+      'min': 0,
+      'max': 0
     },
     step: 1,
     tooltips: false,
