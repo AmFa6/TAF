@@ -64,6 +64,8 @@ const ScoresPurpose = document.getElementById("purposeScoresDropdown");
 const ScoresMode = document.getElementById("modeScoresDropdown");
 const ScoresOpacity = document.getElementById("opacityFieldScoresDropdown");
 const ScoresOutline = document.getElementById("outlineFieldScoresDropdown");
+const ScoresOpacityRange = document.getElementById('opacityRangeScoresSlider');
+const ScoresOutlineRange = document.getElementById('outlineRangeScoresSlider');
 const ScoresInverseOpacity = document.getElementById("inverseOpacityScaleScoresButton");
 const ScoresInverseOutline = document.getElementById("inverseOutlineScaleScoresButton");
 const AmenitiesYear = document.getElementById("yearAmenitiesDropdown");
@@ -71,6 +73,8 @@ const AmenitiesMode = document.getElementById("modeAmenitiesDropdown");
 const AmenitiesPurpose = document.querySelectorAll('.checkbox-label input[type="checkbox"]');
 const AmenitiesOpacity = document.getElementById("opacityFieldAmenitiesDropdown");
 const AmenitiesOutline = document.getElementById("outlineFieldAmenitiesDropdown");
+const AmenitiesOpacityRange = document.getElementById('opacityRangeAmenitiesSlider');
+const AmenitiesOutlineRange = document.getElementById('outlineRangeAmenitiesSlider');
 const AmenitiesInverseOpacity = document.getElementById("inverseOpacityScaleAmenitiesButton");
 const AmenitiesInverseOutline = document.getElementById("inverseOutlineScaleAmenitiesButton");
 const amenityLayers = {};
@@ -118,16 +122,10 @@ ScoresOutline.value = "None";
 AmenitiesOpacity.value = "None";
 AmenitiesOutline.value = "None";
 
-let autoUpdateOpacity = true;
-let autoUpdateOutline = true;
 let opacityScoresOrder = 'low-to-high';
 let outlineScoresOrder = 'low-to-high';
 let opacityAmenitiesOrder = 'low-to-high';
 let outlineAmenitiesOrder = 'low-to-high';
-let ScoresOpacityRange;
-let ScoresOutlineRange;
-let AmenitiesOpacityRange;
-let AmenitiesOutlineRange;
 let isInverseScoresOpacity = false;
 let isInverseScoresOutline = false;
 let isInverseAmenitiesOpacity = false;
@@ -143,8 +141,10 @@ let selectedAmenitiesAmenities = [];
 let selectingFromMap = false;
 let selectedAmenitiesFromMap = [];
 
-initializeScoresSliders();
-initializeAmenitiesSliders()
+initializeSliders(ScoresOpacityRange, updateScoresLayer);
+initializeSliders(ScoresOutlineRange, updateScoresLayer);
+initializeSliders(AmenitiesOpacityRange, updateAmenitiesCatchmentLayer);
+initializeSliders(AmenitiesOutlineRange, updateAmenitiesCatchmentLayer);
 
 ScoresYear.addEventListener("change", updateScoresLayer)
 ScoresPurpose.addEventListener("change", updateScoresLayer);
@@ -154,26 +154,10 @@ AmenitiesMode.addEventListener("change", updateAmenitiesCatchmentLayer);
 AmenitiesPurpose.forEach(checkbox => {
   checkbox.addEventListener("change", updateAmenitiesCatchmentLayer);
 });
-ScoresOpacity.addEventListener("change", () => {
-  autoUpdateOpacity = true;
-  updateOpacitySliderScoresRanges();
-  updateScoresLayer();
-});
-ScoresOutline.addEventListener("change", () => {
-  autoUpdateOutline = true;
-  updateOutlineSliderScoresRanges();
-  updateScoresLayer();
-});
-AmenitiesOpacity.addEventListener("change", () => {
-  autoUpdateOpacity = true;
-  updateOpacitySliderAmenitiesRanges();
-  updateAmenitiesCatchmentLayer();
-});
-AmenitiesOutline.addEventListener("change", () => {
-  autoUpdateOutline = true;
-  updateOutlineSliderAmenitiesRanges();
-  updateAmenitiesCatchmentLayer();
-});
+ScoresOpacity.addEventListener("change", updateOpacitySliderScoresRanges)
+ScoresOutline.addEventListener("change", updateOutlineSliderScoresRanges)
+AmenitiesOpacity.addEventListener("change", updateOpacitySliderAmenitiesRanges);
+AmenitiesOutline.addEventListener("change", updateOutlineSliderAmenitiesRanges);
 ScoresInverseOpacity.addEventListener("click", toggleInverseOpacityScoresScale);
 ScoresInverseOutline.addEventListener("click", toggleInverseOutlineScoresScale);
 AmenitiesInverseOpacity.addEventListener("click", toggleInverseOpacityAmenitiesScale);
@@ -738,13 +722,6 @@ function AmenitiesPopup(amenity, properties) {
   return `<strong>Amenity Type:</strong> ${amenityType}<br><strong>Name:</strong> ${name}<br>`;
 }
 
-function initializeScoresSliders() {
-  ScoresOpacityRange = document.getElementById('opacityRangeScoresSlider');
-  ScoresOutlineRange = document.getElementById('outlineRangeScoresSlider');
-  initializeSliders(ScoresOpacityRange, updateScoresLayer);
-  initializeSliders(ScoresOutlineRange, updateScoresLayer);
-}
-
 function toggleInverseOpacityScoresScale() {
   isInverseScoresOpacity = !isInverseScoresOpacity;
   const handles = ScoresOpacityRange.querySelectorAll('.noUi-handle');
@@ -775,7 +752,6 @@ function toggleInverseOpacityScoresScale() {
   opacityScoresOrder = opacityScoresOrder === 'low-to-high' ? 'high-to-low' : 'low-to-high';
 
   updateOpacitySliderScoresRanges();
-  updateScoresLayer();
 }
 
 function toggleInverseOutlineScoresScale() {
@@ -808,7 +784,6 @@ function toggleInverseOutlineScoresScale() {
   outlineScoresOrder = outlineScoresOrder === 'low-to-high' ? 'high-to-low' : 'low-to-high';
 
   updateOutlineSliderScoresRanges();
-  updateScoresLayer();
 }
 
 function updateOpacitySliderScoresRanges() {
@@ -906,6 +881,7 @@ function updateOutlineSliderScoresRanges() {
 }
 
 function updateScoresLayer() {
+  console.log('updateScoresLayer');
   if (AmenitiesCatchmentLayer) {
     map.removeLayer(AmenitiesCatchmentLayer);
     AmenitiesCatchmentLayer = null;
@@ -957,13 +933,6 @@ function updateScoresLayer() {
   }
 }
 
-function initializeAmenitiesSliders() {
-  AmenitiesOpacityRange = document.getElementById('opacityRangeAmenitiesSlider');
-  AmenitiesOutlineRange = document.getElementById('outlineRangeAmenitiesSlider');
-  initializeSliders(AmenitiesOpacityRange, updateAmenitiesCatchmentLayer);
-  initializeSliders(AmenitiesOutlineRange, updateAmenitiesCatchmentLayer);
-}
-
 function toggleInverseOpacityAmenitiesScale() {
   isInverseAmenitiesOpacity = !isInverseAmenitiesOpacity;
   const handles = AmenitiesOpacityRange.querySelectorAll('.noUi-handle');
@@ -994,7 +963,6 @@ function toggleInverseOpacityAmenitiesScale() {
   opacityAmenitiesOrder = opacityAmenitiesOrder === 'low-to-high' ? 'high-to-low' : 'low-to-high';
 
   updateOpacitySliderAmenitiesRanges();
-  updateAmenitiesCatchmentLayer();
 }
 
 function toggleInverseOutlineAmenitiesScale() {
@@ -1027,7 +995,6 @@ function toggleInverseOutlineAmenitiesScale() {
   outlineAmenitiesOrder = outlineAmenitiesOrder === 'low-to-high' ? 'high-to-low' : 'low-to-high';
 
   updateOutlineSliderAmenitiesRanges();
-  updateAmenitiesCatchmentLayer();
 }
 
 function updateOpacitySliderAmenitiesRanges() {
@@ -1075,6 +1042,7 @@ function updateOpacitySliderAmenitiesRanges() {
       document.getElementById('opacityRangeAmenitiesMax').innerText = formatValue(adjustedMaxOpacity, opacityStep);
     }
   }
+  updateAmenitiesCatchmentLayer();
 }
 
 function updateOutlineSliderAmenitiesRanges() {
@@ -1122,6 +1090,7 @@ function updateOutlineSliderAmenitiesRanges() {
       document.getElementById('outlineRangeAmenitiesMax').innerText = formatValue(adjustedMaxOutline, outlineStep);
     }
   }
+  updateAmenitiesCatchmentLayer();
 }
 
 function updateAmenitiesCatchmentLayer() {
