@@ -58,8 +58,7 @@ const AmenitiesFiles = [
   { type: 'Hos', path: 'https://AmFa6.github.io/TAF_test/Hos.geojson' }
 ];
 
-const layers = {};
-const totalLayers = ScoresFiles.length;
+const scoreLayers = {};
 const ScoresYear = document.getElementById("yearScoresDropdown");
 const ScoresPurpose = document.getElementById("purposeScoresDropdown");
 const ScoresMode = document.getElementById("modeScoresDropdown");
@@ -100,11 +99,7 @@ ScoresFiles.forEach(file => {
   fetch(file.path)
     .then(response => response.json())
     .then(ScoresLayer => {
-      layers[file.year] = ScoresLayer;
-      layersLoaded++;
-      if (layersLoaded === totalLayers) {
-        initializeScoresSliders();
-      }
+      scoreLayers[file.year] = ScoresLayer;
     })
 }); 
 
@@ -129,7 +124,6 @@ let opacityScoresOrder = 'low-to-high';
 let outlineScoresOrder = 'low-to-high';
 let opacityAmenitiesOrder = 'low-to-high';
 let outlineAmenitiesOrder = 'low-to-high';
-let layersLoaded = 0;
 let ScoresOpacityRange;
 let ScoresOutlineRange;
 let AmenitiesOpacityRange;
@@ -148,9 +142,8 @@ let selectedScoresAmenities = [];
 let selectedAmenitiesAmenities = [];
 let selectingFromMap = false;
 let selectedAmenitiesFromMap = [];
-let initialLoad = true;
-let initialLoadComplete = false;
 
+initializeScoresSliders();
 initializeAmenitiesSliders()
 
 ScoresYear.addEventListener("change", updateScoresLayer)
@@ -478,15 +471,18 @@ function isClassVisible(value, selectedYear) {
 }
 
 function updateFeatureVisibility() {
-  if (AmenitiesCatchmentLayer) {
-    const selectedYear = AmenitiesYear.value;
-    const selectedMode = AmenitiesMode.value;
+  const updateLayerVisibility = (layer, getValue, selectedYear) => {
+    const classVisibility = {};
 
-    AmenitiesCatchmentLayer.eachLayer(layer => {
+    layer.eachLayer(layer => {
       const feature = layer.feature;
-      const hexId = feature.properties.Hex_ID;
-      const time = hexTimeMap[hexId];
-      const isVisible = isClassVisible(time, selectedYear);
+      const value = getValue(feature);
+      const isVisible = isClassVisible(value, selectedYear);
+
+      if (!classVisibility[value]) {
+        classVisibility[value] = isVisible;
+      }
+
       if (layer.options._originalFillOpacity === undefined) {
         layer.options._originalFillOpacity = layer.options.fillOpacity;
       }
@@ -495,42 +491,35 @@ function updateFeatureVisibility() {
         fillOpacity: isVisible ? layer.options._originalFillOpacity : 0 
       });
     });
+
+  };
+
+  const selectedYear = AmenitiesCatchmentLayer ? AmenitiesYear.value : ScoresYear.value;
+  if (AmenitiesCatchmentLayer) {
+    updateLayerVisibility(AmenitiesCatchmentLayer, feature => hexTimeMap[feature.properties.Hex_ID], selectedYear);
   } else if (ScoresLayer) {
-    const selectedYear = ScoresYear.value;
     const fieldToDisplay = selectedYear.includes('-') 
       ? `${ScoresPurpose.value}_${ScoresMode.value}` 
       : `${ScoresPurpose.value}_${ScoresMode.value}_100`;
-
-    ScoresLayer.eachLayer(layer => {
-      const feature = layer.feature;
-      const value = feature.properties[fieldToDisplay];
-      const isVisible = isClassVisible(value, selectedYear);
-      if (layer.options._originalFillOpacity === undefined) {
-        layer.options._originalFillOpacity = layer.options.fillOpacity;
-      }
-      layer.setStyle({ 
-        opacity: isVisible ? 1 : 0, 
-        fillOpacity: isVisible ? layer.options._originalFillOpacity : 0 
-      });
-    });
+    updateLayerVisibility(ScoresLayer, feature => feature.properties[fieldToDisplay], selectedYear);
   }
 }
 
 function updateLegend() {
-  const selectedYear = ScoresYear.value;
+  const selectedYear = AmenitiesCatchmentLayer ? AmenitiesYear.value : ScoresYear.value;
   const legendContent = document.getElementById("legend-content");
-
-  legendContent.innerHTML = '';
-
-  if (!ScoresLayer && !AmenitiesCatchmentLayer) {
-    return;
-  }
 
   const checkboxStates = {};
   const legendCheckboxes = document.querySelectorAll('.legend-checkbox');
   legendCheckboxes.forEach(checkbox => {
     checkboxStates[checkbox.getAttribute('data-range')] = checkbox.checked;
   });
+
+  legendContent.innerHTML = '';
+
+  if (!ScoresLayer && !AmenitiesCatchmentLayer) {
+    return;
+  }
 
   let headerText;
   let classes;
@@ -786,7 +775,6 @@ function toggleInverseOpacityScoresScale() {
   opacityScoresOrder = opacityScoresOrder === 'low-to-high' ? 'high-to-low' : 'low-to-high';
 
   updateOpacitySliderScoresRanges();
-  concole.log('toggleInverseOpacityScoresScale function called - 818');
   updateScoresLayer();
 }
 
@@ -826,7 +814,7 @@ function toggleInverseOutlineScoresScale() {
 function updateOpacitySliderScoresRanges() {
   const opacityField = ScoresOpacity.value;
   const selectedYear = ScoresYear.value;
-  const selectedLayer = layers[selectedYear];
+  const selectedLayer = scoreLayers[selectedYear];
 
   if (selectedLayer) {
     const opacityValues = opacityField !== "None" ? selectedLayer.features.map(feature => feature.properties[opacityField]).filter(value => value !== null && value !== 0) : [];
@@ -873,7 +861,7 @@ function updateOpacitySliderScoresRanges() {
 function updateOutlineSliderScoresRanges() {
   const outlineField = ScoresOutline.value;
   const selectedYear = ScoresYear.value;
-  const selectedLayer = layers[selectedYear];
+  const selectedLayer = scoreLayers[selectedYear];
 
   if (selectedLayer) {
     const outlineValues = outlineField !== "None" ? selectedLayer.features.map(feature => feature.properties[outlineField]).filter(value => value !== null && value !== 0) : [];
@@ -918,10 +906,10 @@ function updateOutlineSliderScoresRanges() {
 }
 
 function updateScoresLayer() {
-  if(AmenitiesCatchmentLayer) {
+  if (AmenitiesCatchmentLayer) {
     map.removeLayer(AmenitiesCatchmentLayer);
     AmenitiesCatchmentLayer = null;
-  } 
+  }
 
   const selectedYear = ScoresYear.value;
   if (!selectedYear) {
@@ -939,12 +927,12 @@ function updateScoresLayer() {
   }
 
   const fieldToDisplay = selectedYear.includes('-') ? `${selectedPurpose}_${selectedMode}` : `${selectedPurpose}_${selectedMode}_100`;
-  const selectedLayer = layers[selectedYear];
+  const selectedLayer = scoreLayers[selectedYear];
 
   if (selectedLayer) {
     const filteredFeatures = selectedLayer.features.filter(feature => {
       const value = feature.properties[fieldToDisplay];
-      return feature.properties[fieldToDisplay] !== undefined && isClassVisible(value, selectedYear);
+      return feature.properties[fieldToDisplay] !== undefined;
     });
 
     let minOpacity = ScoresOpacityRange && ScoresOpacityRange.noUiSlider ? parseFloat(ScoresOpacityRange.noUiSlider.get()[0]) : 0;
@@ -965,6 +953,7 @@ function updateScoresLayer() {
     selectedScoresAmenities = purposeToAmenitiesMap[selectedPurpose];
     drawSelectedAmenities(selectedScoresAmenities);
     updateLegend();
+    updateFeatureVisibility();
   }
 }
 
@@ -1044,7 +1033,7 @@ function toggleInverseOutlineAmenitiesScale() {
 function updateOpacitySliderAmenitiesRanges() {
   const opacityField = AmenitiesOpacity.value;
   const selectedYear = AmenitiesYear.value;
-  const selectedLayer = layers[selectedYear];
+  const selectedLayer = amenityLayers[selectedYear];
 
   if (selectedLayer) {
     const opacityValues = opacityField !== "None" ? selectedLayer.features.map(feature => feature.properties[opacityField]).filter(value => value !== null && value !== 0) : [];
@@ -1091,7 +1080,7 @@ function updateOpacitySliderAmenitiesRanges() {
 function updateOutlineSliderAmenitiesRanges() {
   const outlineField = AmenitiesOutline.value;
   const selectedYear = AmenitiesYear.value;
-  const selectedLayer = layers[selectedYear];
+  const selectedLayer = amenityLayers[selectedYear];
 
   if (selectedLayer) {
     const outlineValues = outlineField !== "None" ? selectedLayer.features.map(feature => feature.properties[outlineField]).filter(value => value !== null && value !== 0) : [];
@@ -1149,7 +1138,7 @@ function updateAmenitiesCatchmentLayer() {
   const selectedMode = AmenitiesMode.value;
 
   if (!selectedYear || !selectedMode || selectedAmenitiesAmenities.length === 0) {
-    if(AmenitiesCatchmentLayer) {
+    if (AmenitiesCatchmentLayer) {
       map.removeLayer(AmenitiesCatchmentLayer);
       AmenitiesCatchmentLayer = null;
     }
@@ -1206,7 +1195,7 @@ function updateAmenitiesCatchmentLayer() {
         const filteredFeatures = data.features.filter(feature => {
           const hexId = feature.properties.Hex_ID;
           const time = hexTimeMap[hexId];
-          return time !== undefined && isClassVisible(time, selectedYear);
+          return time !== undefined;
         });
 
         const filteredAmenitiesCatchmentLayer = {
@@ -1271,11 +1260,7 @@ function updateAmenitiesCatchmentLayer() {
         drawSelectedAmenities(selectedAmenitiesAmenities);
 
         updateLegend();
-
-        if (initialLoad) {
-          initialLoad = false;
-          initialLoadComplete = true;
-        }
+        updateFeatureVisibility();
       });
   });
 }
