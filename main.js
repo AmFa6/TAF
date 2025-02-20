@@ -1042,7 +1042,6 @@ function updateOpacitySliderAmenitiesRanges() {
       document.getElementById('opacityRangeAmenitiesMax').innerText = formatValue(adjustedMaxOpacity, opacityStep);
     }
   }
-  updateAmenitiesCatchmentLayer();
 }
 
 function updateOutlineSliderAmenitiesRanges() {
@@ -1090,7 +1089,6 @@ function updateOutlineSliderAmenitiesRanges() {
       document.getElementById('outlineRangeAmenitiesMax').innerText = formatValue(adjustedMaxOutline, outlineStep);
     }
   }
-  updateAmenitiesCatchmentLayer();
 }
 
 function updateAmenitiesCatchmentLayer() {
