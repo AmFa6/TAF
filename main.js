@@ -276,7 +276,7 @@ function initializeSliders(sliderElement, updateCallback) {
   }
 
   noUiSlider.create(sliderElement, {
-    start: [0, 0],
+    start: ['', ''],
     connect: [true, true, true],
     range: {
       'min': 0,
