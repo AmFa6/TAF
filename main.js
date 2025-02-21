@@ -12,6 +12,7 @@ fetch('https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Wards_
     return response.json();
   })
   .then(data => {
+    console.log('Ward Boundaries Data:', data);
     wardBoundariesLayer = L.geoJSON(data, {
       style: function (feature) {
         return {
@@ -30,6 +31,41 @@ fetch('https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Wards_
       }
     });
   })
+  .catch(error => console.error('Error fetching ward boundaries:', error));
+
+fetch('https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Lower_layer_Super_Output_Areas_December_2021_Boundaries_EW_BGC_V5/FeatureServer/0/query?outFields=*&where=1%3D1&geometry=-3.073689%2C51.291726%2C-2.327195%2C51.656841&geometryType=esriGeometryEnvelope&inSR=4326&spatialRel=esriSpatialRelIntersects&outSR=4326&f=geojson')
+  .then(response => {
+    if (!response.ok) {
+      throw new Error('Network response was not ok ' + response.statusText);
+    }
+    return response.json();
+  })
+  .then(data => {
+    console.log('LSOA Data:', data);
+    const lsoaGeoJson = {
+      type: 'FeatureCollection',
+      features: data.features
+    };
+
+    lsoaLayer = L.geoJSON(lsoaGeoJson, {
+      style: function (feature) {
+        return {
+          color: 'black',
+          weight: 0.6,
+          fillOpacity: 0
+        };
+      },
+      onEachFeature: function (feature, layer) {
+        layer.on('click', function () {
+          L.popup()
+            .setLatLng(layer.getBounds().getCenter())
+            .setContent(`<strong>LSOA Code:</strong> ${feature.properties.LSOA21CD}<br><strong>LSOA Name:</strong> ${feature.properties.LSOA21NM}`)
+            .openOn(map);
+        });
+      }
+    });
+  })
+  .catch(error => console.error('Error fetching LSOAs:', error));
 
 const ScoresFiles = [
   { year: '2024', path: 'https://AmFa6.github.io/TAF_test/2024_connectscore.geojson' },
@@ -159,6 +195,7 @@ let isInverseScoresOutline = false;
 let isInverseAmenitiesOpacity = false;
 let isInverseAmenitiesOutline = false;
 let wardBoundariesLayer;
+let lsoaLayer;
 let GrowthZonesLayer;
 let ScoresLayer = null;
 let AmenitiesCatchmentLayer = null;
@@ -626,6 +663,12 @@ function createStaticLegendControls() {
     }
   });
 
+  const headerDiv = document.createElement("div");
+  headerDiv.innerHTML = "Geographies";
+  headerDiv.style.fontSize = "1.1em";
+  headerDiv.style.marginBottom = "10px";
+  legendContainer.appendChild(headerDiv);
+
   const wardBoundariesCheckboxDiv = document.createElement("div");
   wardBoundariesCheckboxDiv.innerHTML = `<input type="checkbox" id="wardBoundariesCheckbox"> <span style="font-size: 1em;">Ward Boundaries (2021)</span>`;
   legendContainer.appendChild(wardBoundariesCheckboxDiv);
@@ -635,6 +678,18 @@ function createStaticLegendControls() {
       wardBoundariesLayer.addTo(map);
     } else {
       map.removeLayer(wardBoundariesLayer);
+    }
+  });
+
+  const lsoaCheckboxDiv = document.createElement("div");
+  lsoaCheckboxDiv.innerHTML = `<input type="checkbox" id="lsoaCheckbox"> <span style="font-size: 1em;">Lower Layer Super Output Areas (LSOA 2021)</span>`;
+  legendContainer.appendChild(lsoaCheckboxDiv);
+  const lsoaCheckbox = document.getElementById('lsoaCheckbox');
+  lsoaCheckbox.addEventListener('change', () => {
+    if (lsoaCheckbox.checked) {
+      lsoaLayer.addTo(map);
+    } else {
+      map.removeLayer(lsoaLayer);
     }
   });
 
