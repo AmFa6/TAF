@@ -32,29 +32,29 @@ fetch('https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Wards_
   })
 
 const ScoresFiles = [
-  { year: '2024', path: 'https://AmFa6.github.io/TAF_test/2024_connectscore.geojson' },
-  { year: '2023', path: 'https://AmFa6.github.io/TAF_test/2023_connectscore.geojson' },
-  { year: '2022', path: 'https://AmFa6.github.io/TAF_test/2022_connectscore.geojson' },
-  { year: '2019', path: 'https://AmFa6.github.io/TAF_test/2019_connectscore.geojson' },
-  { year: '2023-2024', path: 'https://AmFa6.github.io/TAF_test/2023-2024_connectscore.geojson' },
-  { year: '2019-2024', path: 'https://AmFa6.github.io/TAF_test/2019-2024_connectscore.geojson' },
-  { year: '2022-2023', path: 'https://AmFa6.github.io/TAF_test/2022-2023_connectscore.geojson' },
-  { year: '2019-2023', path: 'https://AmFa6.github.io/TAF_test/2019-2023_connectscore.geojson' }, 
-  { year: '2019-2022', path: 'https://AmFa6.github.io/TAF_test/2019-2022_connectscore.geojson' }
+  { year: '2024', path: 'https://AmFa6.github.io/TAF/2024_connectscore.geojson' },
+  { year: '2023', path: 'https://AmFa6.github.io/TAF/2023_connectscore.geojson' },
+  { year: '2022', path: 'https://AmFa6.github.io/TAF/2022_connectscore.geojson' },
+  { year: '2019', path: 'https://AmFa6.github.io/TAF/2019_connectscore.geojson' },
+  { year: '2023-2024', path: 'https://AmFa6.github.io/TAF/2023-2024_connectscore.geojson' },
+  { year: '2019-2024', path: 'https://AmFa6.github.io/TAF/2019-2024_connectscore.geojson' },
+  { year: '2022-2023', path: 'https://AmFa6.github.io/TAF/2022-2023_connectscore.geojson' },
+  { year: '2019-2023', path: 'https://AmFa6.github.io/TAF/2019-2023_connectscore.geojson' }, 
+  { year: '2019-2022', path: 'https://AmFa6.github.io/TAF/2019-2022_connectscore.geojson' }
 ];
 
 const AmenitiesFiles = [
-  { type: 'PriSch', path: 'https://AmFa6.github.io/TAF_test/PriSch.geojson' },
-  { type: 'SecSch', path: 'https://AmFa6.github.io/TAF_test/SecSch.geojson' },
-  { type: 'FurEd', path: 'https://AmFa6.github.io/TAF_test/FurEd.geojson' },
-  { type: 'Em500', path: 'https://AmFa6.github.io/TAF_test/Em500.geojson' },
-  { type: 'Em5000', path: 'https://AmFa6.github.io/TAF_test/Em5000.geojson' },
-  { type: 'StrEmp', path: 'https://AmFa6.github.io/TAF_test/StrEmp.geojson' },
-  { type: 'CitCtr', path: 'https://AmFa6.github.io/TAF_test/CitCtr.geojson' },
-  { type: 'MajCtr', path: 'https://AmFa6.github.io/TAF_test/MajCtr.geojson' },
-  { type: 'DisCtr', path: 'https://AmFa6.github.io/TAF_test/DisCtr.geojson' },
-  { type: 'GP', path: 'https://AmFa6.github.io/TAF_test/GP.geojson' },
-  { type: 'Hos', path: 'https://AmFa6.github.io/TAF_test/Hos.geojson' }
+  { type: 'PriSch', path: 'https://AmFa6.github.io/TAF/PriSch.geojson' },
+  { type: 'SecSch', path: 'https://AmFa6.github.io/TAF/SecSch.geojson' },
+  { type: 'FurEd', path: 'https://AmFa6.github.io/TAF/FurEd.geojson' },
+  { type: 'Em500', path: 'https://AmFa6.github.io/TAF/Em500.geojson' },
+  { type: 'Em5000', path: 'https://AmFa6.github.io/TAF/Em5000.geojson' },
+  { type: 'StrEmp', path: 'https://AmFa6.github.io/TAF/StrEmp.geojson' },
+  { type: 'CitCtr', path: 'https://AmFa6.github.io/TAF/CitCtr.geojson' },
+  { type: 'MajCtr', path: 'https://AmFa6.github.io/TAF/MajCtr.geojson' },
+  { type: 'DisCtr', path: 'https://AmFa6.github.io/TAF/DisCtr.geojson' },
+  { type: 'GP', path: 'https://AmFa6.github.io/TAF/GP.geojson' },
+  { type: 'Hos', path: 'https://AmFa6.github.io/TAF/Hos.geojson' }
 ];
 
 const layers = {};
@@ -99,13 +99,13 @@ const amenityIcons = {
   Hos: L.divIcon({ className: 'fa-icon', html: '<div class="pin"><i class="fas fa-hospital" style="color: grey;"></i></div>', iconSize: [60, 60], iconAnchor: [15, 15] })
 };
 
-fetch('https://AmFa6.github.io/TAF_test/HexesSocioEco.geojson')
+fetch('https://AmFa6.github.io/TAF/HexesSocioEco.geojson')
   .then(response => response.json())
   .then(data => {
     hexes = data;
   })
 
-fetch('https://AmFa6.github.io/TAF_test/GrowthZones.geojson')
+fetch('https://AmFa6.github.io/TAF/GrowthZones.geojson')
   .then(response => response.json())
   .then(data => {
     GrowthZonesLayer = L.geoJSON(data, {
@@ -1152,7 +1152,7 @@ function updateAmenitiesCatchmentLayer() {
   const cacheKeys = selectedAmenitiesAmenities.map(amenity => `${selectedYear}_${amenity}`);
   const fetchPromises = cacheKeys.map(cacheKey => {
     if (!csvDataCache[cacheKey]) {
-      const csvPath = `https://AmFa6.github.io/TAF_test/${cacheKey}_csv.csv`;
+      const csvPath = `https://AmFa6.github.io/TAF/${cacheKey}_csv.csv`;
       return fetch(csvPath)
         .then(response => response.text())
         .then(csvText => {
