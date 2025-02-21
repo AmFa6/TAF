@@ -639,7 +639,7 @@ function createStaticLegendControls() {
   });
 
   const GrowthZonesCheckboxDiv = document.createElement("div");
-  GrowthZonesCheckboxDiv.innerHTML = `<input type="checkbox" id="GrowthZonesCheckbox"> <span style="font-size: 1em;">Ward Boundaries (2021)</span>`;
+  GrowthZonesCheckboxDiv.innerHTML = `<input type="checkbox" id="GrowthZonesCheckbox"> <span style="font-size: 1em;">Growth Zones</span>`;
   legendContainer.appendChild(GrowthZonesCheckboxDiv);
   const GrowthZonesCheckbox = document.getElementById('GrowthZonesCheckbox');
   GrowthZonesCheckbox.addEventListener('change', () => {
