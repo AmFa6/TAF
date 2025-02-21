@@ -112,7 +112,7 @@ fetch('https://AmFa6.github.io/TAF_test/GrowthZones.geojson')
       style: function (feature) {
         return {
           color: 'black',
-          weight: 1,
+          weight: 2,
           fillOpacity: 0
         };
       },
