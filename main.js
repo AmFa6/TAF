@@ -30,7 +30,6 @@ fetch('https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Wards_
       }
     });
   })
-  .catch(error => console.error('Error loading GeoJSON data:', error));
 
 const ScoresFiles = [
   { year: '2024', path: 'https://AmFa6.github.io/TAF_test/2024_connectscore.geojson' },
@@ -105,8 +104,29 @@ fetch('https://AmFa6.github.io/TAF_test/HexesSocioEco.geojson')
   .then(data => {
     hexes = data;
   })
-  .catch(error => console.error('Error loading HexesSocioEco layer:', error));
 
+fetch('https://AmFa6.github.io/TAF_test/GrowthZones.geojson')
+  .then(response => response.json())
+  .then(data => {
+    GrowthZonesLayer = L.geoJSON(data, {
+      style: function (feature) {
+        return {
+          color: 'black',
+          weight: 1,
+          fillOpacity: 0
+        };
+      },
+      onEachFeature: function (feature, layer) {
+        layer.on('click', function () {
+          L.popup()
+            .setLatLng(layer.getBounds().getCenter())
+            .setContent(`<strong>Growth Zone:</strong> ${feature.properties.Name}<br><strong>Growth Type:</strong> ${feature.properties.GrowthType}`)
+            .openOn(map);
+        });
+      }
+    });
+  })
+  
 ScoresFiles.forEach(file => {
   fetch(file.path)
     .then(response => response.json())
@@ -139,6 +159,7 @@ let isInverseScoresOutline = false;
 let isInverseAmenitiesOpacity = false;
 let isInverseAmenitiesOutline = false;
 let wardBoundariesLayer;
+let GrowthZonesLayer;
 let ScoresLayer = null;
 let AmenitiesCatchmentLayer = null;
 let hexTimeMap = {};
