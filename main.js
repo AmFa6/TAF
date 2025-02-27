@@ -12,7 +12,6 @@ fetch('https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Wards_
     return response.json();
   })
   .then(data => {
-    console.log('Ward Boundaries Data:', data);
     wardBoundariesLayer = L.geoJSON(data, {
       style: function (feature) {
         return {
@@ -41,7 +40,6 @@ fetch('https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Lower_
     return response.json();
   })
   .then(data => {
-    console.log('LSOA Data:', data);
     const lsoaGeoJson = {
       type: 'FeatureCollection',
       features: data.features
@@ -134,6 +132,8 @@ const amenityIcons = {
   GP: L.divIcon({ className: 'fa-icon', html: '<div class="pin"><i class="fas fa-stethoscope" style="color: grey;"></i></div>', iconSize: [60, 60], iconAnchor: [15, 15] }),
   Hos: L.divIcon({ className: 'fa-icon', html: '<div class="pin"><i class="fas fa-hospital" style="color: grey;"></i></div>', iconSize: [60, 60], iconAnchor: [15, 15] })
 };
+const filterTypeDropdown = document.getElementById('filterTypeDropdown');
+const filterValueDropdown = document.getElementById('filterValueDropdown');
 
 fetch('https://AmFa6.github.io/TAF_test/HexesSocioEco.geojson')
   .then(response => response.json())
@@ -229,6 +229,13 @@ ScoresInverseOpacity.addEventListener("click", toggleInverseOpacityScoresScale);
 ScoresInverseOutline.addEventListener("click", toggleInverseOutlineScoresScale);
 AmenitiesInverseOpacity.addEventListener("click", toggleInverseOpacityAmenitiesScale);
 AmenitiesInverseOutline.addEventListener("click", toggleInverseOutlineAmenitiesScale);
+filterTypeDropdown.addEventListener('change', () => {
+  updateFilterValues();
+  updateSummaryStatistics(getCurrentFeatures());
+});
+filterValueDropdown.addEventListener('change', () => {
+  updateSummaryStatistics(getCurrentFeatures());
+});
 
 document.addEventListener('DOMContentLoaded', (event) => {
   const collapsibleButtons = document.querySelectorAll(".collapsible");
@@ -244,7 +251,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
     });
   });
   
-  const panelHeaders = document.querySelectorAll(".panel-header");
+  const panelHeaders = document.querySelectorAll(".panel-header:not(.summary-header)");
   panelHeaders.forEach(header => {
     const panelContent = header.nextElementSibling;
     panelContent.style.display = "none";
@@ -277,8 +284,20 @@ document.addEventListener('DOMContentLoaded', (event) => {
         } 
         drawSelectedAmenities([]);
         updateLegend();
+        updateFilterValues();
+        updateSummaryStatistics([]);
       }
     });
+  });
+
+  const summaryHeader = document.querySelector(".summary-header");
+  const summaryContent = summaryHeader.nextElementSibling;
+  summaryContent.style.display = "none";
+  summaryHeader.classList.add("collapsed");
+
+  summaryHeader.addEventListener("click", function() {
+    summaryContent.style.display = summaryContent.style.display === "block" ? "none" : "block";
+    summaryHeader.classList.toggle("collapsed", summaryContent.style.display === "none");
   });
 
   const amenitiesDropdown = document.getElementById('amenitiesDropdown');
@@ -316,6 +335,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
     checkbox.addEventListener('change', updateFeatureVisibility);
   });
   createStaticLegendControls();
+  updateFilterValues();
 });
 
 map.on('zoomend', () => {
@@ -413,7 +433,9 @@ function scaleExp(value, minVal, maxVal, minScale, maxScale, order) {
 }
 
 function formatValue(value, step) {
-  if (step >= 1) {
+  if (step >= 10) {
+    return Math.round(value / 10) * 10;
+  } else if (step >= 1) {
     return parseFloat(value).toFixed(0);
   } else if (step >= 0.1) {
     return parseFloat(value).toFixed(1);
@@ -449,7 +471,7 @@ function onEachFeature(feature, layer, selectedYear, selectedPurpose, selectedMo
       const carAvailability = population === 0 ? '-' : (getValue('carav') !== '-' ? getValue('carav').toFixed(2) : '-');
       const futureDwellings = getValue('hh_fut') === 0 ? '-' : (getValue('hh_fut') !== '-' ? Math.round(getValue('hh_fut')) : '-');
 
-      let popupContent = `<strong>Hex_ID:</strong> ${hexId}<br><strong>${scoreLabel}:</strong> ${score}<br><strong>Percentile:</strong> ${percentile}<br><strong>Population:</strong> ${population}<br><strong>IMD:</strong> ${imd}<br><strong>Car Availability:</strong> ${carAvailability}<br><strong>Future Dwellings:</strong> ${futureDwellings}`;
+      let popupContent = `<strong>Hex_ID:</strong> ${hexId}<br><strong>${scoreLabel}:</strong> ${score}<br><strong>Score Percentile:</strong> ${percentile}<br><strong>Population:</strong> ${population}<br><strong>IMD:</strong> ${imd}<br><strong>Car Availability:</strong> ${carAvailability}<br><strong>Future Dwellings:</strong> ${futureDwellings}`;
 
       L.popup()
         .setLatLng(e.latlng)
@@ -501,8 +523,17 @@ function isClassVisible(value, selectedYear) {
     const isChecked = checkbox.checked;
 
     if (selectedYear.includes('-')) {
-      const [min, max] = range.split(' to ').map(parseFloat);
-      if (value >= min && value <= max && !isChecked) {
+      if (range.includes('<=') && !range.includes('>') && value <= parseFloat(range.split('<=')[1]) / 100 && !isChecked) {
+        return false;
+      } else if (range.includes('>=') && !range.includes('<') && value >= parseFloat(range.split('>=')[1]) / 100 && !isChecked) {
+        return false;
+      } else if (range.includes('>') && range.includes('<=') && value > parseFloat(range.split('>')[1]) / 100 && value <= parseFloat(range.split('<=')[1]) / 100 && !isChecked) {
+        return false;
+      } else if (range.includes('>=') && range.includes('<') && value >= parseFloat(range.split('>=')[1]) / 100 && value < parseFloat(range.split('<')[1]) / 100 && !isChecked) {
+        return false;
+      } else if (range.includes('>') && range.includes('<') && value > parseFloat(range.split('>')[1]) / 100 && value < parseFloat(range.split('<')[1]) / 100 && !isChecked) {
+        return false;
+      } else if (range === '= 0' && value === 0 && !isChecked) {
         return false;
       }
     } else {
@@ -522,17 +553,11 @@ function isClassVisible(value, selectedYear) {
 }
 
 function updateFeatureVisibility() {
-  const updateLayerVisibility = (layer, getValue, selectedYear) => {
-    const classVisibility = {};
-
+  const updateLayerVisibility = (layer, getValue, selectedYear, attribute) => {
     layer.eachLayer(layer => {
       const feature = layer.feature;
       const value = getValue(feature);
       const isVisible = isClassVisible(value, selectedYear);
-
-      if (!classVisibility[value]) {
-        classVisibility[value] = isVisible;
-      }
 
       if (layer.options._originalFillOpacity === undefined) {
         layer.options._originalFillOpacity = layer.options.fillOpacity;
@@ -542,17 +567,16 @@ function updateFeatureVisibility() {
         fillOpacity: isVisible ? layer.options._originalFillOpacity : 0 
       });
     });
-
   };
 
   const selectedYear = AmenitiesCatchmentLayer ? AmenitiesYear.value : ScoresYear.value;
   if (AmenitiesCatchmentLayer) {
-    updateLayerVisibility(AmenitiesCatchmentLayer, feature => hexTimeMap[feature.properties.Hex_ID], selectedYear);
+    updateLayerVisibility(AmenitiesCatchmentLayer, feature => hexTimeMap[feature.properties.Hex_ID], selectedYear, 'time');
   } else if (ScoresLayer) {
     const fieldToDisplay = selectedYear.includes('-') 
       ? `${ScoresPurpose.value}_${ScoresMode.value}` 
       : `${ScoresPurpose.value}_${ScoresMode.value}_100`;
-    updateLayerVisibility(ScoresLayer, feature => feature.properties[fieldToDisplay], selectedYear);
+    updateLayerVisibility(ScoresLayer, feature => feature.properties[fieldToDisplay], selectedYear, fieldToDisplay);
   }
 }
 
@@ -982,6 +1006,7 @@ function updateScoresLayer() {
   const selectedYear = ScoresYear.value;
   if (!selectedYear) {
     updateLegend();
+    updateSummaryStatistics([]);
     return;
   }
   const selectedPurpose = ScoresPurpose.value;
@@ -1022,7 +1047,12 @@ function updateScoresLayer() {
     drawSelectedAmenities(selectedScoresAmenities);
     updateLegend();
     updateFeatureVisibility();
+    updateSummaryStatistics(filteredFeatures);
   }
+
+  // Update filter values when the year changes
+  updateFilterValues();
+  updateSummaryStatistics(getCurrentFeatures());
 }
 
 function toggleInverseOpacityAmenitiesScale() {
@@ -1199,6 +1229,7 @@ function updateAmenitiesCatchmentLayer() {
     }
     drawSelectedAmenities([]);
     updateLegend();
+    updateSummaryStatistics([]);
     return;
   }
 
@@ -1313,5 +1344,202 @@ function updateAmenitiesCatchmentLayer() {
 
     updateLegend();
     updateFeatureVisibility();
+    updateSummaryStatistics(filteredFeatures);
   });
+}
+
+function updateSummaryStatistics(features) {
+  if (!ScoresLayer && !AmenitiesCatchmentLayer) {
+    features = [];
+  }
+
+  if (features.length === 0) {
+    document.getElementById('avg-score').textContent = '-';
+    document.getElementById('min-score').textContent = '-';
+    document.getElementById('max-score').textContent = '-';
+    document.getElementById('avg-percentile').textContent = '-';
+    document.getElementById('min-percentile').textContent = '-';
+    document.getElementById('max-percentile').textContent = '-';
+    document.getElementById('total-population').textContent = '-';
+    document.getElementById('min-population').textContent = '-';
+    document.getElementById('max-population').textContent = '-';
+    document.getElementById('avg-imd').textContent = '-';
+    document.getElementById('min-imd').textContent = '-';
+    document.getElementById('max-imd').textContent = '-';
+    document.getElementById('avg-car-availability').textContent = '-';
+    document.getElementById('min-car-availability').textContent = '-';
+    document.getElementById('max-car-availability').textContent = '-';
+    document.getElementById('total-future-dwellings').textContent = '-';
+    document.getElementById('min-future-dwellings').textContent = '-';
+    document.getElementById('max-future-dwellings').textContent = '-';
+    return;
+  }
+
+  const filterType = filterTypeDropdown.value;
+  const filterValue = filterValueDropdown.value;
+
+  let filteredFeatures = features;
+
+  if (filterType === 'Range') {
+    const selectedYear = ScoresYear.value;
+    const selectedPurpose = ScoresPurpose.value;
+    const selectedMode = ScoresMode.value;
+    const fieldToDisplay = selectedYear.includes('-') ? `${selectedPurpose}_${selectedMode}` : `${selectedPurpose}_${selectedMode}_100`;
+
+    if (selectedYear.includes('-')) {
+      const rangePattern = /([<>]=?)?\s*(-?\d+(\.\d+)?%?)/g;
+      const ranges = [];
+      let match;
+      while ((match = rangePattern.exec(filterValue)) !== null) {
+        ranges.push({ operator: match[1], value: parseFloat(match[2]) / 100 });
+      }
+
+      filteredFeatures = features.filter(feature => {
+        const value = feature.properties[fieldToDisplay];
+        return ranges.every(range => {
+          if (range.operator === '<=') return value <= range.value;
+          if (range.operator === '>=') return value >= range.value;
+          if (range.operator === '<') return value < range.value;
+          if (range.operator === '>') return value > range.value;
+          return value === range.value;
+        });
+      });
+    } else {
+      const [minRange, maxRange] = filterValue.split('-').map(parseFloat);
+      filteredFeatures = features.filter(feature => {
+        const value = feature.properties[fieldToDisplay];
+        return value >= minRange && value < maxRange;
+      });
+    }
+  } else if (filterType === 'Ward') {
+    const wardLayer = wardBoundariesLayer.getLayers().find(layer => layer.feature.properties.WD21NM === filterValue);
+    if (wardLayer) {
+      const wardPolygon = wardLayer.toGeoJSON();
+      filteredFeatures = features.filter(feature => {
+        const hexPolygon = turf.polygon(feature.geometry.coordinates);
+        return turf.booleanPointInPolygon(turf.center(hexPolygon), wardPolygon);
+      });
+    }
+  } else if (filterType === 'GrowthZone') {
+    const growthZoneLayer = GrowthZonesLayer.getLayers().find(layer => layer.feature.properties.Name === filterValue);
+    if (growthZoneLayer) {
+      const growthZonePolygon = growthZoneLayer.toGeoJSON();
+      filteredFeatures = features.filter(feature => {
+        const hexPolygon = turf.polygon(feature.geometry.coordinates);
+        return turf.booleanPointInPolygon(turf.center(hexPolygon), growthZonePolygon);
+      });
+    }
+  }
+
+  const selectedPurpose = ScoresPurpose.value;
+  const selectedMode = ScoresMode.value;
+  const scoreField = `${selectedPurpose}_${selectedMode}`;
+  const percentileField = `${selectedPurpose}_${selectedMode}_100`;
+
+  const metrics = {
+    score: [],
+    percentile: [],
+    population: [],
+    imd: [],
+    carAvailability: [],
+    futureDwellings: []
+  };
+
+  filteredFeatures.forEach(feature => {
+    const properties = feature.properties;
+    metrics.score.push(properties[scoreField] || 0);
+    metrics.percentile.push(properties[percentileField] || 0);
+    metrics.population.push(properties.pop || 0);
+    metrics.imd.push(properties.imd || 0);
+    metrics.carAvailability.push(properties.carav || 0);
+    metrics.futureDwellings.push(properties.hh_fut || 0);
+  });
+
+  const summary = {
+    avgScore: calculateWeightedAverage(metrics.score, metrics.population),
+    minScore: Math.min(...metrics.score),
+    maxScore: Math.max(...metrics.score),
+    avgPercentile: calculateWeightedAverage(metrics.percentile, metrics.population),
+    minPercentile: Math.min(...metrics.percentile),
+    maxPercentile: Math.max(...metrics.percentile),
+    totalPopulation: metrics.population.reduce((a, b) => a + b, 0),
+    minPopulation: Math.min(...metrics.population),
+    maxPopulation: Math.max(...metrics.population),
+    avgImd: calculateWeightedAverage(metrics.imd, metrics.population),
+    minImd: Math.min(...metrics.imd.filter((_, index) => metrics.population[index] > 0)),
+    maxImd: Math.max(...metrics.imd),
+    avgCarAvailability: calculateWeightedAverage(metrics.carAvailability, metrics.population),
+    minCarAvailability: Math.min(...metrics.carAvailability.filter((_, index) => metrics.population[index] > 0)),
+    maxCarAvailability: Math.max(...metrics.carAvailability),
+    totalFutureDwellings: metrics.futureDwellings.reduce((a, b) => a + b, 0),
+    minFutureDwellings: Math.min(...metrics.futureDwellings),
+    maxFutureDwellings: Math.max(...metrics.futureDwellings)
+  };
+
+  const selectedYear = ScoresYear.value;
+  const formatScore = value => selectedYear.includes('-') ? `${(value * 100).toFixed(1)}%` : formatValue(value, 1);
+
+  document.getElementById('avg-score').textContent = formatScore(summary.avgScore);
+  document.getElementById('min-score').textContent = formatScore(summary.minScore);
+  document.getElementById('max-score').textContent = formatScore(summary.maxScore);
+  document.getElementById('avg-percentile').textContent = formatValue(summary.avgPercentile, 1);
+  document.getElementById('min-percentile').textContent = formatValue(summary.minPercentile, 1);
+  document.getElementById('max-percentile').textContent = formatValue(summary.maxPercentile, 1);
+  document.getElementById('total-population').textContent = formatValue(summary.totalPopulation, 10);
+  document.getElementById('min-population').textContent = formatValue(summary.minPopulation, 10);
+  document.getElementById('max-population').textContent = formatValue(summary.maxPopulation, 10);
+  document.getElementById('avg-imd').textContent = formatValue(summary.avgImd, 0.1);
+  document.getElementById('min-imd').textContent = formatValue(summary.minImd, 0.1);
+  document.getElementById('max-imd').textContent = formatValue(summary.maxImd, 0.1);
+  document.getElementById('avg-car-availability').textContent = formatValue(summary.avgCarAvailability, 0.01);
+  document.getElementById('min-car-availability').textContent = formatValue(summary.minCarAvailability, 0.01);
+  document.getElementById('max-car-availability').textContent = formatValue(summary.maxCarAvailability, 0.01);
+  document.getElementById('total-future-dwellings').textContent = formatValue(summary.totalFutureDwellings, 10);
+  document.getElementById('min-future-dwellings').textContent = formatValue(summary.minFutureDwellings, 10);
+  document.getElementById('max-future-dwellings').textContent = formatValue(summary.maxFutureDwellings, 10);
+}
+
+function calculateWeightedAverage(values, weights) {
+  const totalWeight = weights.reduce((a, b) => a + b, 0);
+  const weightedSum = values.reduce((sum, value, index) => sum + value * weights[index], 0);
+  return weightedSum / totalWeight;
+}
+
+function updateFilterValues() {
+  const filterType = filterTypeDropdown.value;
+  let options = [];
+
+  if (filterType === 'Range') {
+    const selectedYear = ScoresYear.value;
+    if (ScoresLayer) {
+      if (selectedYear.includes('-')) {
+        options = [
+          '<= -20%', '> -20% and <= -10%', '> -10% and < 0', '= 0', '> 0 and <= 10%', '>= 10% and < 20%', '>= 20%'
+        ];
+      } else {
+        options = [
+          '0-10', '10-20', '20-30', '30-40', '40-50', '50-60', '60-70', '70-80', '80-90', '90-100'
+        ];
+      }
+    } else if (AmenitiesCatchmentLayer) {
+      options = [
+        '0-5', '5-10', '10-15', '15-20', '20-25', '25-30'
+      ];
+    }
+  } else if (filterType === 'Ward') {
+    options = wardBoundariesLayer ? wardBoundariesLayer.getLayers().map(layer => layer.feature.properties.WD21NM) : [];
+  } else if (filterType === 'GrowthZone') {
+    options = GrowthZonesLayer ? GrowthZonesLayer.getLayers().map(layer => layer.feature.properties.Name) : [];
+  }
+
+  filterValueDropdown.innerHTML = options.map(option => `<option value="${option}">${option}</option>`).join('');
+}
+
+function getCurrentFeatures() {
+  if (ScoresLayer) {
+    return ScoresLayer.toGeoJSON().features;
+  } else if (AmenitiesCatchmentLayer) {
+    return AmenitiesCatchmentLayer.toGeoJSON().features;
+  }
+  return [];
 }
