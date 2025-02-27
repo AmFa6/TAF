@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Turf.js/6.5.0/turf.min.js"></script>
   <style>
     html, body {
       height: 100%;
@@ -315,6 +316,31 @@
       background-color: grey;
       border-radius: 50%;
     }
+    #summary-panel {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      background: white;
+      padding: 10px;
+      border-radius: 5px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      width: 500px;
+      box-sizing: border-box;
+    }
+    #summary-panel h4 {
+      margin-top: 0;
+    }
+
+    #summary-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    #summary-table th, #summary-table td {
+      border: 1px solid #ccc;
+      padding: 5px;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
@@ -517,6 +543,78 @@
     <h4 style="font-size: 1.2em; margin-top: 0;">Legend</h4>
     <div id="legend-content"></div>
     <div id="legend-extra"></div>
+  </div>
+  <div id="summary-panel">
+    <button id="toggle-summary-panel" class="panel-header summary-header">Statistics Summary</button>
+    <div id="summary-content" class="panel">
+      <div>
+        <label for="filterTypeDropdown">Area Type:</label>
+        <select id="filterTypeDropdown" class="small-font">
+          <option value="Range">Range</option>
+          <option value="Ward">Ward</option>
+          <option value="GrowthZone">Growth Zone</option>
+        </select>
+      </div>
+      <div>
+        <label for="filterValueDropdown">Area Name:</label>
+        <select id="filterValueDropdown" class="small-font"></select>
+      </div>
+      <table id="summary-table">
+        <thead>
+          <tr>
+            <th>Metric</th>
+            <th>Average</th>
+            <th>Total</th>
+            <th>Minimum</th>
+            <th>Maximum</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Score</td>
+            <td id="avg-score"></td>
+            <td>-</td>
+            <td id="min-score"></td>
+            <td id="max-score"></td>
+          </tr>
+          <tr>
+            <td>Score Percentile</td>
+            <td id="avg-percentile"></td>
+            <td>-</td>
+            <td id="min-percentile"></td>
+            <td id="max-percentile"></td>
+          </tr>
+          <tr>
+            <td>Population</td>
+            <td>-</td>
+            <td id="total-population"></td>
+            <td id="min-population"></td>
+            <td id="max-population"></td>
+          </tr>
+          <tr>
+            <td>IMD</td>
+            <td id="avg-imd"></td>
+            <td>-</td>
+            <td id="min-imd"></td>
+            <td id="max-imd"></td>
+          </tr>
+          <tr>
+            <td>Car Availability</td>
+            <td id="avg-car-availability"></td>
+            <td>-</td>
+            <td id="min-car-availability"></td>
+            <td id="max-car-availability"></td>
+          </tr>
+          <tr>
+            <td>Future Dwellings</td>
+            <td>-</td>
+            <td id="total-future-dwellings"></td>
+            <td id="min-future-dwellings"></td>
+            <td id="max-future-dwellings"></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
   <script src="main.js"></script>
 </body>
