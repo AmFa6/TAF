@@ -4,7 +4,10 @@ const baseLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/lig
   attribution: '&copy; OpenStreetMap contributors & CartoDB'
 }).addTo(map);
 
-fetch('https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Wards_December_2021_GB_BGC_2022/FeatureServer/0/query?outFields=*&where=1%3D1&geometry=-3.073689%2C51.291726%2C-2.327195%2C51.656841&geometryType=esriGeometryEnvelope&inSR=4326&spatialRel=esriSpatialRelIntersects&outSR=4326&f=geojson')
+const ladCodes = ['E06000022', 'E06000023', 'E06000024', 'E06000025'];
+let lsoaLookup = {};
+
+fetch('https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Local_Authority_Districts_December_2024_Boundaries_UK_BGC/FeatureServer/0/query?outFields=*&where=LAD24CD%20IN%20(%27E06000022%27,%27E06000023%27,%27E06000024%27,%27E06000025%27)&f=geojson')
   .then(response => {
     if (!response.ok) {
       throw new Error('Network response was not ok ' + response.statusText);
@@ -12,7 +15,36 @@ fetch('https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Wards_
     return response.json();
   })
   .then(data => {
-    wardBoundariesLayer = L.geoJSON(data, {
+    uaBoundariesGeoJson = data;
+    uaBoundariesLayer = L.geoJSON(data, {
+      style: function (feature) {
+        return {
+          color: 'black',
+          weight: 1.5,
+          fillOpacity: 0
+        };
+      },
+      onEachFeature: function (feature, layer) {
+        layer.on('click', function () {
+          L.popup()
+            .setLatLng(layer.getBounds().getCenter())
+            .setContent(`<strong>Local Authority District:</strong> ${feature.properties.LAD24NM}`)
+            .openOn(map);
+        });
+      }
+    });
+  });
+
+fetch('https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Wards_December_2024_Boundaries_UK_BGC/FeatureServer/0/query?outFields=*&where=1%3D1&geometry=-3.073689%2C51.291726%2C-2.327195%2C51.656841&geometryType=esriGeometryEnvelope&inSR=4326&spatialRel=esriSpatialRelIntersects&outSR=4326&f=geojson')
+  .then(response => response.json())
+  .then(data => {
+    const filteredFeatures = data.features.filter(feature => ladCodes.includes(feature.properties.LAD24CD));
+    const wardGeoJson = {
+      type: 'FeatureCollection',
+      features: filteredFeatures
+    };
+
+    wardBoundariesLayer = L.geoJSON(wardGeoJson, {
       style: function (feature) {
         return {
           color: 'black',
@@ -24,7 +56,7 @@ fetch('https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Wards_
         layer.on('click', function () {
           L.popup()
             .setLatLng(layer.getBounds().getCenter())
-            .setContent(`<strong>Ward Name:</strong> ${feature.properties.WD21NM}`)
+            .setContent(`<strong>Ward Name:</strong> ${feature.properties.WD24NM}`)
             .openOn(map);
         });
       }
@@ -32,38 +64,45 @@ fetch('https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Wards_
   })
   .catch(error => console.error('Error fetching ward boundaries:', error));
 
-fetch('https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Lower_layer_Super_Output_Areas_December_2021_Boundaries_EW_BGC_V5/FeatureServer/0/query?outFields=*&where=1%3D1&geometry=-3.073689%2C51.291726%2C-2.327195%2C51.656841&geometryType=esriGeometryEnvelope&inSR=4326&spatialRel=esriSpatialRelIntersects&outSR=4326&f=geojson')
-  .then(response => {
-    if (!response.ok) {
-      throw new Error('Network response was not ok ' + response.statusText);
-    }
-    return response.json();
-  })
-  .then(data => {
-    const lsoaGeoJson = {
-      type: 'FeatureCollection',
-      features: data.features
-    };
-
-    lsoaLayer = L.geoJSON(lsoaGeoJson, {
-      style: function (feature) {
-        return {
-          color: 'black',
-          weight: 0.6,
-          fillOpacity: 0
-        };
-      },
-      onEachFeature: function (feature, layer) {
-        layer.on('click', function () {
-          L.popup()
-            .setLatLng(layer.getBounds().getCenter())
-            .setContent(`<strong>LSOA Code:</strong> ${feature.properties.LSOA21CD}<br><strong>LSOA Name:</strong> ${feature.properties.LSOA21NM}`)
-            .openOn(map);
-        });
-      }
-    });
-  })
-  .catch(error => console.error('Error fetching LSOAs:', error));
+  // Fetch the lookup table
+  fetch('https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/LSOA21_WD24_LAD24_EW_LU/FeatureServer/0/query?outFields=*&where=LAD24CD%20IN%20(%27E06000022%27,%27E06000023%27,%27E06000024%27,%27E06000025%27)&f=geojson')
+    .then(response => response.json())
+    .then(data => {
+      data.features.forEach(feature => {
+        const lsoaCode = feature.properties.LSOA21CD;
+        lsoaLookup[lsoaCode] = true;
+      });
+  
+      // Fetch the main data and filter it
+      return fetch('https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Lower_layer_Super_Output_Areas_December_2021_Boundaries_EW_BGC_V5/FeatureServer/0/query?outFields=*&where=1%3D1&geometry=-3.073689%2C51.291726%2C-2.327195%2C51.656841&geometryType=esriGeometryEnvelope&inSR=4326&spatialRel=esriSpatialRelIntersects&outSR=4326&f=geojson');
+    })
+    .then(response => response.json())
+    .then(data => {
+      const filteredFeatures = data.features.filter(feature => lsoaLookup[feature.properties.LSOA21CD]);
+      const lsoaGeoJson = {
+        type: 'FeatureCollection',
+        features: filteredFeatures
+      };
+  
+      lsoaBoundariesLayer = L.geoJSON(lsoaGeoJson, {
+        style: function (feature) {
+          return {
+            color: 'black',
+            weight: 0.6,
+            fillOpacity: 0
+          };
+        },
+        onEachFeature: function (feature, layer) {
+          layer.on('click', function () {
+            L.popup()
+              .setLatLng(layer.getBounds().getCenter())
+              .setContent(`<strong>LSOA Name:</strong> ${feature.properties.LSOA21NM}`)
+              .openOn(map);
+          });
+        }
+      });
+    })
+    .catch(error => console.error('Error fetching data:', error));
 
 const ScoresFiles = [
   { year: '2024', path: 'https://AmFa6.github.io/TAF_test/2024_connectscore.geojson' },
@@ -194,8 +233,6 @@ let isInverseScoresOpacity = false;
 let isInverseScoresOutline = false;
 let isInverseAmenitiesOpacity = false;
 let isInverseAmenitiesOutline = false;
-let wardBoundariesLayer;
-let lsoaLayer;
 let GrowthZonesLayer;
 let ScoresLayer = null;
 let AmenitiesCatchmentLayer = null;
@@ -456,22 +493,31 @@ function onEachFeature(feature, layer, selectedYear, selectedPurpose, selectedMo
       let score = '-';
       let scoreLabel = 'Score';
 
-      if (scoreValue !== '-') {
-        if (selectedYear.includes('-')) {
-          score = Math.round(scoreValue * 100) + '%';
-          scoreLabel = 'Score Difference';
-        } else {
-          score = Math.round(scoreValue);
+      if (ScoresLayer) {
+        if (scoreValue !== '-') {
+          if (selectedYear.includes('-')) {
+            score = Math.round(scoreValue * 100) + '%';
+            scoreLabel = 'Score Difference';
+          } else {
+            score = Math.round(scoreValue);
+          }
         }
+
+        const percentile = getValue(`${selectedPurpose}_${selectedMode}_100`) !== '-' ? Math.round(getValue(`${selectedPurpose}_${selectedMode}_100`)) : '-';
+        const population = getValue('pop') !== '-' ? Math.round(getValue('pop')) : '-';
+        const imd = population === 0 ? '-' : (getValue('imd') !== '-' ? getValue('imd').toFixed(2) : '-');
+        const carAvailability = population === 0 ? '-' : (getValue('carav') !== '-' ? getValue('carav').toFixed(2) : '-');
+        const futureDwellings = getValue('hh_fut') === 0 ? '-' : (getValue('hh_fut') !== '-' ? Math.round(getValue('hh_fut')) : '-');
+
+        popupContent = `<strong>Hex_ID:</strong> ${hexId}<br><strong>${scoreLabel}:</strong> ${score}<br><strong>Score Percentile:</strong> ${percentile}<br><strong>Population:</strong> ${population}<br><strong>IMD:</strong> ${imd}<br><strong>Car Availability:</strong> ${carAvailability}<br><strong>Future Dwellings:</strong> ${futureDwellings}`;
+      } else if (AmenitiesCatchmentLayer) {
+        const time = hexTimeMap[hexId] !== undefined ? hexTimeMap[hexId] : '-';
+        const population = getValue('pop') !== '-' ? Math.round(getValue('pop')) : '-';
+        const imd = population === 0 ? '-' : (getValue('imd') !== '-' ? getValue('imd').toFixed(2) : '-');
+        const carAvailability = population === 0 ? '-' : (getValue('carav') !== '-' ? getValue('carav').toFixed(2) : '-');
+        const futureDwellings = getValue('hh_fut') === 0 ? '-' : (getValue('hh_fut') !== '-' ? Math.round(getValue('hh_fut')) : '-');
+        popupContent = `<strong>Hex_ID:</strong> ${hexId}<br><strong>Journey Time:</strong> ${Math.round(time)} minutes<br><strong>Population:</strong> ${population}<br><strong>IMD:</strong> ${imd}<br><strong>Car Availability:</strong> ${carAvailability}<br><strong>Future Dwellings:</strong> ${futureDwellings}`;
       }
-
-      const percentile = getValue(`${selectedPurpose}_${selectedMode}_100`) !== '-' ? Math.round(getValue(`${selectedPurpose}_${selectedMode}_100`)) : '-';
-      const population = getValue('pop') !== '-' ? Math.round(getValue('pop')) : '-';
-      const imd = population === 0 ? '-' : (getValue('imd') !== '-' ? getValue('imd').toFixed(2) : '-');
-      const carAvailability = population === 0 ? '-' : (getValue('carav') !== '-' ? getValue('carav').toFixed(2) : '-');
-      const futureDwellings = getValue('hh_fut') === 0 ? '-' : (getValue('hh_fut') !== '-' ? Math.round(getValue('hh_fut')) : '-');
-
-      let popupContent = `<strong>Hex_ID:</strong> ${hexId}<br><strong>${scoreLabel}:</strong> ${score}<br><strong>Score Percentile:</strong> ${percentile}<br><strong>Population:</strong> ${population}<br><strong>IMD:</strong> ${imd}<br><strong>Car Availability:</strong> ${carAvailability}<br><strong>Future Dwellings:</strong> ${futureDwellings}`;
 
       L.popup()
         .setLatLng(e.latlng)
@@ -693,6 +739,18 @@ function createStaticLegendControls() {
   headerDiv.style.marginBottom = "10px";
   legendContainer.appendChild(headerDiv);
 
+  const uaBoundariesCheckboxDiv = document.createElement("div");
+  uaBoundariesCheckboxDiv.innerHTML = `<input type="checkbox" id="uaBoundariesCheckbox"> <span style="font-size: 1em;">UA Boundaries (2021)</span>`;
+  legendContainer.appendChild(uaBoundariesCheckboxDiv);
+  const uaBoundariesCheckbox = document.getElementById('uaBoundariesCheckbox');
+  uaBoundariesCheckbox.addEventListener('change', () => {
+    if (uaBoundariesCheckbox.checked) {
+      uaBoundariesLayer.addTo(map);
+    } else {
+      map.removeLayer(uaBoundariesLayer);
+    }
+  });
+
   const wardBoundariesCheckboxDiv = document.createElement("div");
   wardBoundariesCheckboxDiv.innerHTML = `<input type="checkbox" id="wardBoundariesCheckbox"> <span style="font-size: 1em;">Ward Boundaries (2021)</span>`;
   legendContainer.appendChild(wardBoundariesCheckboxDiv);
@@ -711,9 +769,9 @@ function createStaticLegendControls() {
   const lsoaCheckbox = document.getElementById('lsoaCheckbox');
   lsoaCheckbox.addEventListener('change', () => {
     if (lsoaCheckbox.checked) {
-      lsoaLayer.addTo(map);
+      lsoaBoundariesLayer.addTo(map);
     } else {
-      map.removeLayer(lsoaLayer);
+      map.removeLayer(lsoaBoundariesLayer);
     }
   });
 
@@ -1050,7 +1108,6 @@ function updateScoresLayer() {
     updateSummaryStatistics(filteredFeatures);
   }
 
-  // Update filter values when the year changes
   updateFilterValues();
   updateSummaryStatistics(getCurrentFeatures());
 }
@@ -1416,8 +1473,13 @@ function updateSummaryStatistics(features) {
     if (wardLayer) {
       const wardPolygon = wardLayer.toGeoJSON();
       filteredFeatures = features.filter(feature => {
-        const hexPolygon = turf.polygon(feature.geometry.coordinates);
-        return turf.booleanPointInPolygon(turf.center(hexPolygon), wardPolygon);
+        try {
+          const hexPolygon = turf.polygon(feature.geometry.coordinates);
+          return turf.booleanPointInPolygon(turf.center(hexPolygon), wardPolygon);
+        } catch (error) {
+          console.error('Problematic feature:', feature, error);
+          return false;
+        }
       });
     }
   } else if (filterType === 'GrowthZone') {
@@ -1425,8 +1487,13 @@ function updateSummaryStatistics(features) {
     if (growthZoneLayer) {
       const growthZonePolygon = growthZoneLayer.toGeoJSON();
       filteredFeatures = features.filter(feature => {
-        const hexPolygon = turf.polygon(feature.geometry.coordinates);
-        return turf.booleanPointInPolygon(turf.center(hexPolygon), growthZonePolygon);
+        try {
+          const hexPolygon = turf.polygon(feature.geometry.coordinates);
+          return turf.booleanPointInPolygon(turf.center(hexPolygon), growthZonePolygon);
+        } catch (error) {
+          console.error('Problematic feature:', feature, error);
+          return false;
+        }
       });
     }
   }
@@ -1442,7 +1509,8 @@ function updateSummaryStatistics(features) {
     population: [],
     imd: [],
     carAvailability: [],
-    futureDwellings: []
+    futureDwellings: [],
+    time: []
   };
 
   filteredFeatures.forEach(feature => {
@@ -1453,6 +1521,11 @@ function updateSummaryStatistics(features) {
     metrics.imd.push(properties.imd || 0);
     metrics.carAvailability.push(properties.carav || 0);
     metrics.futureDwellings.push(properties.hh_fut || 0);
+    if (AmenitiesCatchmentLayer) {
+      const hexId = properties.Hex_ID;
+      const time = hexTimeMap[hexId] !== undefined ? hexTimeMap[hexId] : 0;
+      metrics.time.push(time);
+    }
   });
 
   const summary = {
@@ -1473,18 +1546,32 @@ function updateSummaryStatistics(features) {
     maxCarAvailability: Math.max(...metrics.carAvailability),
     totalFutureDwellings: metrics.futureDwellings.reduce((a, b) => a + b, 0),
     minFutureDwellings: Math.min(...metrics.futureDwellings),
-    maxFutureDwellings: Math.max(...metrics.futureDwellings)
+    maxFutureDwellings: Math.max(...metrics.futureDwellings),
+    avgTime: calculateWeightedAverage(metrics.time, metrics.population),
+    minTime: Math.min(...metrics.time),
+    maxTime: Math.max(...metrics.time)
   };
 
   const selectedYear = ScoresYear.value;
   const formatScore = value => selectedYear.includes('-') ? `${(value * 100).toFixed(1)}%` : formatValue(value, 1);
 
-  document.getElementById('avg-score').textContent = formatScore(summary.avgScore);
-  document.getElementById('min-score').textContent = formatScore(summary.minScore);
-  document.getElementById('max-score').textContent = formatScore(summary.maxScore);
-  document.getElementById('avg-percentile').textContent = formatValue(summary.avgPercentile, 1);
-  document.getElementById('min-percentile').textContent = formatValue(summary.minPercentile, 1);
-  document.getElementById('max-percentile').textContent = formatValue(summary.maxPercentile, 1);
+  if (AmenitiesCatchmentLayer) {
+    document.getElementById('metric-row-1').textContent = 'Journey Time';
+    document.getElementById('metric-row-2').style.display = 'none';
+    document.getElementById('avg-score').textContent = formatValue(summary.avgTime, 1);
+    document.getElementById('min-score').textContent = formatValue(summary.minTime, 1);
+    document.getElementById('max-score').textContent = formatValue(summary.maxTime, 1);
+  } else {
+    document.getElementById('metric-row-1').textContent = 'Score';
+    document.getElementById('metric-row-2').style.display = '';
+    document.getElementById('avg-score').textContent = formatScore(summary.avgScore);
+    document.getElementById('min-score').textContent = formatScore(summary.minScore);
+    document.getElementById('max-score').textContent = formatScore(summary.maxScore);
+    document.getElementById('avg-percentile').textContent = formatValue(summary.avgPercentile, 1);
+    document.getElementById('min-percentile').textContent = formatValue(summary.minPercentile, 1);
+    document.getElementById('max-percentile').textContent = formatValue(summary.maxPercentile, 1);
+  }
+
   document.getElementById('total-population').textContent = formatValue(summary.totalPopulation, 10);
   document.getElementById('min-population').textContent = formatValue(summary.minPopulation, 10);
   document.getElementById('max-population').textContent = formatValue(summary.maxPopulation, 10);
@@ -1531,6 +1618,8 @@ function updateFilterValues() {
   } else if (filterType === 'GrowthZone') {
     options = GrowthZonesLayer ? GrowthZonesLayer.getLayers().map(layer => layer.feature.properties.Name) : [];
   }
+
+  options.sort();
 
   filterValueDropdown.innerHTML = options.map(option => `<option value="${option}">${option}</option>`).join('');
 }
