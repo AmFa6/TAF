@@ -62,7 +62,7 @@
       border-color: #007bff;
       box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
     }
-    .panel input[type="range"] {
+    .panel input[type=""] {
       width: 100%;
     }
     .field-container {
@@ -562,7 +562,7 @@
       <table id="summary-table">
         <thead>
           <tr>
-            <th>Metric</th>
+            <th id="metric-header">Metric</th>
             <th>Average</th>
             <th>Total</th>
             <th>Minimum</th>
@@ -571,14 +571,14 @@
         </thead>
         <tbody>
           <tr>
-            <td>Score</td>
+            <td id="metric-row-1">Score</td>
             <td id="avg-score"></td>
             <td>-</td>
             <td id="min-score"></td>
             <td id="max-score"></td>
           </tr>
           <tr>
-            <td>Score Percentile</td>
+            <td id="metric-row-2">Score Percentile</td>
             <td id="avg-percentile"></td>
             <td>-</td>
             <td id="min-percentile"></td>
