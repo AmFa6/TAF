@@ -1643,9 +1643,11 @@ function updateFilterValues() {
       ];
     }
   } else if (filterType === 'Ward') {
-    options = wardBoundariesLayer ? wardBoundariesLayer.getLayers().map(layer => layer.feature.properties.WD24NM) : [];
+    const wardoptions = wardBoundariesLayer ? wardBoundariesLayer.getLayers().map(layer => layer.feature.properties.WD24NM) : [];
+    wardoptions.sort();
   } else if (filterType === 'GrowthZone') {
-    options = GrowthZonesLayer ? GrowthZonesLayer.getLayers().map(layer => layer.feature.properties.Name) : [];
+    const gzoptions = GrowthZonesLayer ? GrowthZonesLayer.getLayers().map(layer => layer.feature.properties.Name) : [];
+    gzoptions.sort();
   } else if (filterType === 'LA') {
     options = ['MCA', 'LEP'];
     const uaOptions = uaBoundariesLayer ? uaBoundariesLayer.getLayers().map(layer => layer.feature.properties.LAD24NM) : [];
