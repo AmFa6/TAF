@@ -1469,7 +1469,7 @@ function updateSummaryStatistics(features) {
       });
     }
   } else if (filterType === 'Ward') {
-    const wardLayer = wardBoundariesLayer.getLayers().find(layer => layer.feature.properties.WD21NM === filterValue);
+    const wardLayer = wardBoundariesLayer.getLayers().find(layer => layer.feature.properties.WD24NM === filterValue);
     if (wardLayer) {
       const wardPolygon = wardLayer.toGeoJSON();
       filteredFeatures = features.filter(feature => {
@@ -1614,7 +1614,7 @@ function updateFilterValues() {
       ];
     }
   } else if (filterType === 'Ward') {
-    options = wardBoundariesLayer ? wardBoundariesLayer.getLayers().map(layer => layer.feature.properties.WD21NM) : [];
+    options = wardBoundariesLayer ? wardBoundariesLayer.getLayers().map(layer => layer.feature.properties.WD24NM) : [];
   } else if (filterType === 'GrowthZone') {
     options = GrowthZonesLayer ? GrowthZonesLayer.getLayers().map(layer => layer.feature.properties.Name) : [];
   }
