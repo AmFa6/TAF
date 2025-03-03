@@ -6,14 +6,12 @@ const baseLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/lig
 
 const ladCodes = ['E06000022', 'E06000023', 'E06000024', 'E06000025'];
 let lsoaLookup = {};
+let uaBoundariesLayer;
 
-fetch('https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Local_Authority_Districts_December_2024_Boundaries_UK_BGC/FeatureServer/0/query?outFields=*&where=LAD24CD%20IN%20(%27E06000022%27,%27E06000023%27,%27E06000024%27,%27E06000025%27)&f=geojson')
-  .then(response => {
-    if (!response.ok) {
-      throw new Error('Network response was not ok ' + response.statusText);
-    }
-    return response.json();
-  })
+const ladCodesString = ladCodes.map(code => `'${code}'`).join(',');
+
+fetch(`https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Local_Authority_Districts_December_2024_Boundaries_UK_BGC/FeatureServer/0/query?outFields=*&where=LAD24CD%20IN%20(${ladCodesString})&f=geojson`)
+  .then(response => response.json())
   .then(data => {
     uaBoundariesGeoJson = data;
     uaBoundariesLayer = L.geoJSON(data, {
@@ -33,6 +31,7 @@ fetch('https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Local_
         });
       }
     });
+    updateFilterValues();
   });
 
 fetch('https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Wards_December_2024_Boundaries_UK_BGC/FeatureServer/0/query?outFields=*&where=1%3D1&geometry=-3.073689%2C51.291726%2C-2.327195%2C51.656841&geometryType=esriGeometryEnvelope&inSR=4326&spatialRel=esriSpatialRelIntersects&outSR=4326&f=geojson')
@@ -64,7 +63,6 @@ fetch('https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Wards_
   })
   .catch(error => console.error('Error fetching ward boundaries:', error));
 
-  // Fetch the lookup table
   fetch('https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/LSOA21_WD24_LAD24_EW_LU/FeatureServer/0/query?outFields=*&where=LAD24CD%20IN%20(%27E06000022%27,%27E06000023%27,%27E06000024%27,%27E06000025%27)&f=geojson')
     .then(response => response.json())
     .then(data => {
@@ -73,7 +71,6 @@ fetch('https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Wards_
         lsoaLookup[lsoaCode] = true;
       });
   
-      // Fetch the main data and filter it
       return fetch('https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Lower_layer_Super_Output_Areas_December_2021_Boundaries_EW_BGC_V5/FeatureServer/0/query?outFields=*&where=1%3D1&geometry=-3.073689%2C51.291726%2C-2.327195%2C51.656841&geometryType=esriGeometryEnvelope&inSR=4326&spatialRel=esriSpatialRelIntersects&outSR=4326&f=geojson');
     })
     .then(response => response.json())
@@ -1496,6 +1493,38 @@ function updateSummaryStatistics(features) {
         }
       });
     }
+  } else if (filterType === 'LA') {
+    let mergedPolygon;
+    if (filterValue === 'MCA') {
+      const mcaLayers = uaBoundariesLayer.getLayers().filter(layer => layer.feature.properties.LAD24NM !== 'North Somerset');
+      mergedPolygon = mcaLayers.reduce((acc, layer) => {
+        const polygon = layer.toGeoJSON();
+        return acc ? turf.union(acc, polygon) : polygon;
+      }, null);
+    } else if (filterValue === 'LEP') {
+      const lepLayers = uaBoundariesLayer.getLayers();
+      mergedPolygon = lepLayers.reduce((acc, layer) => {
+        const polygon = layer.toGeoJSON();
+        return acc ? turf.union(acc, polygon) : polygon;
+      }, null);
+    } else {
+      const uaLayer = uaBoundariesLayer.getLayers().find(layer => layer.feature.properties.LAD24NM === filterValue);
+      if (uaLayer) {
+        mergedPolygon = uaLayer.toGeoJSON();
+      }
+    }
+
+    if (mergedPolygon) {
+      filteredFeatures = features.filter(feature => {
+        try {
+          const hexPolygon = turf.polygon(feature.geometry.coordinates);
+          return turf.booleanPointInPolygon(turf.center(hexPolygon), mergedPolygon);
+        } catch (error) {
+          console.error('Problematic feature:', feature, error);
+          return false;
+        }
+      });
+    }
   }
 
   const selectedPurpose = ScoresPurpose.value;
@@ -1617,9 +1646,12 @@ function updateFilterValues() {
     options = wardBoundariesLayer ? wardBoundariesLayer.getLayers().map(layer => layer.feature.properties.WD24NM) : [];
   } else if (filterType === 'GrowthZone') {
     options = GrowthZonesLayer ? GrowthZonesLayer.getLayers().map(layer => layer.feature.properties.Name) : [];
+  } else if (filterType === 'LA') {
+    options = ['MCA', 'LEP'];
+    const uaOptions = uaBoundariesLayer ? uaBoundariesLayer.getLayers().map(layer => layer.feature.properties.LAD24NM) : [];
+    uaOptions.sort();
+    options = options.concat(uaOptions);
   }
-
-  options.sort();
 
   filterValueDropdown.innerHTML = options.map(option => `<option value="${option}">${option}</option>`).join('');
 }
