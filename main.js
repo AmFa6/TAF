@@ -63,43 +63,43 @@ fetch('https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Wards_
   })
   .catch(error => console.error('Error fetching ward boundaries:', error));
 
-  fetch('https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/LSOA21_WD24_LAD24_EW_LU/FeatureServer/0/query?outFields=*&where=LAD24CD%20IN%20(%27E06000022%27,%27E06000023%27,%27E06000024%27,%27E06000025%27)&f=geojson')
-    .then(response => response.json())
-    .then(data => {
-      data.features.forEach(feature => {
-        const lsoaCode = feature.properties.LSOA21CD;
-        lsoaLookup[lsoaCode] = true;
-      });
-  
-      return fetch('https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Lower_layer_Super_Output_Areas_December_2021_Boundaries_EW_BGC_V5/FeatureServer/0/query?outFields=*&where=1%3D1&geometry=-3.073689%2C51.291726%2C-2.327195%2C51.656841&geometryType=esriGeometryEnvelope&inSR=4326&spatialRel=esriSpatialRelIntersects&outSR=4326&f=geojson');
-    })
-    .then(response => response.json())
-    .then(data => {
-      const filteredFeatures = data.features.filter(feature => lsoaLookup[feature.properties.LSOA21CD]);
-      const lsoaGeoJson = {
-        type: 'FeatureCollection',
-        features: filteredFeatures
-      };
-  
-      lsoaBoundariesLayer = L.geoJSON(lsoaGeoJson, {
-        style: function (feature) {
-          return {
-            color: 'black',
-            weight: 0.6,
-            fillOpacity: 0
-          };
-        },
-        onEachFeature: function (feature, layer) {
-          layer.on('click', function () {
-            L.popup()
-              .setLatLng(layer.getBounds().getCenter())
-              .setContent(`<strong>LSOA Name:</strong> ${feature.properties.LSOA21NM}`)
-              .openOn(map);
-          });
-        }
-      });
-    })
-    .catch(error => console.error('Error fetching data:', error));
+fetch('https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/LSOA21_WD24_LAD24_EW_LU/FeatureServer/0/query?outFields=*&where=LAD24CD%20IN%20(%27E06000022%27,%27E06000023%27,%27E06000024%27,%27E06000025%27)&f=geojson')
+  .then(response => response.json())
+  .then(data => {
+    data.features.forEach(feature => {
+      const lsoaCode = feature.properties.LSOA21CD;
+      lsoaLookup[lsoaCode] = true;
+    });
+
+    return fetch('https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Lower_layer_Super_Output_Areas_December_2021_Boundaries_EW_BGC_V5/FeatureServer/0/query?outFields=*&where=1%3D1&geometry=-3.073689%2C51.291726%2C-2.327195%2C51.656841&geometryType=esriGeometryEnvelope&inSR=4326&spatialRel=esriSpatialRelIntersects&outSR=4326&f=geojson');
+  })
+  .then(response => response.json())
+  .then(data => {
+    const filteredFeatures = data.features.filter(feature => lsoaLookup[feature.properties.LSOA21CD]);
+    const lsoaGeoJson = {
+      type: 'FeatureCollection',
+      features: filteredFeatures
+    };
+
+    lsoaBoundariesLayer = L.geoJSON(lsoaGeoJson, {
+      style: function (feature) {
+        return {
+          color: 'black',
+          weight: 0.6,
+          fillOpacity: 0
+        };
+      },
+      onEachFeature: function (feature, layer) {
+        layer.on('click', function () {
+          L.popup()
+            .setLatLng(layer.getBounds().getCenter())
+            .setContent(`<strong>LSOA Name:</strong> ${feature.properties.LSOA21NM}`)
+            .openOn(map);
+        });
+      }
+    });
+  })
+  .catch(error => console.error('Error fetching data:', error));
 
 const ScoresFiles = [
   { year: '2024', path: 'https://AmFa6.github.io/TAF_test/2024_connectscore.geojson' },
@@ -247,7 +247,7 @@ initializeSliders(ScoresOutlineRange, updateScoresLayer);
 initializeSliders(AmenitiesOpacityRange, updateAmenitiesCatchmentLayer);
 initializeSliders(AmenitiesOutlineRange, updateAmenitiesCatchmentLayer);
 
-ScoresYear.addEventListener("change", updateScoresLayer)
+ScoresYear.addEventListener("change", updateScoresLayer);
 ScoresPurpose.addEventListener("change", updateScoresLayer);
 ScoresMode.addEventListener("change", updateScoresLayer);
 AmenitiesYear.addEventListener("change", updateAmenitiesCatchmentLayer);
@@ -255,14 +255,17 @@ AmenitiesMode.addEventListener("change", updateAmenitiesCatchmentLayer);
 AmenitiesPurpose.forEach(checkbox => {
   checkbox.addEventListener("change", updateAmenitiesCatchmentLayer);
 });
-ScoresOpacity.addEventListener("change", updateOpacitySliderScoresRanges)
-ScoresOutline.addEventListener("change", updateOutlineSliderScoresRanges)
-AmenitiesOpacity.addEventListener("change", updateOpacitySliderAmenitiesRanges);
-AmenitiesOutline.addEventListener("change", updateOutlineSliderAmenitiesRanges);
-ScoresInverseOpacity.addEventListener("click", toggleInverseOpacityScoresScale);
-ScoresInverseOutline.addEventListener("click", toggleInverseOutlineScoresScale);
-AmenitiesInverseOpacity.addEventListener("click", toggleInverseOpacityAmenitiesScale);
-AmenitiesInverseOutline.addEventListener("click", toggleInverseOutlineAmenitiesScale);
+ScoresOpacity.addEventListener("change", () => updateSliderRanges('Scores', 'Opacity'));
+ScoresOutline.addEventListener("change", () => updateSliderRanges('Scores', 'Outline'));
+AmenitiesOpacity.addEventListener("change", () => updateSliderRanges('Amenities', 'Opacity'));
+AmenitiesOutline.addEventListener("change", () => updateSliderRanges('Amenities', 'Outline'));
+ScoresInverseOpacity.addEventListener("click", () => toggleInverseScale('Scores', 'Opacity'));
+ScoresInverseOutline.addEventListener("click", () => toggleInverseScale('Scores', 'Outline'));
+AmenitiesInverseOpacity.addEventListener("click", () => toggleInverseScale('Amenities', 'Opacity'));
+AmenitiesInverseOutline.addEventListener("click", () => toggleInverseScale('Amenities', 'Outline'));
+AmenitiesPurpose.forEach(checkbox => {
+  checkbox.addEventListener("change", updateAmenitiesCatchmentLayer);
+});
 filterTypeDropdown.addEventListener('change', () => {
   updateFilterValues();
   updateSummaryStatistics(getCurrentFeatures());
@@ -368,6 +371,78 @@ document.addEventListener('DOMContentLoaded', (event) => {
   document.querySelectorAll('.legend-checkbox').forEach(checkbox => {
     checkbox.addEventListener('change', updateFeatureVisibility);
   });
+  function createStaticLegendControls() {
+    const legendContainer = document.getElementById("legend-extra");
+    if (!legendContainer) return;
+  
+    legendContainer.innerHTML = '';
+  
+    const amenitiesCheckboxDiv = document.createElement("div");
+    amenitiesCheckboxDiv.innerHTML = `<input type="checkbox" id="amenitiesCheckbox"> <span style="font-size: 1em;">Amenities</span>`;
+    legendContainer.appendChild(amenitiesCheckboxDiv);
+    const amenitiesCheckbox = document.getElementById('amenitiesCheckbox');
+    amenitiesCheckbox.addEventListener('change', () => {
+      if (amenitiesCheckbox.checked) {
+        amenitiesLayerGroup.addTo(map);
+      } else {
+        map.removeLayer(amenitiesLayerGroup);
+      }
+    });
+  
+    const headerDiv = document.createElement("div");
+    headerDiv.innerHTML = "Geographies";
+    headerDiv.style.fontSize = "1.1em";
+    headerDiv.style.marginBottom = "10px";
+    legendContainer.appendChild(headerDiv);
+  
+    const uaBoundariesCheckboxDiv = document.createElement("div");
+    uaBoundariesCheckboxDiv.innerHTML = `<input type="checkbox" id="uaBoundariesCheckbox"> <span style="font-size: 1em;">UA Boundaries (2021)</span>`;
+    legendContainer.appendChild(uaBoundariesCheckboxDiv);
+    const uaBoundariesCheckbox = document.getElementById('uaBoundariesCheckbox');
+    uaBoundariesCheckbox.addEventListener('change', () => {
+      if (uaBoundariesCheckbox.checked) {
+        uaBoundariesLayer.addTo(map);
+      } else {
+        map.removeLayer(uaBoundariesLayer);
+      }
+    });
+  
+    const wardBoundariesCheckboxDiv = document.createElement("div");
+    wardBoundariesCheckboxDiv.innerHTML = `<input type="checkbox" id="wardBoundariesCheckbox"> <span style="font-size: 1em;">Ward Boundaries (2021)</span>`;
+    legendContainer.appendChild(wardBoundariesCheckboxDiv);
+    const wardBoundariesCheckbox = document.getElementById('wardBoundariesCheckbox');
+    wardBoundariesCheckbox.addEventListener('change', () => {
+      if (wardBoundariesCheckbox.checked) {
+        wardBoundariesLayer.addTo(map);
+      } else {
+        map.removeLayer(wardBoundariesLayer);
+      }
+    });
+  
+    const lsoaCheckboxDiv = document.createElement("div");
+    lsoaCheckboxDiv.innerHTML = `<input type="checkbox" id="lsoaCheckbox"> <span style="font-size: 1em;">Lower Layer Super Output Areas (LSOA 2021)</span>`;
+    legendContainer.appendChild(lsoaCheckboxDiv);
+    const lsoaCheckbox = document.getElementById('lsoaCheckbox');
+    lsoaCheckbox.addEventListener('change', () => {
+      if (lsoaCheckbox.checked) {
+        lsoaBoundariesLayer.addTo(map);
+      } else {
+        map.removeLayer(lsoaBoundariesLayer);
+      }
+    });
+  
+    const GrowthZonesCheckboxDiv = document.createElement("div");
+    GrowthZonesCheckboxDiv.innerHTML = `<input type="checkbox" id="GrowthZonesCheckbox"> <span style="font-size: 1em;">Growth Zones</span>`;
+    legendContainer.appendChild(GrowthZonesCheckboxDiv);
+    const GrowthZonesCheckbox = document.getElementById('GrowthZonesCheckbox');
+    GrowthZonesCheckbox.addEventListener('change', () => {
+      if (GrowthZonesCheckbox.checked) {
+        GrowthZonesLayer.addTo(map);
+      } else {
+        map.removeLayer(GrowthZonesLayer);
+      }
+    });
+  }
   createStaticLegendControls();
   updateFilterValues();
 });
@@ -413,49 +488,14 @@ function initializeSliders(sliderElement, updateCallback) {
     connectElements[2].classList.add('noUi-connect-dark-grey');
   }
 
-  sliderElement.noUiSlider.on('update', updateCallback);
+  sliderElement.noUiSlider.on('update', function(values, handle) {
+    updateCallback();
+  });
 
   sliderElement.noUiSlider.on('update', function(values, handle) {
     const handleElement = handles[handle];
     handleElement.setAttribute('data-value', formatValue(values[handle], sliderElement.noUiSlider.options.step));
   });
-}
-
-function styleScoresFeature(feature, fieldToDisplay, opacityField, outlineField, minOpacityValue, maxOpacityValue, minOutlineValue, maxOutlineValue, selectedYear) {
-  const value = feature.properties[fieldToDisplay];
-  const color = getColor(value, selectedYear);
-
-  let opacity;
-  if (opacityField === 'None') {
-    opacity = 0.8;
-  } else {
-    const opacityValue = feature.properties[opacityField];
-    if (opacityValue === 0 || opacityValue === null || opacityValue === undefined || opacityValue === '') {
-      opacity = 0.1;
-    } else {
-      opacity = scaleExp(opacityValue, minOpacityValue, maxOpacityValue, 0.1, 0.8, opacityScoresOrder);
-    }
-  }
-
-  let weight;
-  if (outlineField === 'None') {
-    weight = 0;
-  } else {
-    const outlineValue = feature.properties[outlineField];
-    if (outlineValue === 0 || outlineValue === null || outlineValue === undefined || outlineValue === '') {
-      weight = 0;
-    } else {
-      weight = scaleExp(outlineValue, minOutlineValue, maxOutlineValue, 0, 4, outlineScoresOrder);
-    }
-  }
-
-  return {
-    fillColor: color,
-    weight: weight,
-    opacity: 1,
-    color: 'black',
-    fillOpacity: opacity
-  };
 }
 
 function scaleExp(value, minVal, maxVal, minScale, maxScale, order) {
@@ -470,11 +510,11 @@ function formatValue(value, step) {
   if (step >= 10) {
     return Math.round(value / 10) * 10;
   } else if (step >= 1) {
-    return parseFloat(value).toFixed(0);
+    return parseFloat(value).toFixed(0).toLocaleString();
   } else if (step >= 0.1) {
-    return parseFloat(value).toFixed(1);
+    return parseFloat(value).toFixed(1).toLocaleString();
   } else if (step >= 0.01) {
-    return parseFloat(value).toFixed(2);
+    return parseFloat(value).toFixed(2).toLocaleString();
   } else {
     return value.toString();
   }
@@ -493,27 +533,27 @@ function onEachFeature(feature, layer, selectedYear, selectedPurpose, selectedMo
       if (ScoresLayer) {
         if (scoreValue !== '-') {
           if (selectedYear.includes('-')) {
-            score = Math.round(scoreValue * 100) + '%';
+            score = `${(scoreValue * 100).toFixed(1)}%`;
             scoreLabel = 'Score Difference';
           } else {
-            score = Math.round(scoreValue);
+            score = formatValue(scoreValue, 1);
           }
         }
 
-        const percentile = getValue(`${selectedPurpose}_${selectedMode}_100`) !== '-' ? Math.round(getValue(`${selectedPurpose}_${selectedMode}_100`)) : '-';
-        const population = getValue('pop') !== '-' ? Math.round(getValue('pop')) : '-';
-        const imd = population === 0 ? '-' : (getValue('imd') !== '-' ? getValue('imd').toFixed(2) : '-');
-        const carAvailability = population === 0 ? '-' : (getValue('carav') !== '-' ? getValue('carav').toFixed(2) : '-');
-        const futureDwellings = getValue('hh_fut') === 0 ? '-' : (getValue('hh_fut') !== '-' ? Math.round(getValue('hh_fut')) : '-');
+        const percentile = getValue(`${selectedPurpose}_${selectedMode}_100`) !== '-' ? formatValue(getValue(`${selectedPurpose}_${selectedMode}_100`), 1) : '-';
+        const population = getValue('pop') !== '-' ? formatValue(getValue('pop'), 1) : '-';
+        const imd = population === 0 ? '-' : (getValue('imd') !== '-' ? formatValue(getValue('imd'), 0.1) : '-');
+        const carAvailability = population === 0 ? '-' : (getValue('carav') !== '-' ? formatValue(getValue('carav'), 0.01) : '-');
+        const futureDwellings = getValue('hh_fut') === 0 ? '-' : (getValue('hh_fut') !== '-' ? formatValue(getValue('hh_fut'), 1) : '-');
 
         popupContent = `<strong>Hex_ID:</strong> ${hexId}<br><strong>${scoreLabel}:</strong> ${score}<br><strong>Score Percentile:</strong> ${percentile}<br><strong>Population:</strong> ${population}<br><strong>IMD:</strong> ${imd}<br><strong>Car Availability:</strong> ${carAvailability}<br><strong>Future Dwellings:</strong> ${futureDwellings}`;
       } else if (AmenitiesCatchmentLayer) {
-        const time = hexTimeMap[hexId] !== undefined ? hexTimeMap[hexId] : '-';
-        const population = getValue('pop') !== '-' ? Math.round(getValue('pop')) : '-';
-        const imd = population === 0 ? '-' : (getValue('imd') !== '-' ? getValue('imd').toFixed(2) : '-');
-        const carAvailability = population === 0 ? '-' : (getValue('carav') !== '-' ? getValue('carav').toFixed(2) : '-');
-        const futureDwellings = getValue('hh_fut') === 0 ? '-' : (getValue('hh_fut') !== '-' ? Math.round(getValue('hh_fut')) : '-');
-        popupContent = `<strong>Hex_ID:</strong> ${hexId}<br><strong>Journey Time:</strong> ${Math.round(time)} minutes<br><strong>Population:</strong> ${population}<br><strong>IMD:</strong> ${imd}<br><strong>Car Availability:</strong> ${carAvailability}<br><strong>Future Dwellings:</strong> ${futureDwellings}`;
+        const time = hexTimeMap[hexId] !== undefined ? formatValue(hexTimeMap[hexId], 1) : '-';
+        const population = getValue('pop') !== '-' ? formatValue(getValue('pop'), 1) : '-';
+        const imd = population === 0 ? '-' : (getValue('imd') !== '-' ? formatValue(getValue('imd'), 0.1) : '-');
+        const carAvailability = population === 0 ? '-' : (getValue('carav') !== '-' ? formatValue(getValue('carav'), 0.01) : '-');
+        const futureDwellings = getValue('hh_fut') === 0 ? '-' : (getValue('hh_fut') !== '-' ? formatValue(getValue('hh_fut'), 1) : '-');
+        popupContent = `<strong>Hex_ID:</strong> ${hexId}<br><strong>Journey Time:</strong> ${time} minutes<br><strong>Population:</strong> ${population}<br><strong>IMD:</strong> ${imd}<br><strong>Car Availability:</strong> ${carAvailability}<br><strong>Future Dwellings:</strong> ${futureDwellings}`;
       }
 
       L.popup()
@@ -522,41 +562,6 @@ function onEachFeature(feature, layer, selectedYear, selectedPurpose, selectedMo
         .openOn(map);
     }
   });
-}
-
-function getColor(value, selectedYear) {
-  if (!selectedYear) {
-    return 'transparent';
-  }
-
-  if (selectedYear.includes('-')) {
-    if (value <= -0.2) {
-      return '#FF0000';
-    } else if (value > -0.2 && value <= -0.1) {
-      return '#FF5500';
-    } else if (value > -0.1 && value < 0) {
-      return '#FFAA00';
-    } else if (value === 0) {
-      return 'transparent';
-    } else if (value > 0 && value <= 0.1) {
-      return '#B0E200';
-    } else if (value >= 0.1 && value < 0.2) {
-      return '#6EC500';
-    } else {
-      return '#38A800';
-    }
-  } else {
-    return value > 90 ? '#fde725' :
-           value > 80 ? '#b5de2b' :
-           value > 70 ? '#6ece58' :
-           value > 60 ? '#35b779' :
-           value > 50 ? '#1f9e89' :
-           value > 40 ? '#26828e' :
-           value > 30 ? '#31688e' :
-           value > 20 ? '#3e4989' :
-           value > 10 ? '#482777' :
-                        '#440154';
-  }
 }
 
 function isClassVisible(value, selectedYear) {
@@ -693,6 +698,15 @@ function updateLegend() {
     legendContent.appendChild(div);
   });
 
+  function updateMasterCheckbox() {
+    const newLegendCheckboxes = document.querySelectorAll('.legend-checkbox');
+    const allChecked = Array.from(newLegendCheckboxes).every(checkbox => checkbox.checked);
+    const noneChecked = Array.from(newLegendCheckboxes).every(checkbox => !checkbox.checked);
+    const masterCheckbox = document.getElementById('masterCheckbox');
+    masterCheckbox.checked = allChecked;
+    masterCheckbox.indeterminate = !allChecked && !noneChecked;
+  }
+
   const newLegendCheckboxes = document.querySelectorAll('.legend-checkbox');
   newLegendCheckboxes.forEach(checkbox => {
     checkbox.addEventListener('change', () => {
@@ -710,88 +724,6 @@ function updateLegend() {
     updateFeatureVisibility();
   });
   updateMasterCheckbox();
-}
-
-function createStaticLegendControls() {
-  const legendContainer = document.getElementById("legend-extra");
-  if (!legendContainer) return;
-
-  legendContainer.innerHTML = '';
-
-  const amenitiesCheckboxDiv = document.createElement("div");
-  amenitiesCheckboxDiv.innerHTML = `<input type="checkbox" id="amenitiesCheckbox"> <span style="font-size: 1em;">Amenities</span>`;
-  legendContainer.appendChild(amenitiesCheckboxDiv);
-  const amenitiesCheckbox = document.getElementById('amenitiesCheckbox');
-  amenitiesCheckbox.addEventListener('change', () => {
-    if (amenitiesCheckbox.checked) {
-      amenitiesLayerGroup.addTo(map);
-    } else {
-      map.removeLayer(amenitiesLayerGroup);
-    }
-  });
-
-  const headerDiv = document.createElement("div");
-  headerDiv.innerHTML = "Geographies";
-  headerDiv.style.fontSize = "1.1em";
-  headerDiv.style.marginBottom = "10px";
-  legendContainer.appendChild(headerDiv);
-
-  const uaBoundariesCheckboxDiv = document.createElement("div");
-  uaBoundariesCheckboxDiv.innerHTML = `<input type="checkbox" id="uaBoundariesCheckbox"> <span style="font-size: 1em;">UA Boundaries (2021)</span>`;
-  legendContainer.appendChild(uaBoundariesCheckboxDiv);
-  const uaBoundariesCheckbox = document.getElementById('uaBoundariesCheckbox');
-  uaBoundariesCheckbox.addEventListener('change', () => {
-    if (uaBoundariesCheckbox.checked) {
-      uaBoundariesLayer.addTo(map);
-    } else {
-      map.removeLayer(uaBoundariesLayer);
-    }
-  });
-
-  const wardBoundariesCheckboxDiv = document.createElement("div");
-  wardBoundariesCheckboxDiv.innerHTML = `<input type="checkbox" id="wardBoundariesCheckbox"> <span style="font-size: 1em;">Ward Boundaries (2021)</span>`;
-  legendContainer.appendChild(wardBoundariesCheckboxDiv);
-  const wardBoundariesCheckbox = document.getElementById('wardBoundariesCheckbox');
-  wardBoundariesCheckbox.addEventListener('change', () => {
-    if (wardBoundariesCheckbox.checked) {
-      wardBoundariesLayer.addTo(map);
-    } else {
-      map.removeLayer(wardBoundariesLayer);
-    }
-  });
-
-  const lsoaCheckboxDiv = document.createElement("div");
-  lsoaCheckboxDiv.innerHTML = `<input type="checkbox" id="lsoaCheckbox"> <span style="font-size: 1em;">Lower Layer Super Output Areas (LSOA 2021)</span>`;
-  legendContainer.appendChild(lsoaCheckboxDiv);
-  const lsoaCheckbox = document.getElementById('lsoaCheckbox');
-  lsoaCheckbox.addEventListener('change', () => {
-    if (lsoaCheckbox.checked) {
-      lsoaBoundariesLayer.addTo(map);
-    } else {
-      map.removeLayer(lsoaBoundariesLayer);
-    }
-  });
-
-  const GrowthZonesCheckboxDiv = document.createElement("div");
-  GrowthZonesCheckboxDiv.innerHTML = `<input type="checkbox" id="GrowthZonesCheckbox"> <span style="font-size: 1em;">Growth Zones</span>`;
-  legendContainer.appendChild(GrowthZonesCheckboxDiv);
-  const GrowthZonesCheckbox = document.getElementById('GrowthZonesCheckbox');
-  GrowthZonesCheckbox.addEventListener('change', () => {
-    if (GrowthZonesCheckbox.checked) {
-      GrowthZonesLayer.addTo(map);
-    } else {
-      map.removeLayer(GrowthZonesLayer);
-    }
-  });
-}
-
-function updateMasterCheckbox() {
-  const newLegendCheckboxes = document.querySelectorAll('.legend-checkbox');
-  const allChecked = Array.from(newLegendCheckboxes).every(checkbox => checkbox.checked);
-  const noneChecked = Array.from(newLegendCheckboxes).every(checkbox => !checkbox.checked);
-  const masterCheckbox = document.getElementById('masterCheckbox');
-  masterCheckbox.checked = allChecked;
-  masterCheckbox.indeterminate = !allChecked && !noneChecked;
 }
 
 function drawSelectedAmenities(amenities) {
@@ -898,13 +830,40 @@ function AmenitiesPopup(amenity, properties) {
   return `<strong>Amenity Type:</strong> ${amenityType}<br><strong>Name:</strong> ${name}<br>`;
 }
 
-function toggleInverseOpacityScoresScale() {
-  isInverseScoresOpacity = !isInverseScoresOpacity;
-  const handles = ScoresOpacityRange.querySelectorAll('.noUi-handle');
-  const connectElements = ScoresOpacityRange.querySelectorAll('.noUi-connect');
+function toggleInverseScale(type, scaleType) {
+  let isInverse, rangeElement, order;
 
-  if (isInverseScoresOpacity) {
-    ScoresOpacityRange.noUiSlider.updateOptions({
+  if (type === 'Scores') {
+    if (scaleType === 'Opacity') {
+      isInverseScoresOpacity = !isInverseScoresOpacity;
+      isInverse = isInverseScoresOpacity;
+      rangeElement = ScoresOpacityRange;
+      opacityScoresOrder = isInverse ? 'high-to-low' : 'low-to-high';
+    } else if (scaleType === 'Outline') {
+      isInverseScoresOutline = !isInverseScoresOutline;
+      isInverse = isInverseScoresOutline;
+      rangeElement = ScoresOutlineRange;
+      outlineScoresOrder = isInverse ? 'high-to-low' : 'low-to-high';
+    }
+  } else if (type === 'Amenities') {
+    if (scaleType === 'Opacity') {
+      isInverseAmenitiesOpacity = !isInverseAmenitiesOpacity;
+      isInverse = isInverseAmenitiesOpacity;
+      rangeElement = AmenitiesOpacityRange;
+      opacityAmenitiesOrder = isInverse ? 'high-to-low' : 'low-to-high';
+    } else if (scaleType === 'Outline') {
+      isInverseAmenitiesOutline = !isInverseAmenitiesOutline;
+      isInverse = isInverseAmenitiesOutline;
+      rangeElement = AmenitiesOutlineRange;
+      outlineAmenitiesOrder = isInverse ? 'high-to-low' : 'low-to-high';
+    }
+  }
+  
+  const handles = rangeElement.querySelectorAll('.noUi-handle');
+  const connectElements = rangeElement.querySelectorAll('.noUi-connect');
+
+  if (isInverse) {
+    rangeElement.noUiSlider.updateOptions({
       connect: [true, true, true]
     });
     handles[1].classList.add('noUi-handle-transparent');
@@ -914,7 +873,7 @@ function toggleInverseOpacityScoresScale() {
     connectElements[1].classList.add('noUi-connect-gradient-left');
     connectElements[2].classList.remove('noUi-connect-dark-grey');
   } else {
-    ScoresOpacityRange.noUiSlider.updateOptions({
+    rangeElement.noUiSlider.updateOptions({
       connect: [true, true, true]
     });
     handles[1].classList.remove('noUi-handle-transparent');
@@ -925,129 +884,84 @@ function toggleInverseOpacityScoresScale() {
     connectElements[2].classList.add('noUi-connect-dark-grey');
   }
 
-  opacityScoresOrder = opacityScoresOrder === 'low-to-high' ? 'high-to-low' : 'low-to-high';
-
-  updateOpacitySliderScoresRanges();
+  updateSliderRanges(type, scaleType);
 }
 
-function toggleInverseOutlineScoresScale() {
-  isInverseScoresOutline = !isInverseScoresOutline;
-  const handles = ScoresOutlineRange.querySelectorAll('.noUi-handle');
-  const connectElements = ScoresOutlineRange.querySelectorAll('.noUi-connect');
+function updateSliderRanges(type, scaleType) {
+  let field, rangeElement, minElement, maxElement, hexesData, order;
 
-  if (isInverseScoresOutline) {
-    ScoresOutlineRange.noUiSlider.updateOptions({
-      connect: [true, true, true]
-    });
-    handles[1].classList.add('noUi-handle-transparent');
-    handles[0].classList.remove('noUi-handle-transparent');
-    connectElements[0].classList.add('noUi-connect-dark-grey');
-    connectElements[1].classList.remove('noUi-connect-gradient-right');
-    connectElements[1].classList.add('noUi-connect-gradient-left');
-    connectElements[2].classList.remove('noUi-connect-dark-grey');
-  } else {
-    ScoresOutlineRange.noUiSlider.updateOptions({
-      connect: [true, true, true]
-    });
-    handles[1].classList.remove('noUi-handle-transparent');
-    handles[0].classList.add('noUi-handle-transparent');
-    connectElements[0].classList.remove('noUi-connect-dark-grey');
-    connectElements[1].classList.remove('noUi-connect-gradient-left');
-    connectElements[1].classList.add('noUi-connect-gradient-right');
-    connectElements[2].classList.add('noUi-connect-dark-grey');
+  if (type === 'Scores') {
+    if (scaleType === 'Opacity') {
+      field = ScoresOpacity.value;
+      rangeElement = ScoresOpacityRange;
+      minElement = document.getElementById('opacityRangeScoresMin');
+      maxElement = document.getElementById('opacityRangeScoresMax');
+      hexesData = hexes;
+      order = opacityScoresOrder;
+    } else if (scaleType === 'Outline') {
+      field = ScoresOutline.value;
+      rangeElement = ScoresOutlineRange;
+      minElement = document.getElementById('outlineRangeScoresMin');
+      maxElement = document.getElementById('outlineRangeScoresMax');
+      hexesData = hexes;
+      order = outlineScoresOrder;
+    }
+  } else if (type === 'Amenities') {
+    if (scaleType === 'Opacity') {
+      field = AmenitiesOpacity.value;
+      rangeElement = AmenitiesOpacityRange;
+      minElement = document.getElementById('opacityRangeAmenitiesMin');
+      maxElement = document.getElementById('opacityRangeAmenitiesMax');
+      hexesData = hexes;
+      order = opacityAmenitiesOrder;
+    } else if (scaleType === 'Outline') {
+      field = AmenitiesOutline.value;
+      rangeElement = AmenitiesOutlineRange;
+      minElement = document.getElementById('outlineRangeAmenitiesMin');
+      maxElement = document.getElementById('outlineRangeAmenitiesMax');
+      hexesData = hexes;
+      order = outlineAmenitiesOrder;
+    }
   }
 
-  outlineScoresOrder = outlineScoresOrder === 'low-to-high' ? 'high-to-low' : 'low-to-high';
+  if (hexesData) {
+    const values = field !== "None" ? hexesData.features.map(feature => feature.properties[field]).filter(value => value !== null && value !== 0) : [];
+    const minValue = Math.min(...values);
+    const maxValue = Math.max(...values);
+    const roundedMaxValue = Math.pow(10, Math.ceil(Math.log10(maxValue)));
+    let step = roundedMaxValue / 100;
 
-  updateOutlineSliderScoresRanges();
-}
-
-function updateOpacitySliderScoresRanges() {
-  const opacityField = ScoresOpacity.value;
-
-  if (hexes) {
-    const opacityValues = opacityField !== "None" ? hexes.features.map(feature => feature.properties[opacityField]).filter(value => value !== null && value !== 0) : [];
-    const minOpacity = Math.min(...opacityValues);
-    const maxOpacity = Math.max(...opacityValues);
-    const roundedMaxOpacity = Math.pow(10, Math.ceil(Math.log10(maxOpacity)));
-    let opacityStep = roundedMaxOpacity / 100;
-
-    if (isNaN(opacityStep) || opacityStep <= 0) {
-      opacityStep = 1;
+    if (isNaN(step) || step <= 0) {
+      step = 1;
     }
 
-    const adjustedMaxOpacity = Math.ceil(maxOpacity / opacityStep) * opacityStep;
-    const adjustedMinOpacity = Math.floor(minOpacity / opacityStep) * opacityStep;
+    const adjustedMaxValue = Math.ceil(maxValue / step) * step;
+    const adjustedMinValue = Math.floor(minValue / step) * step;
 
-    if (opacityField === "None") {
-      ScoresOpacityRange.setAttribute('disabled', true);
-      ScoresOpacityRange.noUiSlider.updateOptions({
+    if (field === "None") {
+      rangeElement.setAttribute('disabled', true);
+      rangeElement.noUiSlider.updateOptions({
         range: {
           'min': 0,
           'max': 0
         },
         step: 1
       });
-      ScoresOpacityRange.noUiSlider.set(['', '']);
-      document.getElementById('opacityRangeScoresMin').innerText = '';
-      document.getElementById('opacityRangeScoresMax').innerText = '';
+      rangeElement.noUiSlider.set(['', '']);
+      minElement.innerText = '';
+      maxElement.innerText = '';
     } else {
-      ScoresOpacityRange.removeAttribute('disabled');
-      ScoresOpacityRange.noUiSlider.updateOptions({
+      rangeElement.removeAttribute('disabled');
+      rangeElement.noUiSlider.updateOptions({
         range: {
-          'min': adjustedMinOpacity,
-          'max': adjustedMaxOpacity
+          'min': adjustedMinValue,
+          'max': adjustedMaxValue
         },
-        step: opacityStep
+        step: step
       });
-      ScoresOpacityRange.noUiSlider.set([adjustedMinOpacity, adjustedMaxOpacity]);
-      document.getElementById('opacityRangeScoresMin').innerText = formatValue(adjustedMinOpacity, opacityStep);
-      document.getElementById('opacityRangeScoresMax').innerText = formatValue(adjustedMaxOpacity, opacityStep);
-    }
-  }
-}
-
-function updateOutlineSliderScoresRanges() {
-  const outlineField = ScoresOutline.value;
-
-  if (hexes) {
-    const outlineValues = outlineField !== "None" ? hexes.features.map(feature => feature.properties[outlineField]).filter(value => value !== null && value !== 0) : [];
-    const minOutline = Math.min(...outlineValues);
-    const maxOutline = Math.max(...outlineValues);
-    const roundedMaxOutline = Math.pow(10, Math.ceil(Math.log10(maxOutline)));
-    let outlineStep = roundedMaxOutline / 100;
-
-    if (isNaN(outlineStep) || outlineStep <= 0) {
-      outlineStep = 1;
-    }
-
-    const adjustedMaxOutline = Math.ceil(maxOutline / outlineStep) * outlineStep;
-    const adjustedMinOutline = Math.floor(minOutline / outlineStep) * outlineStep;
-
-    if (outlineField === "None") {
-      ScoresOutlineRange.setAttribute('disabled', true);
-      ScoresOutlineRange.noUiSlider.updateOptions({
-        range: {
-          'min': 0,
-          'max': 0
-        },
-        step: 1
-      });
-      ScoresOutlineRange.noUiSlider.set(['', '']);
-      document.getElementById('outlineRangeScoresMin').innerText = '';
-      document.getElementById('outlineRangeScoresMax').innerText = '';
-    } else {
-      ScoresOutlineRange.removeAttribute('disabled');
-      ScoresOutlineRange.noUiSlider.updateOptions({
-        range: {
-          'min': adjustedMinOutline,
-          'max': adjustedMaxOutline
-        },
-        step: outlineStep
-      });
-      ScoresOutlineRange.noUiSlider.set([adjustedMinOutline, adjustedMaxOutline]);
-      document.getElementById('outlineRangeScoresMin').innerText = formatValue(adjustedMinOutline, outlineStep);
-      document.getElementById('outlineRangeScoresMax').innerText = formatValue(adjustedMaxOutline, outlineStep);
+      rangeElement.noUiSlider.set([adjustedMinValue, adjustedMaxValue]);
+      minElement.innerText = formatValue(adjustedMinValue, step);
+      maxElement.innerText = formatValue(adjustedMaxValue, step);
     }
   }
 }
@@ -1093,6 +1007,77 @@ function updateScoresLayer() {
       features: filteredFeatures
     };
 
+    function styleScoresFeature(feature, fieldToDisplay, opacityField, outlineField, minOpacityValue, maxOpacityValue, minOutlineValue, maxOutlineValue, selectedYear) {
+      const value = feature.properties[fieldToDisplay];
+      function getColor(value, selectedYear) {
+        if (!selectedYear) {
+          return 'transparent';
+        }
+      
+        if (selectedYear.includes('-')) {
+          if (value <= -0.2) {
+            return '#FF0000';
+          } else if (value > -0.2 && value <= -0.1) {
+            return '#FF5500';
+          } else if (value > -0.1 && value < 0) {
+            return '#FFAA00';
+          } else if (value === 0) {
+            return 'transparent';
+          } else if (value > 0 && value <= 0.1) {
+            return '#B0E200';
+          } else if (value >= 0.1 && value < 0.2) {
+            return '#6EC500';
+          } else {
+            return '#38A800';
+          }
+        } else {
+          return value > 90 ? '#fde725' :
+                 value > 80 ? '#b5de2b' :
+                 value > 70 ? '#6ece58' :
+                 value > 60 ? '#35b779' :
+                 value > 50 ? '#1f9e89' :
+                 value > 40 ? '#26828e' :
+                 value > 30 ? '#31688e' :
+                 value > 20 ? '#3e4989' :
+                 value > 10 ? '#482777' :
+                              '#440154';
+        }
+      }
+      const color = getColor(value, selectedYear);
+    
+      let opacity;
+      if (opacityField === 'None') {
+        opacity = 0.8;
+      } else {
+        const opacityValue = feature.properties[opacityField];
+        if (opacityValue === 0 || opacityValue === null || opacityValue === undefined || opacityValue === '') {
+          opacity = 0.1;
+        } else {
+          opacity = scaleExp(opacityValue, minOpacityValue, maxOpacityValue, 0.1, 0.8, opacityScoresOrder);
+        }
+      }
+    
+      let weight;
+      if (outlineField === 'None') {
+        weight = 0;
+      } else {
+        const outlineValue = feature.properties[outlineField];
+        if (outlineValue === 0 || outlineValue === null || outlineValue === undefined || outlineValue === '') {
+          weight = 0;
+        } else {
+          weight = scaleExp(outlineValue, minOutlineValue, maxOutlineValue, 0, 4, outlineScoresOrder);
+        }
+      }
+    
+      return {
+        fillColor: color,
+        weight: weight,
+        opacity: 1,
+        color: 'black',
+        fillOpacity: opacity
+      };
+    }
+
     ScoresLayer = L.geoJSON(filteredScoresLayer, {
       style: feature => styleScoresFeature(feature, fieldToDisplay, opacityField, outlineField, minOpacity, maxOpacity, minOutline, maxOutline, selectedYear),
       onEachFeature: (feature, layer) => onEachFeature(feature, layer, selectedYear, selectedPurpose, selectedMode)
@@ -1107,160 +1092,6 @@ function updateScoresLayer() {
 
   updateFilterValues();
   updateSummaryStatistics(getCurrentFeatures());
-}
-
-function toggleInverseOpacityAmenitiesScale() {
-  isInverseAmenitiesOpacity = !isInverseAmenitiesOpacity;
-  const handles = AmenitiesOpacityRange.querySelectorAll('.noUi-handle');
-  const connectElements = AmenitiesOpacityRange.querySelectorAll('.noUi-connect');
-
-  if (isInverseAmenitiesOpacity) {
-    AmenitiesOpacityRange.noUiSlider.updateOptions({
-      connect: [true, true, true]
-    });
-    handles[1].classList.add('noUi-handle-transparent');
-    handles[0].classList.remove('noUi-handle-transparent');
-    connectElements[0].classList.add('noUi-connect-dark-grey');
-    connectElements[1].classList.remove('noUi-connect-gradient-right');
-    connectElements[1].classList.add('noUi-connect-gradient-left');
-    connectElements[2].classList.remove('noUi-connect-dark-grey');
-  } else {
-    AmenitiesOpacityRange.noUiSlider.updateOptions({
-      connect: [true, true, true]
-    });
-    handles[1].classList.remove('noUi-handle-transparent');
-    handles[0].classList.add('noUi-handle-transparent');
-    connectElements[0].classList.remove('noUi-connect-dark-grey');
-    connectElements[1].classList.remove('noUi-connect-gradient-left');
-    connectElements[1].classList.add('noUi-connect-gradient-right');
-    connectElements[2].classList.add('noUi-connect-dark-grey');
-  }
-
-  opacityAmenitiesOrder = opacityAmenitiesOrder === 'low-to-high' ? 'high-to-low' : 'low-to-high';
-
-  updateOpacitySliderAmenitiesRanges();
-}
-
-function toggleInverseOutlineAmenitiesScale() {
-  isInverseAmenitiesOutline = !isInverseAmenitiesOutline;
-  const handles = AmenitiesOutlineRange.querySelectorAll('.noUi-handle');
-  const connectElements = AmenitiesOutlineRange.querySelectorAll('.noUi-connect');
-
-  if (isInverseAmenitiesOutline) {
-    AmenitiesOutlineRange.noUiSlider.updateOptions({
-      connect: [true, true, true]
-    });
-    handles[1].classList.add('noUi-handle-transparent');
-    handles[0].classList.remove('noUi-handle-transparent');
-    connectElements[0].classList.add('noUi-connect-dark-grey');
-    connectElements[1].classList.remove('noUi-connect-gradient-right');
-    connectElements[1].classList.add('noUi-connect-gradient-left');
-    connectElements[2].classList.remove('noUi-connect-dark-grey');
-  } else {
-    AmenitiesOutlineRange.noUiSlider.updateOptions({
-      connect: [true, true, true]
-    });
-    handles[1].classList.remove('noUi-handle-transparent');
-    handles[0].classList.add('noUi-handle-transparent');
-    connectElements[0].classList.remove('noUi-connect-dark-grey');
-    connectElements[1].classList.remove('noUi-connect-gradient-left');
-    connectElements[1].classList.add('noUi-connect-gradient-right');
-    connectElements[2].classList.add('noUi-connect-dark-grey');
-  }
-
-  outlineAmenitiesOrder = outlineAmenitiesOrder === 'low-to-high' ? 'high-to-low' : 'low-to-high';
-
-  updateOutlineSliderAmenitiesRanges();
-}
-
-function updateOpacitySliderAmenitiesRanges() {
-  const opacityField = AmenitiesOpacity.value;
-
-  if (hexes) {
-    const opacityValues = opacityField !== "None" ? hexes.features.map(feature => feature.properties[opacityField]).filter(value => value !== null && value !== 0) : [];
-    const minOpacity = Math.min(...opacityValues);
-    const maxOpacity = Math.max(...opacityValues);
-    const roundedMaxOpacity = Math.pow(10, Math.ceil(Math.log10(maxOpacity)));
-    let opacityStep = roundedMaxOpacity / 100;
-
-    if (isNaN(opacityStep) || opacityStep <= 0) {
-      opacityStep = 1;
-    }
-
-    const adjustedMaxOpacity = Math.ceil(maxOpacity / opacityStep) * opacityStep;
-    const adjustedMinOpacity = Math.floor(minOpacity / opacityStep) * opacityStep;
-
-    if (opacityField === "None") {
-      AmenitiesOpacityRange.setAttribute('disabled', true);
-      AmenitiesOpacityRange.noUiSlider.updateOptions({
-        range: {
-          'min': 0,
-          'max': 0
-        },
-        step: 1
-      });
-      AmenitiesOpacityRange.noUiSlider.set(['', '']);
-      document.getElementById('opacityRangeAmenitiesMin').innerText = '';
-      document.getElementById('opacityRangeAmenitiesMax').innerText = '';
-    } else {
-      AmenitiesOpacityRange.removeAttribute('disabled');
-      AmenitiesOpacityRange.noUiSlider.updateOptions({
-        range: {
-          'min': adjustedMinOpacity,
-          'max': adjustedMaxOpacity
-        },
-        step: opacityStep
-      });
-      AmenitiesOpacityRange.noUiSlider.set([adjustedMinOpacity, adjustedMaxOpacity]);
-      document.getElementById('opacityRangeAmenitiesMin').innerText = formatValue(adjustedMinOpacity, opacityStep);
-      document.getElementById('opacityRangeAmenitiesMax').innerText = formatValue(adjustedMaxOpacity, opacityStep);
-    }
-  }
-}
-
-function updateOutlineSliderAmenitiesRanges() {
-  const outlineField = AmenitiesOutline.value;
-
-  if (hexes) {
-    const outlineValues = outlineField !== "None" ? hexes.features.map(feature => feature.properties[outlineField]).filter(value => value !== null && value !== 0) : [];
-    const minOutline = Math.min(...outlineValues);
-    const maxOutline = Math.max(...outlineValues);
-    const roundedMaxOutline = Math.pow(10, Math.ceil(Math.log10(maxOutline)));
-    let outlineStep = roundedMaxOutline / 100;
-
-    if (isNaN(outlineStep) || outlineStep <= 0) {
-      outlineStep = 1;
-    }
-
-    const adjustedMaxOutline = Math.ceil(maxOutline / outlineStep) * outlineStep;
-    const adjustedMinOutline = Math.floor(minOutline / outlineStep) * outlineStep;
-
-    if (outlineField === "None") {
-      AmenitiesOutlineRange.setAttribute('disabled', true);
-      AmenitiesOutlineRange.noUiSlider.updateOptions({
-        range: {
-          'min': 0,
-          'max': 0
-        },
-        step: 1
-      });
-      AmenitiesOutlineRange.noUiSlider.set(['', '']);
-      document.getElementById('outlineRangeAmenitiesMin').innerText = '';
-      document.getElementById('outlineRangeAmenitiesMax').innerText = '';
-    } else {
-      AmenitiesOutlineRange.removeAttribute('disabled');
-      AmenitiesOutlineRange.noUiSlider.updateOptions({
-        range: {
-          'min': adjustedMinOutline,
-          'max': adjustedMaxOutline
-        },
-        step: outlineStep
-      });
-      AmenitiesOutlineRange.noUiSlider.set([adjustedMinOutline, adjustedMaxOutline]);
-      document.getElementById('outlineRangeAmenitiesMin').innerText = formatValue(adjustedMinOutline, outlineStep);
-      document.getElementById('outlineRangeAmenitiesMax').innerText = formatValue(adjustedMaxOutline, outlineStep);
-    }
-  }
 }
 
 function updateAmenitiesCatchmentLayer() {
@@ -1601,18 +1432,18 @@ function updateSummaryStatistics(features) {
     document.getElementById('max-percentile').textContent = formatValue(summary.maxPercentile, 1);
   }
 
-  document.getElementById('total-population').textContent = formatValue(summary.totalPopulation, 10);
-  document.getElementById('min-population').textContent = formatValue(summary.minPopulation, 10);
-  document.getElementById('max-population').textContent = formatValue(summary.maxPopulation, 10);
+  document.getElementById('total-population').textContent = formatValue(summary.totalPopulation, 1);
+  document.getElementById('min-population').textContent = formatValue(summary.minPopulation, 1);
+  document.getElementById('max-population').textContent = formatValue(summary.maxPopulation, 1);
   document.getElementById('avg-imd').textContent = formatValue(summary.avgImd, 0.1);
   document.getElementById('min-imd').textContent = formatValue(summary.minImd, 0.1);
   document.getElementById('max-imd').textContent = formatValue(summary.maxImd, 0.1);
   document.getElementById('avg-car-availability').textContent = formatValue(summary.avgCarAvailability, 0.01);
   document.getElementById('min-car-availability').textContent = formatValue(summary.minCarAvailability, 0.01);
   document.getElementById('max-car-availability').textContent = formatValue(summary.maxCarAvailability, 0.01);
-  document.getElementById('total-future-dwellings').textContent = formatValue(summary.totalFutureDwellings, 10);
-  document.getElementById('min-future-dwellings').textContent = formatValue(summary.minFutureDwellings, 10);
-  document.getElementById('max-future-dwellings').textContent = formatValue(summary.maxFutureDwellings, 10);
+  document.getElementById('total-future-dwellings').textContent = formatValue(summary.totalFutureDwellings, 1);
+  document.getElementById('min-future-dwellings').textContent = formatValue(summary.minFutureDwellings, 1);
+  document.getElementById('max-future-dwellings').textContent = formatValue(summary.maxFutureDwellings, 1);
 }
 
 function calculateWeightedAverage(values, weights) {
