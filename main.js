@@ -396,7 +396,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
     legendContainer.appendChild(headerDiv);
   
     const uaBoundariesCheckboxDiv = document.createElement("div");
-    uaBoundariesCheckboxDiv.innerHTML = `<input type="checkbox" id="uaBoundariesCheckbox"> <span style="font-size: 1em;">UA Boundaries (2021)</span>`;
+    uaBoundariesCheckboxDiv.innerHTML = `<input type="checkbox" id="uaBoundariesCheckbox"> <span style="font-size: 1em;">UA Boundaries (2024)</span>`;
     legendContainer.appendChild(uaBoundariesCheckboxDiv);
     const uaBoundariesCheckbox = document.getElementById('uaBoundariesCheckbox');
     uaBoundariesCheckbox.addEventListener('change', () => {
@@ -408,7 +408,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
     });
   
     const wardBoundariesCheckboxDiv = document.createElement("div");
-    wardBoundariesCheckboxDiv.innerHTML = `<input type="checkbox" id="wardBoundariesCheckbox"> <span style="font-size: 1em;">Ward Boundaries (2021)</span>`;
+    wardBoundariesCheckboxDiv.innerHTML = `<input type="checkbox" id="wardBoundariesCheckbox"> <span style="font-size: 1em;">Ward Boundaries (2024)</span>`;
     legendContainer.appendChild(wardBoundariesCheckboxDiv);
     const wardBoundariesCheckbox = document.getElementById('wardBoundariesCheckbox');
     wardBoundariesCheckbox.addEventListener('change', () => {
