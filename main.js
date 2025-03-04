@@ -1166,9 +1166,32 @@ function updateAmenitiesCatchmentLayer() {
       return time !== undefined;
     });
 
+    // Ensure all polygons are valid by closing linear rings if necessary
+    const validFeatures = filteredFeatures.map(feature => {
+      const coordinates = feature.geometry.coordinates;
+      coordinates.forEach(ring => {
+        if (ring[0][0] !== ring[ring.length - 1][0] || ring[0][1] !== ring[ring.length - 1][1]) {
+          ring.push(ring[0]);
+        }
+      });
+      return feature;
+    });
+
+    // Convert MultiPolygon to Polygon if necessary
+    const singlePolygonFeatures = validFeatures.map(feature => {
+      if (feature.geometry.type === 'MultiPolygon') {
+        const mergedCoordinates = feature.geometry.coordinates.flat();
+        feature.geometry = {
+          type: 'Polygon',
+          coordinates: mergedCoordinates
+        };
+      }
+      return feature;
+    });
+
     const filteredAmenitiesCatchmentLayer = {
       type: "FeatureCollection",
-      features: filteredFeatures
+      features: singlePolygonFeatures
     };
 
     AmenitiesCatchmentLayer = L.geoJSON(filteredAmenitiesCatchmentLayer, {
@@ -1229,8 +1252,45 @@ function updateAmenitiesCatchmentLayer() {
 
     updateLegend();
     updateFeatureVisibility();
-    updateSummaryStatistics(filteredFeatures);
+    updateSummaryStatistics(singlePolygonFeatures);
   });
+}
+
+function updateFilterValues() {
+  const filterType = filterTypeDropdown.value;
+  let options = [];
+
+  if (filterType === 'Range') {
+    const selectedYear = ScoresYear.value;
+    if (ScoresLayer) {
+      if (selectedYear.includes('-')) {
+        options = [
+          '<= -20%', '> -20% and <= -10%', '> -10% and < 0', '= 0', '> 0 and <= 10%', '>= 10% and < 20%', '>= 20%'
+        ];
+      } else {
+        options = [
+          '0-10', '10-20', '20-30', '30-40', '40-50', '50-60', '60-70', '70-80', '80-90', '90-100'
+        ];
+      }
+    } else if (AmenitiesCatchmentLayer) {
+      options = [
+        '0-5', '5-10', '10-15', '15-20', '20-25', '25-30', '>30'
+      ];
+    }
+  } else if (filterType === 'Ward') {
+    options = wardBoundariesLayer ? wardBoundariesLayer.getLayers().map(layer => layer.feature.properties.WD24NM) : [];
+    options.sort();
+  } else if (filterType === 'GrowthZone') {
+    options = GrowthZonesLayer ? GrowthZonesLayer.getLayers().map(layer => layer.feature.properties.Name) : [];
+    options.sort();
+  } else if (filterType === 'LA') {
+    options = ['MCA', 'LEP'];
+    const uaOptions = uaBoundariesLayer ? uaBoundariesLayer.getLayers().map(layer => layer.feature.properties.LAD24NM) : [];
+    uaOptions.sort();
+    options = options.concat(uaOptions);
+  }
+
+  filterValueDropdown.innerHTML = options.map(option => `<option value="${option}">${option}</option>`).join('');
 }
 
 function updateSummaryStatistics(features) {
@@ -1266,35 +1326,52 @@ function updateSummaryStatistics(features) {
   let filteredFeatures = features;
 
   if (filterType === 'Range') {
-    const selectedYear = ScoresYear.value;
-    const selectedPurpose = ScoresPurpose.value;
-    const selectedMode = ScoresMode.value;
-    const fieldToDisplay = selectedYear.includes('-') ? `${selectedPurpose}_${selectedMode}` : `${selectedPurpose}_${selectedMode}_100`;
-
-    if (selectedYear.includes('-')) {
-      const rangePattern = /([<>]=?)?\s*(-?\d+(\.\d+)?%?)/g;
-      const ranges = [];
-      let match;
-      while ((match = rangePattern.exec(filterValue)) !== null) {
-        ranges.push({ operator: match[1], value: parseFloat(match[2]) / 100 });
-      }
-
-      filteredFeatures = features.filter(feature => {
-        const value = feature.properties[fieldToDisplay];
-        return ranges.every(range => {
-          if (range.operator === '<=') return value <= range.value;
-          if (range.operator === '>=') return value >= range.value;
-          if (range.operator === '<') return value < range.value;
-          if (range.operator === '>') return value > range.value;
-          return value === range.value;
+    if (AmenitiesCatchmentLayer) {
+      if (filterValue === '>30') {
+        filteredFeatures = features.filter(feature => {
+          const hexId = feature.properties.Hex_ID;
+          const time = hexTimeMap[hexId];
+          return time > 30;
         });
-      });
+      } else {
+        const [minRange, maxRange] = filterValue.split('-').map(parseFloat);
+        filteredFeatures = features.filter(feature => {
+          const hexId = feature.properties.Hex_ID;
+          const time = hexTimeMap[hexId];
+          return time >= minRange && (maxRange ? time < maxRange : true);
+        });
+      }
     } else {
-      const [minRange, maxRange] = filterValue.split('-').map(parseFloat);
-      filteredFeatures = features.filter(feature => {
-        const value = feature.properties[fieldToDisplay];
-        return value >= minRange && value < maxRange;
-      });
+      const selectedYear = ScoresYear.value;
+      const selectedPurpose = ScoresPurpose.value;
+      const selectedMode = ScoresMode.value;
+      const fieldToDisplay = selectedYear.includes('-') ? `${selectedPurpose}_${selectedMode}` : `${selectedPurpose}_${selectedMode}_100`;
+
+      if (selectedYear.includes('-')) {
+        const rangePattern = /([<>]=?)?\s*(-?\d+(\.\d+)?%?)/g;
+        const ranges = [];
+        let match;
+        while ((match = rangePattern.exec(filterValue)) !== null) {
+          ranges.push({ operator: match[1], value: parseFloat(match[2]) / 100 });
+        }
+
+        filteredFeatures = features.filter(feature => {
+          const value = feature.properties[fieldToDisplay];
+          return ranges.every(range => {
+            if (range.operator === '<=') return value <= range.value;
+            if (range.operator === '>=') return value >= range.value;
+            if (range.operator === '<') return value < range.value;
+            if (range.operator === '>') return value > range.value;
+            return value === range.value;
+          });
+        });
+      } else {
+        const [minRange, maxRange] = filterValue.split('-').map(parseFloat);
+        filteredFeatures = features.filter(feature => {
+          const value = feature.properties[fieldToDisplay];
+          return value >= minRange && (maxRange ? value < maxRange : true);
+        });
+      }
     }
   } else if (filterType === 'Ward') {
     const wardLayer = wardBoundariesLayer.getLayers().find(layer => layer.feature.properties.WD24NM === filterValue);
@@ -1358,6 +1435,28 @@ function updateSummaryStatistics(features) {
     }
   }
 
+  if (filteredFeatures.length === 0) {
+    document.getElementById('avg-score').textContent = '-';
+    document.getElementById('min-score').textContent = '-';
+    document.getElementById('max-score').textContent = '-';
+    document.getElementById('avg-percentile').textContent = '-';
+    document.getElementById('min-percentile').textContent = '-';
+    document.getElementById('max-percentile').textContent = '-';
+    document.getElementById('total-population').textContent = '-';
+    document.getElementById('min-population').textContent = '-';
+    document.getElementById('max-population').textContent = '-';
+    document.getElementById('avg-imd').textContent = '-';
+    document.getElementById('min-imd').textContent = '-';
+    document.getElementById('max-imd').textContent = '-';
+    document.getElementById('avg-car-availability').textContent = '-';
+    document.getElementById('min-car-availability').textContent = '-';
+    document.getElementById('max-car-availability').textContent = '-';
+    document.getElementById('total-future-dwellings').textContent = '-';
+    document.getElementById('min-future-dwellings').textContent = '-';
+    document.getElementById('max-future-dwellings').textContent = '-';
+    return;
+  }
+
   const selectedPurpose = ScoresPurpose.value;
   const selectedMode = ScoresMode.value;
   const scoreField = `${selectedPurpose}_${selectedMode}`;
@@ -1416,14 +1515,17 @@ function updateSummaryStatistics(features) {
   const formatScore = value => selectedYear.includes('-') ? `${(value * 100).toFixed(1)}%` : formatValue(value, 1);
 
   if (AmenitiesCatchmentLayer) {
-    document.getElementById('metric-row-1').textContent = 'Journey Time';
-    document.getElementById('metric-row-2').style.display = 'none';
-    document.getElementById('avg-score').textContent = formatValue(summary.avgTime, 1);
-    document.getElementById('min-score').textContent = formatValue(summary.minTime, 1);
-    document.getElementById('max-score').textContent = formatValue(summary.maxTime, 1);
+    document.getElementById('metric-row-1').textContent = '-';
+    document.getElementById('metric-row-2').textContent = 'Journey Time';
+    document.getElementById('avg-score').textContent = '-';
+    document.getElementById('min-score').textContent = '-';
+    document.getElementById('max-score').textContent = '-';
+    document.getElementById('avg-percentile').textContent = formatValue(summary.avgTime, 1);
+    document.getElementById('min-percentile').textContent = formatValue(summary.minTime, 1);
+    document.getElementById('max-percentile').textContent = formatValue(summary.maxTime, 1);
   } else {
     document.getElementById('metric-row-1').textContent = 'Score';
-    document.getElementById('metric-row-2').style.display = '';
+    document.getElementById('metric-row-2').textContent = 'Score Percentile';
     document.getElementById('avg-score').textContent = formatScore(summary.avgScore);
     document.getElementById('min-score').textContent = formatScore(summary.minScore);
     document.getElementById('max-score').textContent = formatScore(summary.maxScore);
@@ -1450,43 +1552,6 @@ function calculateWeightedAverage(values, weights) {
   const totalWeight = weights.reduce((a, b) => a + b, 0);
   const weightedSum = values.reduce((sum, value, index) => sum + value * weights[index], 0);
   return weightedSum / totalWeight;
-}
-
-function updateFilterValues() {
-  const filterType = filterTypeDropdown.value;
-  let options = [];
-
-  if (filterType === 'Range') {
-    const selectedYear = ScoresYear.value;
-    if (ScoresLayer) {
-      if (selectedYear.includes('-')) {
-        options = [
-          '<= -20%', '> -20% and <= -10%', '> -10% and < 0', '= 0', '> 0 and <= 10%', '>= 10% and < 20%', '>= 20%'
-        ];
-      } else {
-        options = [
-          '0-10', '10-20', '20-30', '30-40', '40-50', '50-60', '60-70', '70-80', '80-90', '90-100'
-        ];
-      }
-    } else if (AmenitiesCatchmentLayer) {
-      options = [
-        '0-5', '5-10', '10-15', '15-20', '20-25', '25-30'
-      ];
-    }
-  } else if (filterType === 'Ward') {
-    options = wardBoundariesLayer ? wardBoundariesLayer.getLayers().map(layer => layer.feature.properties.WD24NM) : [];
-    options.sort();
-  } else if (filterType === 'GrowthZone') {
-    options = GrowthZonesLayer ? GrowthZonesLayer.getLayers().map(layer => layer.feature.properties.Name) : [];
-    options.sort();
-  } else if (filterType === 'LA') {
-    options = ['MCA', 'LEP'];
-    const uaOptions = uaBoundariesLayer ? uaBoundariesLayer.getLayers().map(layer => layer.feature.properties.LAD24NM) : [];
-    uaOptions.sort();
-    options = options.concat(uaOptions);
-  }
-
-  filterValueDropdown.innerHTML = options.map(option => `<option value="${option}">${option}</option>`).join('');
 }
 
 function getCurrentFeatures() {
