@@ -1,7 +1,11 @@
 const map = L.map('map').setView([51.480, -2.591], 11);
 
 const baseLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}.png', {
-  attribution: '&copy; OpenStreetMap contributors & CartoDB'
+  attribution: '&copy; OpenStreetMap contributors & CartoDB, © Crown copyright and database rights 2025 OS 0100059651, Contains OS data © Crown copyright [and database right] 2025.'
+}).addTo(map);
+
+const labelsLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}.png', {
+  attribution: '&copy; OpenStreetMap contributors & CartoDB, © Crown copyright and database rights 2025 OS 0100059651, Contains OS data © Crown copyright [and database right] 2025.'
 }).addTo(map);
 
 const ladCodes = ['E06000022', 'E06000023', 'E06000024', 'E06000025'];
