@@ -241,6 +241,7 @@ let selectedAmenitiesAmenities = [];
 let selectingFromMap = false;
 let selectedAmenitiesFromMap = [];
 let hexes;
+let highlightLayer = null;
 
 initializeSliders(ScoresOpacityRange, updateScoresLayer);
 initializeSliders(ScoresOutlineRange, updateScoresLayer);
@@ -269,9 +270,38 @@ AmenitiesPurpose.forEach(checkbox => {
 filterTypeDropdown.addEventListener('change', () => {
   updateFilterValues();
   updateSummaryStatistics(getCurrentFeatures());
+  
+  const highlightCheckbox = document.getElementById('highlightAreaCheckbox');
+  if (filterTypeDropdown.value === 'Range') {
+    highlightCheckbox.disabled = true;
+    highlightCheckbox.checked = false;
+    if (highlightLayer) {
+      map.removeLayer(highlightLayer);
+      highlightLayer = null;
+    }
+  } else {
+    highlightCheckbox.disabled = false;
+  }
+  
+  if (document.getElementById('highlightAreaCheckbox').checked) {
+    highlightSelectedArea();
+  }
 });
 filterValueDropdown.addEventListener('change', () => {
   updateSummaryStatistics(getCurrentFeatures());
+  if (document.getElementById('highlightAreaCheckbox').checked) {
+    highlightSelectedArea();
+  }
+});
+document.getElementById('highlightAreaCheckbox').addEventListener('change', function() {
+  if (this.checked) {
+    highlightSelectedArea();
+  } else {
+    if (highlightLayer) {
+      map.removeLayer(highlightLayer);
+      highlightLayer = null;
+    }
+  }
 });
 
 document.addEventListener('DOMContentLoaded', (event) => {
@@ -1092,6 +1122,7 @@ function updateScoresLayer() {
 
   updateFilterValues();
   updateSummaryStatistics(getCurrentFeatures());
+  highlightSelectedArea();
 }
 
 function updateAmenitiesCatchmentLayer() {
@@ -1253,14 +1284,17 @@ function updateAmenitiesCatchmentLayer() {
     updateLegend();
     updateFeatureVisibility();
     updateSummaryStatistics(singlePolygonFeatures);
+    highlightSelectedArea();
   });
 }
 
 function updateFilterValues() {
-  const filterType = filterTypeDropdown.value;
+  const currentFilterType = filterTypeDropdown.value;
+  const currentFilterValue = filterValueDropdown.value;
+
   let options = [];
 
-  if (filterType === 'Range') {
+  if (currentFilterType === 'Range') {
     const selectedYear = ScoresYear.value;
     if (ScoresLayer) {
       if (selectedYear.includes('-')) {
@@ -1277,13 +1311,13 @@ function updateFilterValues() {
         '0-5', '5-10', '10-15', '15-20', '20-25', '25-30', '>30'
       ];
     }
-  } else if (filterType === 'Ward') {
+  } else if (currentFilterType === 'Ward') {
     options = wardBoundariesLayer ? wardBoundariesLayer.getLayers().map(layer => layer.feature.properties.WD24NM) : [];
     options.sort();
-  } else if (filterType === 'GrowthZone') {
+  } else if (currentFilterType === 'GrowthZone') {
     options = GrowthZonesLayer ? GrowthZonesLayer.getLayers().map(layer => layer.feature.properties.Name) : [];
     options.sort();
-  } else if (filterType === 'LA') {
+  } else if (currentFilterType === 'LA') {
     options = ['MCA', 'LEP'];
     const uaOptions = uaBoundariesLayer ? uaBoundariesLayer.getLayers().map(layer => layer.feature.properties.LAD24NM) : [];
     uaOptions.sort();
@@ -1291,6 +1325,10 @@ function updateFilterValues() {
   }
 
   filterValueDropdown.innerHTML = options.map(option => `<option value="${option}">${option}</option>`).join('');
+
+  if (options.includes(currentFilterValue)) {
+    filterValueDropdown.value = currentFilterValue;
+  }
 }
 
 function updateSummaryStatistics(features) {
@@ -1561,4 +1599,64 @@ function getCurrentFeatures() {
     return AmenitiesCatchmentLayer.toGeoJSON().features;
   }
   return [];
+}
+
+function highlightSelectedArea() {
+  const highlightAreaCheckbox = document.getElementById('highlightAreaCheckbox');
+  if (!highlightAreaCheckbox.checked) {
+    if (highlightLayer) {
+      map.removeLayer(highlightLayer);
+      highlightLayer = null;
+    }
+    return;
+  }
+  const filterType = filterTypeDropdown.value;
+  const filterValue = filterValueDropdown.value;
+
+  let selectedPolygons = [];
+
+  if (filterType === 'Ward') {
+    const wardLayers = wardBoundariesLayer.getLayers().filter(layer => layer.feature.properties.WD24NM === filterValue);
+    selectedPolygons = wardLayers.map(layer => layer.toGeoJSON());
+  } else if (filterType === 'GrowthZone') {
+    const growthZoneLayers = GrowthZonesLayer.getLayers().filter(layer => layer.feature.properties.Name === filterValue);
+    selectedPolygons = growthZoneLayers.map(layer => layer.toGeoJSON());
+  } else if (filterType === 'LA') {
+    if (filterValue === 'MCA') {
+      const mcaLayers = uaBoundariesLayer.getLayers().filter(layer => layer.feature.properties.LAD24NM !== 'North Somerset');
+      selectedPolygons = mcaLayers.map(layer => layer.toGeoJSON());
+    } else if (filterValue === 'LEP') {
+      const lepLayers = uaBoundariesLayer.getLayers();
+      selectedPolygons = lepLayers.map(layer => layer.toGeoJSON());
+    } else {
+      const uaLayers = uaBoundariesLayer.getLayers().filter(layer => layer.feature.properties.LAD24NM === filterValue);
+      selectedPolygons = uaLayers.map(layer => layer.toGeoJSON());
+    }
+  }
+
+  if (selectedPolygons.length > 0) {
+    const unionPolygon = selectedPolygons.reduce((acc, polygon) => {
+      return acc ? turf.union(acc, polygon) : polygon;
+    }, null);
+
+    const mapBounds = [-6.38, 49.87, 1.77, 55.81];
+    const mapPolygon = turf.bboxPolygon(mapBounds);
+
+    const inversePolygon = turf.difference(mapPolygon, unionPolygon);
+
+    if (highlightLayer) {
+      map.removeLayer(highlightLayer);
+    }
+
+    highlightLayer = L.geoJSON(inversePolygon, {
+      style: {
+        color: 'rgba(118,118,118,1)',
+        weight: 1,
+        fillColor: 'grey',
+        fillOpacity: 0.75
+      }
+    }).addTo(map);
+  } else {
+    console.log('No polygon selected for highlighting.');
+  }
 }
