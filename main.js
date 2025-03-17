@@ -242,6 +242,8 @@ let selectingFromMap = false;
 let selectedAmenitiesFromMap = [];
 let hexes;
 let highlightLayer = null;
+let initialLoadComplete = false;
+let isUpdatingSliders = false;
 
 initializeSliders(ScoresOpacityRange, updateScoresLayer);
 initializeSliders(ScoresOutlineRange, updateScoresLayer);
@@ -401,6 +403,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
   document.querySelectorAll('.legend-checkbox').forEach(checkbox => {
     checkbox.addEventListener('change', updateFeatureVisibility);
   });
+  
   function createStaticLegendControls() {
     const legendContainer = document.getElementById("legend-extra");
     if (!legendContainer) return;
@@ -473,8 +476,35 @@ document.addEventListener('DOMContentLoaded', (event) => {
       }
     });
   }
+  
   createStaticLegendControls();
   updateFilterValues();
+  
+  document.getElementById('metric-row-1').textContent = '-';
+  document.getElementById('metric-row-2').textContent = '-';
+  document.getElementById('avg-score').textContent = '-';
+  document.getElementById('min-score').textContent = '-';
+  document.getElementById('max-score').textContent = '-';
+  document.getElementById('avg-percentile').textContent = '-';
+  document.getElementById('min-percentile').textContent = '-';
+  document.getElementById('max-percentile').textContent = '-';
+  document.getElementById('total-population').textContent = '-';
+  document.getElementById('min-population').textContent = '-';
+  document.getElementById('max-population').textContent = '-';
+  document.getElementById('avg-imd').textContent = '-';
+  document.getElementById('min-imd').textContent = '-';
+  document.getElementById('max-imd').textContent = '-';
+  document.getElementById('avg-car-availability').textContent = '-';
+  document.getElementById('min-car-availability').textContent = '-';
+  document.getElementById('max-car-availability').textContent = '-';
+  document.getElementById('total-future-dwellings').textContent = '-';
+  document.getElementById('min-future-dwellings').textContent = '-';
+  document.getElementById('max-future-dwellings').textContent = '-';
+  
+  setTimeout(() => {
+    initialLoadComplete = true;
+    console.log("Initial load complete");
+  }, 500);
 });
 
 map.on('zoomend', () => {
@@ -487,45 +517,67 @@ map.on('zoomend', () => {
   }
 });
 
+function debounce(func, wait) {
+  let timeout;
+  return function (...args) {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => func.apply(this, args), wait);
+  };
+}
+
+function isPanelOpen(panelName) {
+  const panelHeaders = document.querySelectorAll(".panel-header:not(.summary-header)");
+  for (const header of panelHeaders) {
+    if (header.textContent.includes(panelName) && !header.classList.contains("collapsed")) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function configureSlider(sliderElement, updateCallback, debounceDelay = 250) {
+  const debouncedUpdateCallback = debounce(updateCallback, debounceDelay);
+
+  sliderElement.noUiSlider.on('update', function (values, handle) {
+      const handleElement = sliderElement.querySelectorAll('.noUi-handle')[handle];
+      handleElement.setAttribute('data-value', formatValue(values[handle], sliderElement.noUiSlider.options.step));
+      debouncedUpdateCallback();
+  });
+}
+
 function initializeSliders(sliderElement, updateCallback) {
   if (sliderElement.noUiSlider) {
-    return;
+      return;
   }
 
   noUiSlider.create(sliderElement, {
-    start: ['',''],
-    connect: [true, true, true],
-    range: {
-      'min': 0,
-      'max': 0
-    },
-    step: 1,
-    tooltips: false,
-    format: {
-      to: value => parseFloat(value).toFixed(2),
-      from: value => parseFloat(value)
-    }
+      start: ['', ''],
+      connect: [true, true, true],
+      range: {
+          'min': 0,
+          'max': 0
+      },
+      step: 1,
+      tooltips: false,
+      format: {
+          to: value => parseFloat(value).toFixed(2),
+          from: value => parseFloat(value)
+      }
   });
 
   const handles = sliderElement.querySelectorAll('.noUi-handle');
   if (handles.length > 0) {
-    handles[0].classList.add('noUi-handle-transparent');
+      handles[0].classList.add('noUi-handle-transparent');
   }
 
   const connectElements = sliderElement.querySelectorAll('.noUi-connect');
   if (connectElements.length > 2) {
-    connectElements[1].classList.add('noUi-connect-gradient-right');
-    connectElements[2].classList.add('noUi-connect-dark-grey');
+      connectElements[1].classList.add('noUi-connect-gradient-right');
+      connectElements[2].classList.add('noUi-connect-dark-grey');
   }
 
-  sliderElement.noUiSlider.on('update', function(values, handle) {
-    updateCallback();
-  });
-
-  sliderElement.noUiSlider.on('update', function(values, handle) {
-    const handleElement = handles[handle];
-    handleElement.setAttribute('data-value', formatValue(values[handle], sliderElement.noUiSlider.options.step));
-  });
+  // Use the centralized slider configuration
+  configureSlider(sliderElement, updateCallback);
 }
 
 function scaleExp(value, minVal, maxVal, minScale, maxScale, order) {
@@ -861,6 +913,8 @@ function AmenitiesPopup(amenity, properties) {
 }
 
 function toggleInverseScale(type, scaleType) {
+  isUpdatingSliders = true;
+  
   let isInverse, rangeElement, order;
 
   if (type === 'Scores') {
@@ -889,13 +943,18 @@ function toggleInverseScale(type, scaleType) {
     }
   }
   
+  const currentValues = rangeElement.noUiSlider.get();
+  
+  const originalUpdateCallback = rangeElement.noUiSlider.options.onUpdate;
+  rangeElement.noUiSlider.off('update');
+  
   const handles = rangeElement.querySelectorAll('.noUi-handle');
   const connectElements = rangeElement.querySelectorAll('.noUi-connect');
 
   if (isInverse) {
     rangeElement.noUiSlider.updateOptions({
       connect: [true, true, true]
-    });
+    }, false);
     handles[1].classList.add('noUi-handle-transparent');
     handles[0].classList.remove('noUi-handle-transparent');
     connectElements[0].classList.add('noUi-connect-dark-grey');
@@ -905,7 +964,7 @@ function toggleInverseScale(type, scaleType) {
   } else {
     rangeElement.noUiSlider.updateOptions({
       connect: [true, true, true]
-    });
+    }, false);
     handles[1].classList.remove('noUi-handle-transparent');
     handles[0].classList.add('noUi-handle-transparent');
     connectElements[0].classList.remove('noUi-connect-dark-grey');
@@ -913,90 +972,131 @@ function toggleInverseScale(type, scaleType) {
     connectElements[1].classList.add('noUi-connect-gradient-right');
     connectElements[2].classList.add('noUi-connect-dark-grey');
   }
-
+  
+  rangeElement.noUiSlider.set(currentValues, false);
+  
+  const debouncedUpdateCallback = debounce(() => {
+    if (type === 'Scores') {
+      updateScoresLayer();
+    } else {
+      updateAmenitiesCatchmentLayer();
+    }
+  }, 250);
+  
+  rangeElement.noUiSlider.on('update', function(values, handle) {
+    if (initialLoadComplete && !isUpdatingSliders) {
+      debouncedUpdateCallback();
+    }
+    
+    const handleElement = handles[handle];
+    handleElement.setAttribute('data-value', formatValue(values[handle], rangeElement.noUiSlider.options.step));
+  });
+  
   updateSliderRanges(type, scaleType);
+  
+  isUpdatingSliders = false;
+  
+  if (type === 'Scores' && isPanelOpen("Connectivity Scores")) {
+    updateScoresLayer();
+  } else if (type === 'Amenities' && isPanelOpen("Journey Time Catchments - Amenities")) {
+    updateAmenitiesCatchmentLayer();
+  }
 }
 
 function updateSliderRanges(type, scaleType) {
+  if (isUpdatingSliders) return;
+  isUpdatingSliders = true;
+
   let field, rangeElement, minElement, maxElement, hexesData, order;
 
   if (type === 'Scores') {
-    if (scaleType === 'Opacity') {
-      field = ScoresOpacity.value;
-      rangeElement = ScoresOpacityRange;
-      minElement = document.getElementById('opacityRangeScoresMin');
-      maxElement = document.getElementById('opacityRangeScoresMax');
-      hexesData = hexes;
-      order = opacityScoresOrder;
-    } else if (scaleType === 'Outline') {
-      field = ScoresOutline.value;
-      rangeElement = ScoresOutlineRange;
-      minElement = document.getElementById('outlineRangeScoresMin');
-      maxElement = document.getElementById('outlineRangeScoresMax');
-      hexesData = hexes;
-      order = outlineScoresOrder;
-    }
+      if (scaleType === 'Opacity') {
+          field = ScoresOpacity.value;
+          rangeElement = ScoresOpacityRange;
+          minElement = document.getElementById('opacityRangeScoresMin');
+          maxElement = document.getElementById('opacityRangeScoresMax');
+          hexesData = hexes;
+          order = opacityScoresOrder;
+      } else if (scaleType === 'Outline') {
+          field = ScoresOutline.value;
+          rangeElement = ScoresOutlineRange;
+          minElement = document.getElementById('outlineRangeScoresMin');
+          maxElement = document.getElementById('outlineRangeScoresMax');
+          hexesData = hexes;
+          order = outlineScoresOrder;
+      }
   } else if (type === 'Amenities') {
-    if (scaleType === 'Opacity') {
-      field = AmenitiesOpacity.value;
-      rangeElement = AmenitiesOpacityRange;
-      minElement = document.getElementById('opacityRangeAmenitiesMin');
-      maxElement = document.getElementById('opacityRangeAmenitiesMax');
-      hexesData = hexes;
-      order = opacityAmenitiesOrder;
-    } else if (scaleType === 'Outline') {
-      field = AmenitiesOutline.value;
-      rangeElement = AmenitiesOutlineRange;
-      minElement = document.getElementById('outlineRangeAmenitiesMin');
-      maxElement = document.getElementById('outlineRangeAmenitiesMax');
-      hexesData = hexes;
-      order = outlineAmenitiesOrder;
-    }
+      if (scaleType === 'Opacity') {
+          field = AmenitiesOpacity.value;
+          rangeElement = AmenitiesOpacityRange;
+          minElement = document.getElementById('opacityRangeAmenitiesMin');
+          maxElement = document.getElementById('opacityRangeAmenitiesMax');
+          hexesData = hexes;
+          order = opacityAmenitiesOrder;
+      } else if (scaleType === 'Outline') {
+          field = AmenitiesOutline.value;
+          rangeElement = AmenitiesOutlineRange;
+          minElement = document.getElementById('outlineRangeAmenitiesMin');
+          maxElement = document.getElementById('outlineRangeAmenitiesMax');
+          hexesData = hexes;
+          order = outlineAmenitiesOrder;
+      }
   }
 
   if (hexesData) {
-    const values = field !== "None" ? hexesData.features.map(feature => feature.properties[field]).filter(value => value !== null && value !== 0) : [];
-    const minValue = Math.min(...values);
-    const maxValue = Math.max(...values);
-    const roundedMaxValue = Math.pow(10, Math.ceil(Math.log10(maxValue)));
-    let step = roundedMaxValue / 100;
+      const values = field !== "None" ? hexesData.features.map(feature => feature.properties[field]).filter(value => value !== null && value !== 0) : [];
+      const minValue = Math.min(...values);
+      const maxValue = Math.max(...values);
+      const roundedMaxValue = Math.pow(10, Math.ceil(Math.log10(maxValue)));
+      let step = roundedMaxValue / 100;
 
-    if (isNaN(step) || step <= 0) {
-      step = 1;
-    }
+      if (isNaN(step) || step <= 0) {
+          step = 1;
+      }
 
-    const adjustedMaxValue = Math.ceil(maxValue / step) * step;
-    const adjustedMinValue = Math.floor(minValue / step) * step;
+      const adjustedMaxValue = Math.ceil(maxValue / step) * step;
+      const adjustedMinValue = Math.floor(minValue / step) * step;
 
-    if (field === "None") {
-      rangeElement.setAttribute('disabled', true);
-      rangeElement.noUiSlider.updateOptions({
-        range: {
-          'min': 0,
-          'max': 0
-        },
-        step: 1
-      });
-      rangeElement.noUiSlider.set(['', '']);
-      minElement.innerText = '';
-      maxElement.innerText = '';
-    } else {
-      rangeElement.removeAttribute('disabled');
-      rangeElement.noUiSlider.updateOptions({
-        range: {
-          'min': adjustedMinValue,
-          'max': adjustedMaxValue
-        },
-        step: step
-      });
-      rangeElement.noUiSlider.set([adjustedMinValue, adjustedMaxValue]);
-      minElement.innerText = formatValue(adjustedMinValue, step);
-      maxElement.innerText = formatValue(adjustedMaxValue, step);
-    }
+      if (field === "None") {
+          rangeElement.setAttribute('disabled', true);
+          rangeElement.noUiSlider.updateOptions({
+              range: {
+                  'min': 0,
+                  'max': 0
+              },
+              step: 1
+          }, false);
+          rangeElement.noUiSlider.set(['', ''], false);
+          minElement.innerText = '';
+          maxElement.innerText = '';
+      } else {
+          rangeElement.removeAttribute('disabled');
+          rangeElement.noUiSlider.updateOptions({
+              range: {
+                  'min': adjustedMinValue,
+                  'max': adjustedMaxValue
+              },
+              step: step
+          }, false);
+          rangeElement.noUiSlider.set([adjustedMinValue, adjustedMaxValue], false);
+          minElement.innerText = formatValue(adjustedMinValue, step);
+          maxElement.innerText = formatValue(adjustedMaxValue, step);
+      }
+
+      // Use the centralized slider configuration
+      configureSlider(rangeElement, type === 'Scores' ? updateScoresLayer : updateAmenitiesCatchmentLayer);
   }
+
+  isUpdatingSliders = false;
 }
 
 function updateScoresLayer() {
+  if (!initialLoadComplete || !isPanelOpen("Connectivity Scores")) {
+    return;
+  }
+  
+  console.log('updateScoresLayer');
+  
   if (AmenitiesCatchmentLayer) {
     map.removeLayer(AmenitiesCatchmentLayer);
     AmenitiesCatchmentLayer = null;
@@ -1117,7 +1217,6 @@ function updateScoresLayer() {
     drawSelectedAmenities(selectedScoresAmenities);
     updateLegend();
     updateFeatureVisibility();
-    updateSummaryStatistics(filteredFeatures);
   }
 
   updateFilterValues();
@@ -1126,6 +1225,10 @@ function updateScoresLayer() {
 }
 
 function updateAmenitiesCatchmentLayer() {
+  if (!initialLoadComplete || !isPanelOpen("Journey Time Catchments - Amenities")) {
+    return;
+  }
+  
   selectedAmenitiesAmenities = Array.from(AmenitiesPurpose)
     .filter(checkbox => checkbox.checked)
     .map(checkbox => checkbox.value);
@@ -1197,7 +1300,6 @@ function updateAmenitiesCatchmentLayer() {
       return time !== undefined;
     });
 
-    // Ensure all polygons are valid by closing linear rings if necessary
     const validFeatures = filteredFeatures.map(feature => {
       const coordinates = feature.geometry.coordinates;
       coordinates.forEach(ring => {
@@ -1208,7 +1310,6 @@ function updateAmenitiesCatchmentLayer() {
       return feature;
     });
 
-    // Convert MultiPolygon to Polygon if necessary
     const singlePolygonFeatures = validFeatures.map(feature => {
       if (feature.geometry.type === 'MultiPolygon') {
         const mergedCoordinates = feature.geometry.coordinates.flat();
@@ -1289,6 +1390,7 @@ function updateAmenitiesCatchmentLayer() {
 }
 
 function updateFilterValues() {
+  console.log('updateFilterValues');
   const currentFilterType = filterTypeDropdown.value;
   const currentFilterValue = filterValueDropdown.value;
 
@@ -1332,7 +1434,8 @@ function updateFilterValues() {
 }
 
 function updateSummaryStatistics(features) {
-  if (!ScoresLayer && !AmenitiesCatchmentLayer) {
+  console.log('updateSummaryStatistics');
+  if ((!ScoresLayer && !AmenitiesCatchmentLayer) || !initialLoadComplete) {
     features = [];
   }
 
