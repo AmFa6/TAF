@@ -22,14 +22,6 @@ fetch(`https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Local_
           fillOpacity: 0
         };
       },
-      onEachFeature: function (feature, layer) {
-        layer.on('click', function () {
-          L.popup()
-            .setLatLng(layer.getBounds().getCenter())
-            .setContent(`<strong>Local Authority District:</strong> ${feature.properties.LAD24NM}`)
-            .openOn(map);
-        });
-      }
     });
     updateFilterValues();
   });
@@ -51,14 +43,6 @@ fetch('https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Wards_
           fillOpacity: 0
         };
       },
-      onEachFeature: function (feature, layer) {
-        layer.on('click', function () {
-          L.popup()
-            .setLatLng(layer.getBounds().getCenter())
-            .setContent(`<strong>Ward Name:</strong> ${feature.properties.WD24NM}`)
-            .openOn(map);
-        });
-      }
     });
   })
   .catch(error => console.error('Error fetching ward boundaries:', error));
@@ -89,14 +73,6 @@ fetch('https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/LSOA21
           fillOpacity: 0
         };
       },
-      onEachFeature: function (feature, layer) {
-        layer.on('click', function () {
-          L.popup()
-            .setLatLng(layer.getBounds().getCenter())
-            .setContent(`<strong>LSOA Name:</strong> ${feature.properties.LSOA21NM}`)
-            .openOn(map);
-        });
-      }
     });
   })
   .catch(error => console.error('Error fetching data:', error));
@@ -188,14 +164,6 @@ fetch('https://AmFa6.github.io/TAF_test/GrowthZones.geojson')
           fillOpacity: 0
         };
       },
-      onEachFeature: function (feature, layer) {
-        layer.on('click', function () {
-          L.popup()
-            .setLatLng(layer.getBounds().getCenter())
-            .setContent(`<strong>Growth Zone:</strong> ${feature.properties.Name}<br><strong>Growth Type:</strong> ${feature.properties.GrowthType}`)
-            .openOn(map);
-        });
-      }
     });
   })
   
@@ -517,6 +485,205 @@ map.on('zoomend', () => {
   }
 });
 
+map.on('click', function (e) {
+  const latlng = e.latlng;
+  const layersData = [];
+
+  const closestAmenity = findClosestAmenity(latlng, amenitiesLayerGroup);
+  if (closestAmenity) {
+    layersData.push({ type: 'Amenities', feature: closestAmenity });
+  }
+
+  const containingPolygon = findContainingPolygon(latlng, ScoresLayer);
+  if (containingPolygon) {
+    layersData.push({ type: 'Scores', feature: containingPolygon });
+  }
+
+  const boundaryPolygon = findContainingPolygon(latlng, uaBoundariesLayer);
+  if (boundaryPolygon) {
+    layersData.push({ type: 'Boundaries', feature: boundaryPolygon });
+  }
+
+  if (layersData.length > 0) {
+    createMultiPagePopup(latlng, layersData, {
+      selectedYear: ScoresYear.value,
+      selectedPurpose: ScoresPurpose.value,
+      selectedMode: ScoresMode.value,
+      hexTimeMap: hexTimeMap
+    });
+  } else {
+    L.popup()
+      .setLatLng(latlng)
+      .setContent('No data available at this location.')
+      .openOn(map);
+  }
+});
+
+function findClosestAmenity(latlng, amenitiesLayer) {
+  let closestFeature = null;
+  let closestDistance = Infinity;
+
+  amenitiesLayer.eachLayer(layer => {
+    const distance = latlng.distanceTo(layer.getLatLng());
+    if (distance < closestDistance) {
+      closestDistance = distance;
+      closestFeature = layer.feature;
+    }
+  });
+
+  return closestFeature;
+}
+
+function findContainingPolygon(latlng, polygonLayer) {
+  let containingFeature = null;
+
+  polygonLayer.eachLayer(layer => {
+    if (turf.booleanPointInPolygon(turf.point([latlng.lng, latlng.lat]), layer.toGeoJSON())) {
+      containingFeature = layer.feature;
+    }
+  });
+
+  return containingFeature;
+}
+
+function getAmenityType(properties) {
+  switch (properties.AmenityType) {
+    case 'PriSch': return 'Primary School';
+    case 'SecSch': return 'Secondary School';
+    case 'FurEd': return 'Further Education';
+    case 'Em500': return 'Employment (500+ employees)';
+    case 'Em5000': return 'Employment (5000+ employees)';
+    case 'StrEmp': return 'Strategic Employment';
+    case 'CitCtr': return 'City Centre';
+    case 'MajCtr': return 'Major Centre';
+    case 'DisCtr': return 'District Centre';
+    case 'GP': return 'General Practice';
+    case 'Hos': return 'Hospital';
+    default: return 'Unknown';
+  }
+}
+
+function getAmenityName(properties, amenityType) {
+  switch (amenityType) {
+    case 'Primary School':
+    case 'Secondary School':
+    case 'Further Education':
+      return properties.Establis_1 || 'Unknown';
+    case 'Employment (500+ employees)':
+    case 'Employment (5000+ employees)':
+      return `${properties.LSOA11CD}, ${properties.LSOA11NM}` || 'Unknown';
+    case 'Strategic Employment':
+      return properties.NAME || 'Unknown';
+    case 'City Centre':
+      return properties.District || 'Unknown';
+    case 'Major Centre':
+      return properties.Name || 'Unknown';
+    case 'District Centre':
+      return properties.SITE_NAME || 'Unknown';
+    case 'General Practice':
+      return properties.WECAplu_14 || 'Unknown';
+    case 'Hospital':
+      return properties.Name || 'Unknown';
+    default:
+      return 'Unknown';
+  }
+}
+
+function getAmenityContent(layersData, additionalData) {
+  const amenityLayer = layersData.find(layer => layer.type === 'Amenities');
+  if (!amenityLayer) return 'No amenity data available.';
+
+  const amenityType = getAmenityType(amenityLayer.feature.properties);
+  const name = getAmenityName(amenityLayer.feature.properties, amenityType);
+
+  return `<strong>Amenity Type:</strong> ${amenityType}<br>
+          <strong>Name:</strong> ${name}<br>`;
+}
+
+function getHexagonContent(layersData, additionalData) {
+  const hexagonLayer = layersData.find(layer => layer.type === 'Scores' || layer.type === 'AmenitiesCatchment');
+  if (!hexagonLayer) return 'No hexagon data available.';
+
+  const feature = hexagonLayer.feature;
+  const hexId = feature.properties.Hex_ID || '-';
+  const population = feature.properties.pop || '-';
+  const imd = feature.properties.imd || '-';
+  const carAvailability = feature.properties.carav || '-';
+  const futureDwellings = feature.properties.hh_fut || '-';
+
+  if (hexagonLayer.type === 'Scores') {
+    const score = feature.properties[`${additionalData.selectedPurpose}_${additionalData.selectedMode}`] || '-';
+    const percentile = feature.properties[`${additionalData.selectedPurpose}_${additionalData.selectedMode}_100`] || '-';
+
+    return `<strong>Hex_ID:</strong> ${hexId}<br>
+            <strong>Score:</strong> ${score}<br>
+            <strong>Percentile:</strong> ${percentile}<br>
+            <strong>Population:</strong> ${population}<br>
+            <strong>IMD:</strong> ${imd}<br>
+            <strong>Car Availability:</strong> ${carAvailability}<br>
+            <strong>Future Dwellings:</strong> ${futureDwellings}`;
+  } else if (hexagonLayer.type === 'AmenitiesCatchment') {
+    const time = additionalData.hexTimeMap[hexId] || '-';
+
+    return `<strong>Hex_ID:</strong> ${hexId}<br>
+            <strong>Journey Time:</strong> ${time} minutes<br>
+            <strong>Population:</strong> ${population}<br>
+            <strong>IMD:</strong> ${imd}<br>
+            <strong>Car Availability:</strong> ${carAvailability}<br>
+            <strong>Future Dwellings:</strong> ${futureDwellings}`;
+  }
+}
+
+function getGeographyContent(layersData, additionalData) {
+  const geographyLayers = layersData.filter(layer => layer.type === 'Boundaries');
+  if (geographyLayers.length === 0) return 'No geography data available.';
+
+  return geographyLayers.map(layer => {
+    const name = layer.feature.properties.LAD24NM || layer.feature.properties.WD24NM || 'Unknown';
+    return `<strong>Geography:</strong> ${name}<br>`;
+  }).join('');
+}
+
+function createMultiPagePopup(latlng, layersData, additionalData = {}) {
+  let currentPage = 0;
+
+  const pages = [
+    { type: 'Amenity', content: getAmenityContent(layersData, additionalData) },
+    { type: 'Hexagon', content: getHexagonContent(layersData, additionalData) },
+    { type: 'Geography', content: getGeographyContent(layersData, additionalData) }
+  ];
+
+  function updatePopupContent() {
+    const page = pages[currentPage];
+    const navigation = `<div style="text-align: center; margin-top: 10px;">
+                          <button onclick="prevPage()">&#60;</button>
+                          <span> ${currentPage + 1} / ${pages.length} </span>
+                          <button onclick="nextPage()">&#62;</button>
+                        </div>`;
+    popup.setContent(`<strong>${page.type} Details</strong><br>${page.content}${navigation}`);
+  }
+
+  function prevPage() {
+    currentPage = (currentPage - 1 + pages.length) % pages.length;
+    updatePopupContent();
+  }
+
+  function nextPage() {
+    currentPage = (currentPage + 1) % pages.length;
+    updatePopupContent();
+  }
+
+  const popup = L.popup()
+    .setLatLng(latlng)
+    .setContent('')
+    .openOn(map);
+
+  window.prevPage = prevPage; // Expose to global scope for button events
+  window.nextPage = nextPage;
+
+  updatePopupContent();
+}
+
 function debounce(func, wait) {
   let timeout;
   return function (...args) {
@@ -671,50 +838,6 @@ function formatValue(value, step) {
   } else {
     return value.toString();
   }
-}
-
-function onEachFeature(feature, layer, selectedYear, selectedPurpose, selectedMode) {
-  layer.on({
-    click: function (e) {
-      const properties = feature.properties;
-      const getValue = (prop) => (properties[prop] !== undefined && properties[prop] !== null) ? properties[prop] : '-';
-      const hexId = getValue('Hex_ID');
-      const scoreValue = getValue(`${selectedPurpose}_${selectedMode}`);
-      let score = '-';
-      let scoreLabel = 'Score';
-
-      if (ScoresLayer) {
-        if (scoreValue !== '-') {
-          if (selectedYear.includes('-')) {
-            score = `${(scoreValue * 100).toFixed(1)}%`;
-            scoreLabel = 'Score Difference';
-          } else {
-            score = formatValue(scoreValue, 1);
-          }
-        }
-
-        const percentile = getValue(`${selectedPurpose}_${selectedMode}_100`) !== '-' ? formatValue(getValue(`${selectedPurpose}_${selectedMode}_100`), 1) : '-';
-        const population = getValue('pop') !== '-' ? formatValue(getValue('pop'), 1) : '-';
-        const imd = population === 0 ? '-' : (getValue('imd') !== '-' ? formatValue(getValue('imd'), 0.1) : '-');
-        const carAvailability = population === 0 ? '-' : (getValue('carav') !== '-' ? formatValue(getValue('carav'), 0.01) : '-');
-        const futureDwellings = getValue('hh_fut') === 0 ? '-' : (getValue('hh_fut') !== '-' ? formatValue(getValue('hh_fut'), 1) : '-');
-
-        popupContent = `<strong>Hex_ID:</strong> ${hexId}<br><strong>${scoreLabel}:</strong> ${score}<br><strong>Score Percentile:</strong> ${percentile}<br><strong>Population:</strong> ${population}<br><strong>IMD:</strong> ${imd}<br><strong>Car Availability:</strong> ${carAvailability}<br><strong>Future Dwellings:</strong> ${futureDwellings}`;
-      } else if (AmenitiesCatchmentLayer) {
-        const time = hexTimeMap[hexId] !== undefined ? formatValue(hexTimeMap[hexId], 1) : '-';
-        const population = getValue('pop') !== '-' ? formatValue(getValue('pop'), 1) : '-';
-        const imd = population === 0 ? '-' : (getValue('imd') !== '-' ? formatValue(getValue('imd'), 0.1) : '-');
-        const carAvailability = population === 0 ? '-' : (getValue('carav') !== '-' ? formatValue(getValue('carav'), 0.01) : '-');
-        const futureDwellings = getValue('hh_fut') === 0 ? '-' : (getValue('hh_fut') !== '-' ? formatValue(getValue('hh_fut'), 1) : '-');
-        popupContent = `<strong>Hex_ID:</strong> ${hexId}<br><strong>Journey Time:</strong> ${time} minutes<br><strong>Population:</strong> ${population}<br><strong>IMD:</strong> ${imd}<br><strong>Car Availability:</strong> ${carAvailability}<br><strong>Future Dwellings:</strong> ${futureDwellings}`;
-      }
-
-      L.popup()
-        .setLatLng(e.latlng)
-        .setContent(popupContent)
-        .openOn(map);
-    }
-  });
 }
 
 function isClassVisible(value, selectedYear) {
@@ -902,85 +1025,10 @@ function drawSelectedAmenities(amenities) {
           const icon = currentZoom >= minZoomLevel ? amenityIcons[amenity] : L.divIcon({ className: 'fa-icon', html: '<div class="dot"></div>', iconSize: [5, 5], iconAnchor: [5, 5] });
           return L.marker(latlng, { icon: icon });
         },
-        onEachFeature: (feature, layer) => {
-          const popupContent = AmenitiesPopup(amenity, feature.properties);
-          layer.bindPopup(popupContent);
-
-          if (selectingFromMap) {
-            layer.on('click', () => {
-              const index = selectedAmenitiesFromMap.indexOf(feature.properties.COREID);
-              if (index === -1) {
-                selectedAmenitiesFromMap.push(feature.properties.COREID);
-                layer.setIcon(L.divIcon({ className: 'fa-icon', html: '<div class="pin"><i class="fas fa-map-marker-alt" style="color: red;"></i></div>', iconSize: [60, 60], iconAnchor: [15, 15] }));
-              } else {
-                selectedAmenitiesFromMap.splice(index, 1);
-                layer.setIcon(L.divIcon({ className: 'fa-icon', html: '<div class="pin"><i class="fas fa-map-marker-alt" style="color: grey;"></i></div>', iconSize: [60, 60], iconAnchor: [15, 15] }));
-              }
-            });
-          }
-        }
       });
       amenitiesLayerGroup.addLayer(layer);
     }
   });
-}
-
-function AmenitiesPopup(amenity, properties) {
-  let amenityType;
-  let name;
-
-  switch (amenity) {
-    case 'PriSch':
-      amenityType = 'Primary School';
-      name = properties.Establis_1;
-      break;
-    case 'SecSch':
-      amenityType = 'Secondary School';
-      name = properties.Establis_1;
-      break;
-    case 'FurEd':
-      amenityType = 'Further Education';
-      name = properties.Establis_1;
-      break;
-    case 'Em500':
-      amenityType = 'Employment (500+ employees)';
-      name = `${properties.LSOA11CD}, ${properties.LSOA11NM}`;
-      break;
-    case 'Em5000':
-      amenityType = 'Employment (5000+ employees)';
-      name = `${properties.LSOA11CD}, ${properties.LSOA11NM}`;
-      break;
-    case 'StrEmp':
-      amenityType = 'Strategic Employment';
-      name = properties.NAME;
-      break;
-    case 'CitCtr':
-      amenityType = 'City Centre';
-      name = properties.District;
-      break;
-    case 'MajCtr':
-      amenityType = 'Major Centre';
-      name = properties.Name;
-      break;
-    case 'DisCtr':
-      amenityType = 'District Centre';
-      name = properties.SITE_NAME;
-      break;
-    case 'GP':
-      amenityType = 'General Practice';
-      name = properties.WECAplu_14;
-      break;
-    case 'Hos':
-      amenityType = 'Hospital';
-      name = properties.Name;
-      break;
-    default:
-      amenityType = 'Unknown';
-      name = 'Unknown';
-      break;
-  }
-
-  return `<strong>Amenity Type:</strong> ${amenityType}<br><strong>Name:</strong> ${name}<br>`;
 }
 
 function updateSliderRanges(type, scaleType) {
@@ -1189,7 +1237,6 @@ function updateScoresLayer() {
 
     ScoresLayer = L.geoJSON(filteredScoresLayer, {
       style: feature => styleScoresFeature(feature, fieldToDisplay, opacityField, outlineField, minOpacity, maxOpacity, minOutline, maxOutline, selectedYear),
-      onEachFeature: (feature, layer) => onEachFeature(feature, layer, selectedYear, selectedPurpose, selectedMode)
     }).addTo(map);
 
     selectedScoresAmenities = purposeToAmenitiesMap[selectedPurpose];
@@ -1356,7 +1403,6 @@ function updateAmenitiesCatchmentLayer() {
           fillOpacity: opacity
         };
       },
-      onEachFeature: (feature, layer) => onEachFeature(feature, layer, selectedYear, selectedAmenitiesAmenities.join(','), selectedMode)
     }).addTo(map);
 
     drawSelectedAmenities(selectedAmenitiesAmenities);
