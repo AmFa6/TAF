@@ -1177,7 +1177,7 @@ function updateScoresLayer() {
     
       let opacity;
       if (opacityField === 'None') {
-        opacity = 0.8;
+        opacity = 0.5;
       } else {
         const opacityValue = feature.properties[opacityField];
         if (opacityValue === 0 || opacityValue === null || opacityValue === undefined || opacityValue === '') {
@@ -1348,11 +1348,11 @@ function updateAmenitiesCatchmentLayer() {
 
         let opacity;
         if (AmenitiesOpacity.value === 'None') {
-          opacity = 0.8;
+          opacity = 0.5;
         } else {
           const opacityValue = feature.properties[AmenitiesOpacity.value];
           if (opacityValue === 0 || opacityValue === null) {
-            opacity = isInverseAmenitiesOpacity ? 0.8 : 0.1;
+            opacity = isInverseAmenitiesOpacity ? 0.5 : 0.1;
           } else {
             opacity = scaleExp(opacityValue, minOpacityValue, maxOpacityValue, 0.1, 0.8, opacityAmenitiesOrder);
           }
