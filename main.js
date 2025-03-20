@@ -19,7 +19,8 @@ fetch(`https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Local_
         return {
           color: 'black',
           weight: 1.5,
-          fillOpacity: 0
+          fillOpacity: 0,
+          opacity: 0
         };
       },
       onEachFeature: function (feature, layer) {
@@ -30,7 +31,7 @@ fetch(`https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Local_
             .openOn(map);
         });
       }
-    });
+    }).addTo(map);
     updateFilterValues();
   });
 
@@ -48,7 +49,8 @@ fetch('https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Wards_
         return {
           color: 'black',
           weight: 1,
-          fillOpacity: 0
+          fillOpacity: 0,
+          opacity: 0
         };
       },
       onEachFeature: function (feature, layer) {
@@ -59,7 +61,7 @@ fetch('https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Wards_
             .openOn(map);
         });
       }
-    });
+    }).addTo(map);
   })
   .catch(error => console.error('Error fetching ward boundaries:', error));
 
@@ -86,7 +88,8 @@ fetch('https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/LSOA21
         return {
           color: 'black',
           weight: 0.6,
-          fillOpacity: 0
+          fillOpacity: 0,
+          opacity: 0
         };
       },
       onEachFeature: function (feature, layer) {
@@ -97,7 +100,7 @@ fetch('https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/LSOA21
             .openOn(map);
         });
       }
-    });
+    }).addTo(map);
   })
   .catch(error => console.error('Error fetching data:', error));
 
@@ -185,7 +188,8 @@ fetch('https://AmFa6.github.io/TAF_test/GrowthZones.geojson')
         return {
           color: 'black',
           weight: 2,
-          fillOpacity: 0
+          fillOpacity: 0,
+          opacity: 0
         };
       },
       onEachFeature: function (feature, layer) {
@@ -196,7 +200,7 @@ fetch('https://AmFa6.github.io/TAF_test/GrowthZones.geojson')
             .openOn(map);
         });
       }
-    });
+    }).addTo(map);
   })
   
 ScoresFiles.forEach(file => {
@@ -434,9 +438,9 @@ document.addEventListener('DOMContentLoaded', (event) => {
     const uaBoundariesCheckbox = document.getElementById('uaBoundariesCheckbox');
     uaBoundariesCheckbox.addEventListener('change', () => {
       if (uaBoundariesCheckbox.checked) {
-        uaBoundariesLayer.addTo(map);
+        uaBoundariesLayer.setStyle({ opacity: 1 });
       } else {
-        map.removeLayer(uaBoundariesLayer);
+        uaBoundariesLayer.setStyle({ opacity: 0 });
       }
     });
   
@@ -446,9 +450,9 @@ document.addEventListener('DOMContentLoaded', (event) => {
     const wardBoundariesCheckbox = document.getElementById('wardBoundariesCheckbox');
     wardBoundariesCheckbox.addEventListener('change', () => {
       if (wardBoundariesCheckbox.checked) {
-        wardBoundariesLayer.addTo(map);
+        wardBoundariesLayer.setStyle({ opacity: 1 });
       } else {
-        map.removeLayer(wardBoundariesLayer);
+        wardBoundariesLayer.setStyle({ opacity: 0});
       }
     });
   
@@ -458,9 +462,9 @@ document.addEventListener('DOMContentLoaded', (event) => {
     const lsoaCheckbox = document.getElementById('lsoaCheckbox');
     lsoaCheckbox.addEventListener('change', () => {
       if (lsoaCheckbox.checked) {
-        lsoaBoundariesLayer.addTo(map);
+        lsoaBoundariesLayer.setStyle({ opacity: 1 });
       } else {
-        map.removeLayer(lsoaBoundariesLayer);
+        lsoaBoundariesLayer.setStyle({ opacity: 0 });
       }
     });
   
@@ -470,9 +474,9 @@ document.addEventListener('DOMContentLoaded', (event) => {
     const GrowthZonesCheckbox = document.getElementById('GrowthZonesCheckbox');
     GrowthZonesCheckbox.addEventListener('change', () => {
       if (GrowthZonesCheckbox.checked) {
-        GrowthZonesLayer.addTo(map);
+        GrowthZonesLayer.setStyle({ opacity: 1 });
       } else {
-        map.removeLayer(GrowthZonesLayer);
+        GrowthZonesLayer.setStyle({ opacity: 0 });
       }
     });
   }
