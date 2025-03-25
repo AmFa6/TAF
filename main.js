@@ -63,7 +63,6 @@ fetch('https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Wards_
       }
     }).addTo(map);
   })
-  .catch(error => console.error('Error fetching ward boundaries:', error));
 
 fetch('https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/LSOA21_WD24_LAD24_EW_LU/FeatureServer/0/query?outFields=*&where=LAD24CD%20IN%20(%27E06000022%27,%27E06000023%27,%27E06000024%27,%27E06000025%27)&f=geojson')
   .then(response => response.json())
@@ -102,18 +101,17 @@ fetch('https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/LSOA21
       }
     }).addTo(map);
   })
-  .catch(error => console.error('Error fetching data:', error));
 
 const ScoresFiles = [
-  { year: '2024', path: 'https://AmFa6.github.io/TAF_test/2024_connectscore.geojson' },
-  { year: '2023', path: 'https://AmFa6.github.io/TAF_test/2023_connectscore.geojson' },
-  { year: '2022', path: 'https://AmFa6.github.io/TAF_test/2022_connectscore.geojson' },
-  { year: '2019', path: 'https://AmFa6.github.io/TAF_test/2019_connectscore.geojson' },
-  { year: '2023-2024', path: 'https://AmFa6.github.io/TAF_test/2023-2024_connectscore.geojson' },
-  { year: '2019-2024', path: 'https://AmFa6.github.io/TAF_test/2019-2024_connectscore.geojson' },
-  { year: '2022-2023', path: 'https://AmFa6.github.io/TAF_test/2022-2023_connectscore.geojson' },
-  { year: '2019-2023', path: 'https://AmFa6.github.io/TAF_test/2019-2023_connectscore.geojson' }, 
-  { year: '2019-2022', path: 'https://AmFa6.github.io/TAF_test/2019-2022_connectscore.geojson' }
+  { year: '2024', path: 'https://AmFa6.github.io/TAF_test/2024_connectscore.csv' },
+  { year: '2023', path: 'https://AmFa6.github.io/TAF_test/2023_connectscore.csv' },
+  { year: '2022', path: 'https://AmFa6.github.io/TAF_test/2022_connectscore.csv' },
+  { year: '2019', path: 'https://AmFa6.github.io/TAF_test/2019_connectscore.csv' },
+  { year: '2023-2024', path: 'https://AmFa6.github.io/TAF_test/2023-2024_connectscore.csv' },
+  { year: '2019-2024', path: 'https://AmFa6.github.io/TAF_test/2019-2024_connectscore.csv' },
+  { year: '2022-2023', path: 'https://AmFa6.github.io/TAF_test/2022-2023_connectscore.csv' },
+  { year: '2019-2023', path: 'https://AmFa6.github.io/TAF_test/2019-2023_connectscore.csv' }, 
+  { year: '2019-2022', path: 'https://AmFa6.github.io/TAF_test/2019-2022_connectscore.csv' }
 ];
 
 const AmenitiesFiles = [
@@ -174,7 +172,7 @@ const amenityIcons = {
 const filterTypeDropdown = document.getElementById('filterTypeDropdown');
 const filterValueDropdown = document.getElementById('filterValueDropdown');
 
-fetch('https://AmFa6.github.io/TAF_test/HexesSocioEco.geojson')
+fetch('https://AmFa6.github.io/TAF_test/hexes-socioeco.geojson')
   .then(response => response.json())
   .then(data => {
     hexes = data;
@@ -205,11 +203,12 @@ fetch('https://AmFa6.github.io/TAF_test/GrowthZones.geojson')
   
 ScoresFiles.forEach(file => {
   fetch(file.path)
-    .then(response => response.json())
-    .then(ScoresLayer => {
-      scoreLayers[file.year] = ScoresLayer;
-    })
-}); 
+    .then(response => response.text())
+    .then(csvData => {
+      const parsedData = Papa.parse(csvData, { header: true }).data;
+      scoreLayers[file.year] = parsedData;
+    });
+});
 
 AmenitiesFiles.forEach(file => {
   fetch(file.path)
@@ -262,10 +261,10 @@ AmenitiesMode.addEventListener("change", updateAmenitiesCatchmentLayer);
 AmenitiesPurpose.forEach(checkbox => {
   checkbox.addEventListener("change", updateAmenitiesCatchmentLayer);
 });
-ScoresOpacity.addEventListener("change", () => updateSliderRanges('Scores', 'Opacity'));
-ScoresOutline.addEventListener("change", () => updateSliderRanges('Scores', 'Outline'));
-AmenitiesOpacity.addEventListener("change", () => updateSliderRanges('Amenities', 'Opacity'));
-AmenitiesOutline.addEventListener("change", () => updateSliderRanges('Amenities', 'Outline'));
+ScoresOpacity.addEventListener("change", () => updateSliderRanges('Scores', 'Opacity', true));
+ScoresOutline.addEventListener("change", () => updateSliderRanges('Scores', 'Outline', true));
+AmenitiesOpacity.addEventListener("change", () => updateSliderRanges('Amenities', 'Opacity', true));
+AmenitiesOutline.addEventListener("change", () => updateSliderRanges('Amenities', 'Outline', true));
 ScoresInverseOpacity.addEventListener("click", () => toggleInverseScale('Scores', 'Opacity'));
 ScoresInverseOutline.addEventListener("click", () => toggleInverseScale('Scores', 'Outline'));
 AmenitiesInverseOpacity.addEventListener("click", () => toggleInverseScale('Amenities', 'Opacity'));
@@ -495,20 +494,20 @@ document.addEventListener('DOMContentLoaded', (event) => {
   document.getElementById('total-population').textContent = '-';
   document.getElementById('min-population').textContent = '-';
   document.getElementById('max-population').textContent = '-';
-  document.getElementById('avg-imd').textContent = '-';
-  document.getElementById('min-imd').textContent = '-';
-  document.getElementById('max-imd').textContent = '-';
+  document.getElementById('avg-imd-score').textContent = '-';
+  document.getElementById('min-imd-score').textContent = '-';
+  document.getElementById('max-imd-score').textContent = '-';
+  document.getElementById('avg-imd-decile').textContent = '-';
+  document.getElementById('min-imd-decile').textContent = '-';
+  document.getElementById('max-imd-decile').textContent = '-';
   document.getElementById('avg-car-availability').textContent = '-';
   document.getElementById('min-car-availability').textContent = '-';
   document.getElementById('max-car-availability').textContent = '-';
-  document.getElementById('total-future-dwellings').textContent = '-';
-  document.getElementById('min-future-dwellings').textContent = '-';
-  document.getElementById('max-future-dwellings').textContent = '-';
-  
-  setTimeout(() => {
-    initialLoadComplete = true;
-    console.log("Initial load complete");
-  }, 500);
+  document.getElementById('total-growth-pop').textContent = '-';
+  document.getElementById('min-growth-pop').textContent = '-';
+  document.getElementById('max-growth-pop').textContent = '-';
+
+  initialLoadComplete = true;
 });
 
 map.on('zoomend', () => {
@@ -542,8 +541,17 @@ function isPanelOpen(panelName) {
 function configureSlider(sliderElement, updateCallback, isInverse, order, debounceDelay = 250) {
   const debouncedUpdateCallback = debounce(updateCallback, debounceDelay);
 
+  sliderElement.noUiSlider.off();
+  
   const handles = sliderElement.querySelectorAll('.noUi-handle');
   const connectElements = sliderElement.querySelectorAll('.noUi-connect');
+
+  handles.forEach(handle => {
+    handle.classList.remove('noUi-handle-transparent');
+  });
+  connectElements.forEach(connect => {
+    connect.classList.remove('noUi-connect-dark-grey', 'noUi-connect-gradient-right', 'noUi-connect-gradient-left');
+  });
 
   if (isInverse) {
     sliderElement.noUiSlider.updateOptions({
@@ -606,6 +614,7 @@ function toggleInverseScale(type, scaleType) {
   }
 
   const currentValues = rangeElement.noUiSlider.get();
+  
   configureSlider(rangeElement, type === 'Scores' ? updateScoresLayer : updateAmenitiesCatchmentLayer, isInverse, order);
 
   rangeElement.noUiSlider.set(currentValues, false);
@@ -613,7 +622,7 @@ function toggleInverseScale(type, scaleType) {
   updateSliderRanges(type, scaleType);
 
   isUpdatingSliders = false;
-
+  
   if (type === 'Scores' && isPanelOpen("Connectivity Scores")) {
     updateScoresLayer();
   } else if (type === 'Amenities' && isPanelOpen("Journey Time Catchments - Amenities")) {
@@ -623,7 +632,7 @@ function toggleInverseScale(type, scaleType) {
 
 function initializeSliders(sliderElement, updateCallback) {
   if (sliderElement.noUiSlider) {
-    return;
+    sliderElement.noUiSlider.destroy();
   }
 
   noUiSlider.create(sliderElement, {
@@ -699,18 +708,19 @@ function onEachFeature(feature, layer, selectedYear, selectedPurpose, selectedMo
 
         const percentile = getValue(`${selectedPurpose}_${selectedMode}_100`) !== '-' ? formatValue(getValue(`${selectedPurpose}_${selectedMode}_100`), 1) : '-';
         const population = getValue('pop') !== '-' ? formatValue(getValue('pop'), 1) : '-';
-        const imd = population === 0 ? '-' : (getValue('imd') !== '-' ? formatValue(getValue('imd'), 0.1) : '-');
-        const carAvailability = population === 0 ? '-' : (getValue('carav') !== '-' ? formatValue(getValue('carav'), 0.01) : '-');
-        const futureDwellings = getValue('hh_fut') === 0 ? '-' : (getValue('hh_fut') !== '-' ? formatValue(getValue('hh_fut'), 1) : '-');
-
-        popupContent = `<strong>Hex_ID:</strong> ${hexId}<br><strong>${scoreLabel}:</strong> ${score}<br><strong>Score Percentile:</strong> ${percentile}<br><strong>Population:</strong> ${population}<br><strong>IMD:</strong> ${imd}<br><strong>Car Availability:</strong> ${carAvailability}<br><strong>Future Dwellings:</strong> ${futureDwellings}`;
+        const imd_score = population === 0 ? '-' : (getValue('IMDScore') !== '-' ? formatValue(getValue('IMDScore'), 0.1) : '-');
+        const imd_decile = population === 0 ? '-' : (getValue('IMD_Decile') !== '-' ? formatValue(getValue('IMD_Decile'), 1) : '-');
+        const carAvailability = population === 0 ? '-' : (getValue('car_availability') !== '-' ? formatValue(getValue('car_availability'), 0.01) : '-');
+        const growthpop = getValue('pop_growth') === 0 ? '-' : (getValue('pop_growth') !== '-' ? formatValue(getValue('pop_growth'), 1) : '-');
+        popupContent = `<strong>Hex_ID:</strong> ${hexId}<br><strong>${scoreLabel}:</strong> ${score}<br><strong>Score Percentile:</strong> ${percentile}<br><strong>Population:</strong> ${population}<br><strong>IMD Score:</strong> ${imd_score}<br><strong>IMD Decile:</strong> ${imd_decile}<br><strong>Car Availability:</strong> ${carAvailability}<br><strong>Population Growth:</strong> ${growthpop}`;
       } else if (AmenitiesCatchmentLayer) {
         const time = hexTimeMap[hexId] !== undefined ? formatValue(hexTimeMap[hexId], 1) : '-';
         const population = getValue('pop') !== '-' ? formatValue(getValue('pop'), 1) : '-';
-        const imd = population === 0 ? '-' : (getValue('imd') !== '-' ? formatValue(getValue('imd'), 0.1) : '-');
-        const carAvailability = population === 0 ? '-' : (getValue('carav') !== '-' ? formatValue(getValue('carav'), 0.01) : '-');
-        const futureDwellings = getValue('hh_fut') === 0 ? '-' : (getValue('hh_fut') !== '-' ? formatValue(getValue('hh_fut'), 1) : '-');
-        popupContent = `<strong>Hex_ID:</strong> ${hexId}<br><strong>Journey Time:</strong> ${time} minutes<br><strong>Population:</strong> ${population}<br><strong>IMD:</strong> ${imd}<br><strong>Car Availability:</strong> ${carAvailability}<br><strong>Future Dwellings:</strong> ${futureDwellings}`;
+        const imd_score = population === 0 ? '-' : (getValue('IMDScore') !== '-' ? formatValue(getValue('IMDScore'), 0.1) : '-');
+        const imd_decile = population === 0 ? '-' : (getValue('IMD_Decile') !== '-' ? formatValue(getValue('IMD_Decile'), 1) : '-');
+        const carAvailability = population === 0 ? '-' : (getValue('car_availability') !== '-' ? formatValue(getValue('car_availability'), 0.01) : '-');
+        const growthpop = getValue('pop_growth') === 0 ? '-' : (getValue('pop_growth') !== '-' ? formatValue(getValue('pop_growth'), 1) : '-');
+        popupContent = `<strong>Hex_ID:</strong> ${hexId}<br><strong>Journey Time:</strong> ${time} minutes<br><strong>Population:</strong> ${population}<br><strong>IMD Score:</strong> ${imd_score}<br><strong>IMD Decile:</strong> ${imd_decile}<br><strong>Car Availability:</strong> ${carAvailability}<br><strong>Population Growth:</strong> ${growthpop}`;
       }
 
       L.popup()
@@ -764,13 +774,21 @@ function updateFeatureVisibility() {
       const value = getValue(feature);
       const isVisible = isClassVisible(value, selectedYear);
 
-      if (layer.options._originalFillOpacity === undefined) {
-        layer.options._originalFillOpacity = layer.options.fillOpacity;
+      if (layer.options._originalStyling === undefined) {
+        layer.options._originalStyling = {
+          opacity: layer.options.opacity,
+          fillOpacity: layer.options.fillOpacity
+        };
       }
-      layer.setStyle({ 
-        opacity: isVisible ? 1 : 0, 
-        fillOpacity: isVisible ? layer.options._originalFillOpacity : 0 
-      });
+
+      if (isVisible) {
+        layer.setStyle({ 
+          opacity: layer.options._originalStyling.opacity, 
+          fillOpacity: layer.options._originalStyling.fillOpacity 
+        });
+      } else {
+        layer.setStyle({ opacity: 0, fillOpacity: 0 });
+      }
     });
   };
 
@@ -987,97 +1005,184 @@ function AmenitiesPopup(amenity, properties) {
   return `<strong>Amenity Type:</strong> ${amenityType}<br><strong>Name:</strong> ${name}<br>`;
 }
 
-function updateSliderRanges(type, scaleType) {
+function updateSliderRanges(type, scaleType, skipLayerUpdate = false) {
   if (isUpdatingSliders) return;
   isUpdatingSliders = true;
 
-  let field, rangeElement, minElement, maxElement, hexesData, order;
+  let field, rangeElement, minElement, maxElement, hexesData, order, isInverse;
 
   if (type === 'Scores') {
-      if (scaleType === 'Opacity') {
-          field = ScoresOpacity.value;
-          rangeElement = ScoresOpacityRange;
-          minElement = document.getElementById('opacityRangeScoresMin');
-          maxElement = document.getElementById('opacityRangeScoresMax');
-          hexesData = hexes;
-          order = opacityScoresOrder;
-      } else if (scaleType === 'Outline') {
-          field = ScoresOutline.value;
-          rangeElement = ScoresOutlineRange;
-          minElement = document.getElementById('outlineRangeScoresMin');
-          maxElement = document.getElementById('outlineRangeScoresMax');
-          hexesData = hexes;
-          order = outlineScoresOrder;
-      }
+    if (scaleType === 'Opacity') {
+      field = ScoresOpacity.value;
+      rangeElement = ScoresOpacityRange;
+      minElement = document.getElementById('opacityRangeScoresMin');
+      maxElement = document.getElementById('opacityRangeScoresMax');
+      hexesData = hexes;
+      order = opacityScoresOrder;
+      isInverse = isInverseScoresOpacity;
+    } else if (scaleType === 'Outline') {
+      field = ScoresOutline.value;
+      rangeElement = ScoresOutlineRange;
+      minElement = document.getElementById('outlineRangeScoresMin');
+      maxElement = document.getElementById('outlineRangeScoresMax');
+      hexesData = hexes;
+      order = outlineScoresOrder;
+      isInverse = isInverseScoresOutline;
+    }
   } else if (type === 'Amenities') {
-      if (scaleType === 'Opacity') {
-          field = AmenitiesOpacity.value;
-          rangeElement = AmenitiesOpacityRange;
-          minElement = document.getElementById('opacityRangeAmenitiesMin');
-          maxElement = document.getElementById('opacityRangeAmenitiesMax');
-          hexesData = hexes;
-          order = opacityAmenitiesOrder;
-      } else if (scaleType === 'Outline') {
-          field = AmenitiesOutline.value;
-          rangeElement = AmenitiesOutlineRange;
-          minElement = document.getElementById('outlineRangeAmenitiesMin');
-          maxElement = document.getElementById('outlineRangeAmenitiesMax');
-          hexesData = hexes;
-          order = outlineAmenitiesOrder;
-      }
+    if (scaleType === 'Opacity') {
+      field = AmenitiesOpacity.value;
+      rangeElement = AmenitiesOpacityRange;
+      minElement = document.getElementById('opacityRangeAmenitiesMin');
+      maxElement = document.getElementById('opacityRangeAmenitiesMax');
+      hexesData = hexes;
+      order = opacityAmenitiesOrder;
+      isInverse = isInverseAmenitiesOpacity;
+    } else if (scaleType === 'Outline') {
+      field = AmenitiesOutline.value;
+      rangeElement = AmenitiesOutlineRange;
+      minElement = document.getElementById('outlineRangeAmenitiesMin');
+      maxElement = document.getElementById('outlineRangeAmenitiesMax');
+      hexesData = hexes;
+      order = outlineAmenitiesOrder;
+      isInverse = isInverseAmenitiesOutline;
+    }
   }
 
   if (hexesData) {
-      const values = field !== "None" ? hexesData.features.map(feature => feature.properties[field]).filter(value => value !== null && value !== 0) : [];
-      const minValue = Math.min(...values);
-      const maxValue = Math.max(...values);
-      const roundedMaxValue = Math.pow(10, Math.ceil(Math.log10(maxValue)));
-      let step = roundedMaxValue / 100;
+    const values = field !== "None" ? hexesData.features.map(feature => feature.properties[field]).filter(value => value !== null && value !== 0) : [];
+    const minValue = Math.min(...values);
+    const maxValue = Math.max(...values);
+    const roundedMaxValue = Math.pow(10, Math.ceil(Math.log10(maxValue)));
+    let step = roundedMaxValue / 100;
 
-      if (isNaN(step) || step <= 0) {
-          step = 1;
-      }
+    if (isNaN(step) || step <= 0) {
+      step = 1;
+    }
 
-      const adjustedMaxValue = Math.ceil(maxValue / step) * step;
-      const adjustedMinValue = Math.floor(minValue / step) * step;
+    const adjustedMaxValue = Math.ceil(maxValue / step) * step;
+    const adjustedMinValue = Math.floor(minValue / step) * step;
 
-      if (field === "None") {
-          rangeElement.setAttribute('disabled', true);
-          rangeElement.noUiSlider.updateOptions({
-              range: {
-                  'min': 0,
-                  'max': 0
-              },
-              step: 1
-          }, false);
-          rangeElement.noUiSlider.set(['', ''], false);
-          minElement.innerText = '';
-          maxElement.innerText = '';
-      } else {
-          rangeElement.removeAttribute('disabled');
-          rangeElement.noUiSlider.updateOptions({
-              range: {
-                  'min': adjustedMinValue,
-                  'max': adjustedMaxValue
-              },
-              step: step
-          }, false);
-          rangeElement.noUiSlider.set([adjustedMinValue, adjustedMaxValue], false);
-          minElement.innerText = formatValue(adjustedMinValue, step);
-          maxElement.innerText = formatValue(adjustedMaxValue, step);
-      }
+    if (field === "None") {
+      rangeElement.setAttribute('disabled', true);
+      rangeElement.noUiSlider.updateOptions({
+        range: {
+          'min': 0,
+          'max': 0
+        },
+        step: 1
+      }, false);
+      rangeElement.noUiSlider.set(['', ''], false);
+      minElement.innerText = '';
+      maxElement.innerText = '';
+    } else {
+      rangeElement.removeAttribute('disabled');
+      rangeElement.noUiSlider.updateOptions({
+        range: {
+          'min': adjustedMinValue,
+          'max': adjustedMaxValue
+        },
+        step: step
+      }, false);
+      rangeElement.noUiSlider.set([adjustedMinValue, adjustedMaxValue], false);
+      minElement.innerText = formatValue(adjustedMinValue, step);
+      maxElement.innerText = formatValue(adjustedMaxValue, step);
+    }
 
-      configureSlider(rangeElement, type === 'Scores' ? updateScoresLayer : updateAmenitiesCatchmentLayer, false, order);
+    configureSlider(rangeElement, type === 'Scores' ? 
+      () => updateScoresLayer(true) : 
+      () => updateAmenitiesCatchmentLayer(true), 
+      isInverse, order);
   }
 
   isUpdatingSliders = false;
+  
+  if (!skipLayerUpdate) {
+    if (type === 'Scores' && isPanelOpen("Connectivity Scores")) {
+      updateScoresLayer(true);
+    } else if (type === 'Amenities' && isPanelOpen("Journey Time Catchments - Amenities")) {
+      updateAmenitiesCatchmentLayer(true);
+    }
+  }
 }
 
-function updateScoresLayer() {
+function styleScoresFeature(feature, fieldToDisplay, opacityField, outlineField, minOpacityValue, maxOpacityValue, minOutlineValue, maxOutlineValue, selectedYear) {
+  const value = feature.properties[fieldToDisplay];
+  function getColor(value, selectedYear) {
+    if (!selectedYear) {
+      return 'transparent';
+    }
+  
+    if (selectedYear.includes('-')) {
+      if (value <= -0.2) {
+        return '#FF0000';
+      } else if (value > -0.2 && value <= -0.1) {
+        return '#FF5500';
+      } else if (value > -0.1 && value < 0) {
+        return '#FFAA00';
+      } else if (value === 0) {
+        return 'transparent';
+      } else if (value > 0 && value <= 0.1) {
+        return '#B0E200';
+      } else if (value >= 0.1 && value < 0.2) {
+        return '#6EC500';
+      } else {
+        return '#38A800';
+      }
+    } else {
+      return value > 90 ? '#fde725' :
+             value > 80 ? '#b5de2b' :
+             value > 70 ? '#6ece58' :
+             value > 60 ? '#35b779' :
+             value > 50 ? '#1f9e89' :
+             value > 40 ? '#26828e' :
+             value > 30 ? '#31688e' :
+             value > 20 ? '#3e4989' :
+             value > 10 ? '#482777' :
+                          '#440154';
+    }
+  }
+  const color = getColor(parseFloat(value), selectedYear);
+
+  let opacity;
+  if (opacityField === 'None') {
+    opacity = 0.5;
+  } else {
+    const opacityValue = feature.properties[opacityField];
+    if (opacityValue === 0 || opacityValue === null || opacityValue === undefined || opacityValue === '') {
+      opacity = 0.1;
+    } else {
+      opacity = scaleExp(opacityValue, minOpacityValue, maxOpacityValue, 0.1, 0.8, opacityScoresOrder);
+    }
+  }
+
+  let weight;
+  if (outlineField === 'None') {
+    weight = 0;
+  } else {
+    const outlineValue = feature.properties[outlineField];
+    if (outlineValue === 0 || outlineValue === null || outlineValue === undefined || outlineValue === '') {
+      weight = 0;
+    } else {
+      weight = scaleExp(outlineValue, minOutlineValue, maxOutlineValue, 0, 4, outlineScoresOrder);
+    }
+  }
+
+  const style = {
+    fillColor: color,
+    weight: weight,
+    opacity: 1,
+    color: 'black',
+    fillOpacity: opacity
+  };
+
+  return style;
+}
+
+function updateScoresLayer(stylingUpdateOnly = false) {
   if (!initialLoadComplete || !isPanelOpen("Connectivity Scores")) {
     return;
   }
-  
   console.log('updateScoresLayer');
   
   if (AmenitiesCatchmentLayer) {
@@ -1096,19 +1201,63 @@ function updateScoresLayer() {
   const opacityField = ScoresOpacity.value;
   const outlineField = ScoresOutline.value;
 
+  if (stylingUpdateOnly && ScoresLayer) {
+    let minOpacity = ScoresOpacityRange && ScoresOpacityRange.noUiSlider ? parseFloat(ScoresOpacityRange.noUiSlider.get()[0]) : 0;
+    let maxOpacity = ScoresOpacityRange && ScoresOpacityRange.noUiSlider ? parseFloat(ScoresOpacityRange.noUiSlider.get()[1]) : 0;
+    let minOutline = ScoresOutlineRange && ScoresOutlineRange.noUiSlider ? parseFloat(ScoresOutlineRange.noUiSlider.get()[0]) : 0;
+    let maxOutline = ScoresOutlineRange && ScoresOutlineRange.noUiSlider ? parseFloat(ScoresOutlineRange.noUiSlider.get()[1]) : 0;
+    
+    const fieldToDisplay = selectedYear.includes('-') ? `${selectedPurpose}_${selectedMode}` : `${selectedPurpose}_${selectedMode}_100`;
+    
+    ScoresLayer.eachLayer(layer => {
+      const style = styleScoresFeature(
+        layer.feature, fieldToDisplay, opacityField, outlineField, 
+        minOpacity, maxOpacity, minOutline, maxOutline, selectedYear
+      );
+      
+      layer.options._originalStyling = {
+        opacity: style.opacity,
+        fillOpacity: style.fillOpacity
+      };
+      
+      layer.setStyle(style);
+    });
+    updateFeatureVisibility();
+    
+    return;
+  }
+
   if (ScoresLayer) {
     map.removeLayer(ScoresLayer);
     ScoresLayer = null;
   }
 
   const fieldToDisplay = selectedYear.includes('-') ? `${selectedPurpose}_${selectedMode}` : `${selectedPurpose}_${selectedMode}_100`;
-  const selectedLayer = scoreLayers[selectedYear];
+  const selectedCsvData = scoreLayers[selectedYear];
 
-  if (selectedLayer) {
-    const filteredFeatures = selectedLayer.features.filter(feature => {
-      const value = feature.properties[fieldToDisplay];
-      return feature.properties[fieldToDisplay] !== undefined;
+  if (selectedCsvData && hexes) {
+    const scoreLookup = {};
+    selectedCsvData.forEach(row => {
+      if (row.Hex_ID && row[fieldToDisplay] !== undefined) {
+        scoreLookup[row.Hex_ID] = row;
+      }
     });
+    
+    const featuresWithScores = hexes.features
+      .filter(feature => scoreLookup[feature.properties.Hex_ID])
+      .map(feature => {
+        const hexId = feature.properties.Hex_ID;
+        const scoreData = scoreLookup[hexId];
+        
+        return {
+          type: "Feature",
+          geometry: feature.geometry,
+          properties: {
+            ...feature.properties,
+            ...scoreData
+          }
+        };
+      });
 
     let minOpacity = ScoresOpacityRange && ScoresOpacityRange.noUiSlider ? parseFloat(ScoresOpacityRange.noUiSlider.get()[0]) : 0;
     let maxOpacity = ScoresOpacityRange && ScoresOpacityRange.noUiSlider ? parseFloat(ScoresOpacityRange.noUiSlider.get()[1]) : 0;
@@ -1117,79 +1266,8 @@ function updateScoresLayer() {
 
     const filteredScoresLayer = {
       type: "FeatureCollection",
-      features: filteredFeatures
+      features: featuresWithScores
     };
-
-    function styleScoresFeature(feature, fieldToDisplay, opacityField, outlineField, minOpacityValue, maxOpacityValue, minOutlineValue, maxOutlineValue, selectedYear) {
-      const value = feature.properties[fieldToDisplay];
-      function getColor(value, selectedYear) {
-        if (!selectedYear) {
-          return 'transparent';
-        }
-      
-        if (selectedYear.includes('-')) {
-          if (value <= -0.2) {
-            return '#FF0000';
-          } else if (value > -0.2 && value <= -0.1) {
-            return '#FF5500';
-          } else if (value > -0.1 && value < 0) {
-            return '#FFAA00';
-          } else if (value === 0) {
-            return 'transparent';
-          } else if (value > 0 && value <= 0.1) {
-            return '#B0E200';
-          } else if (value >= 0.1 && value < 0.2) {
-            return '#6EC500';
-          } else {
-            return '#38A800';
-          }
-        } else {
-          return value > 90 ? '#fde725' :
-                 value > 80 ? '#b5de2b' :
-                 value > 70 ? '#6ece58' :
-                 value > 60 ? '#35b779' :
-                 value > 50 ? '#1f9e89' :
-                 value > 40 ? '#26828e' :
-                 value > 30 ? '#31688e' :
-                 value > 20 ? '#3e4989' :
-                 value > 10 ? '#482777' :
-                              '#440154';
-        }
-      }
-      const color = getColor(value, selectedYear);
-    
-      let opacity;
-      if (opacityField === 'None') {
-        opacity = 0.5;
-      } else {
-        const opacityValue = feature.properties[opacityField];
-        if (opacityValue === 0 || opacityValue === null || opacityValue === undefined || opacityValue === '') {
-          opacity = 0.1;
-        } else {
-          opacity = scaleExp(opacityValue, minOpacityValue, maxOpacityValue, 0.1, 0.8, opacityScoresOrder);
-        }
-      }
-    
-      let weight;
-      if (outlineField === 'None') {
-        weight = 0;
-      } else {
-        const outlineValue = feature.properties[outlineField];
-        if (outlineValue === 0 || outlineValue === null || outlineValue === undefined || outlineValue === '') {
-          weight = 0;
-        } else {
-          weight = scaleExp(outlineValue, minOutlineValue, maxOutlineValue, 0, 4, outlineScoresOrder);
-        }
-      }
-    
-      return {
-        fillColor: color,
-        weight: weight,
-        opacity: 1,
-        color: 'black',
-        fillOpacity: opacity
-      };
-    }
 
     ScoresLayer = L.geoJSON(filteredScoresLayer, {
       style: feature => styleScoresFeature(feature, fieldToDisplay, opacityField, outlineField, minOpacity, maxOpacity, minOutline, maxOutline, selectedYear),
@@ -1202,20 +1280,88 @@ function updateScoresLayer() {
     updateFeatureVisibility();
   }
 
-  updateFilterValues();
-  updateSummaryStatistics(getCurrentFeatures());
-  highlightSelectedArea();
+  if (!stylingUpdateOnly) {
+    updateFilterValues();
+    updateSummaryStatistics(getCurrentFeatures());
+    highlightSelectedArea();
+  }
 }
 
-function updateAmenitiesCatchmentLayer() {
+function updateAmenitiesCatchmentLayer(stylingUpdateOnly = false) {
   if (!initialLoadComplete || !isPanelOpen("Journey Time Catchments - Amenities")) {
+    return;
+  }
+    
+  if (stylingUpdateOnly && AmenitiesCatchmentLayer) {
+    const minOpacityValue = AmenitiesOpacityRange && AmenitiesOpacityRange.noUiSlider ? 
+      parseFloat(AmenitiesOpacityRange.noUiSlider.get()[0]) : 0;
+    const maxOpacityValue = AmenitiesOpacityRange && AmenitiesOpacityRange.noUiSlider ? 
+      parseFloat(AmenitiesOpacityRange.noUiSlider.get()[1]) : 0;
+    const minOutlineValue = AmenitiesOutlineRange && AmenitiesOutlineRange.noUiSlider ? 
+      parseFloat(AmenitiesOutlineRange.noUiSlider.get()[0]) : 0;
+    const maxOutlineValue = AmenitiesOutlineRange && AmenitiesOutlineRange.noUiSlider ? 
+      parseFloat(AmenitiesOutlineRange.noUiSlider.get()[1]) : 0;
+    
+    AmenitiesCatchmentLayer.eachLayer(layer => {
+      const feature = layer.feature;
+      const hexId = feature.properties.Hex_ID;
+      const time = hexTimeMap[hexId];
+      let color = 'transparent';
+
+      if (time !== undefined) {
+        if (time <= 5) color = '#fde725';
+        else if (time <= 10) color = '#7ad151';
+        else if (time <= 15) color = '#23a884';
+        else if (time <= 20) color = '#2a788e';
+        else if (time <= 25) color = '#414387';
+        else if (time <= 30) color = '#440154';
+      }
+
+      let opacity;
+      if (AmenitiesOpacity.value === 'None') {
+        opacity = 0.5;
+      } else {
+        const opacityValue = feature.properties[AmenitiesOpacity.value];
+        if (opacityValue === 0 || opacityValue === null || opacityValue === undefined) {
+          opacity = isInverseAmenitiesOpacity ? 0.5 : 0.1;
+        } else {
+          opacity = scaleExp(opacityValue, minOpacityValue, maxOpacityValue, 0.1, 0.8, opacityAmenitiesOrder);
+        }
+      }
+      
+      let weight;
+      if (AmenitiesOutline.value === 'None') {
+        weight = 0;
+      } else {
+        const outlineValue = feature.properties[AmenitiesOutline.value];
+        if (outlineValue === 0 || outlineValue === null || outlineValue === undefined || outlineValue === '') {
+          weight = 0;
+        } else {
+          weight = scaleExp(outlineValue, minOutlineValue, maxOutlineValue, 0, 4, outlineAmenitiesOrder);
+        }
+      }
+
+      layer.options._originalStyling = {
+        opacity: 1,
+        fillOpacity: opacity
+      };
+
+      layer.setStyle({
+        fillColor: color,
+        weight: weight,
+        opacity: 1,
+        color: 'black',
+        fillOpacity: opacity
+      });
+    });
+    updateFeatureVisibility();
     return;
   }
   
   selectedAmenitiesAmenities = Array.from(AmenitiesPurpose)
     .filter(checkbox => checkbox.checked)
     .map(checkbox => checkbox.value);
-
+  
   if (ScoresLayer) {
     map.removeLayer(ScoresLayer);
     ScoresLayer = null;
@@ -1283,32 +1429,20 @@ function updateAmenitiesCatchmentLayer() {
       return time !== undefined;
     });
 
-    const validFeatures = filteredFeatures.map(feature => {
-      const coordinates = feature.geometry.coordinates;
-      coordinates.forEach(ring => {
-        if (ring[0][0] !== ring[ring.length - 1][0] || ring[0][1] !== ring[ring.length - 1][1]) {
-          ring.push(ring[0]);
-        }
-      });
-      return feature;
-    });
-
-    const singlePolygonFeatures = validFeatures.map(feature => {
-      if (feature.geometry.type === 'MultiPolygon') {
-        const mergedCoordinates = feature.geometry.coordinates.flat();
-        feature.geometry = {
-          type: 'Polygon',
-          coordinates: mergedCoordinates
-        };
-      }
-      return feature;
-    });
-
     const filteredAmenitiesCatchmentLayer = {
       type: "FeatureCollection",
-      features: singlePolygonFeatures
+      features: filteredFeatures
     };
 
+    const minOpacityValue = AmenitiesOpacityRange && AmenitiesOpacityRange.noUiSlider ? 
+      parseFloat(AmenitiesOpacityRange.noUiSlider.get()[0]) : 0;
+    const maxOpacityValue = AmenitiesOpacityRange && AmenitiesOpacityRange.noUiSlider ? 
+      parseFloat(AmenitiesOpacityRange.noUiSlider.get()[1]) : 0;
+    const minOutlineValue = AmenitiesOutlineRange && AmenitiesOutlineRange.noUiSlider ? 
+      parseFloat(AmenitiesOutlineRange.noUiSlider.get()[0]) : 0;
+    const maxOutlineValue = AmenitiesOutlineRange && AmenitiesOutlineRange.noUiSlider ? 
+      parseFloat(AmenitiesOutlineRange.noUiSlider.get()[1]) : 0;
+    
     AmenitiesCatchmentLayer = L.geoJSON(filteredAmenitiesCatchmentLayer, {
       style: feature => {
         const hexId = feature.properties.Hex_ID;
@@ -1324,22 +1458,18 @@ function updateAmenitiesCatchmentLayer() {
           else if (time <= 30) color = '#440154';
         }
 
-        const minOpacityValue = AmenitiesOpacityRange && AmenitiesOpacityRange.noUiSlider ? parseFloat(AmenitiesOpacityRange.noUiSlider.get()[0]) : 0;
-        const maxOpacityValue = AmenitiesOpacityRange && AmenitiesOpacityRange.noUiSlider ? parseFloat(AmenitiesOpacityRange.noUiSlider.get()[1]) : 0;
-        const minOutlineValue = AmenitiesOutlineRange && AmenitiesOutlineRange.noUiSlider ? parseFloat(AmenitiesOutlineRange.noUiSlider.get()[0]) : 0;
-        const maxOutlineValue = AmenitiesOutlineRange && AmenitiesOutlineRange.noUiSlider ? parseFloat(AmenitiesOutlineRange.noUiSlider.get()[1]) : 0;
-
         let opacity;
         if (AmenitiesOpacity.value === 'None') {
           opacity = 0.5;
         } else {
           const opacityValue = feature.properties[AmenitiesOpacity.value];
-          if (opacityValue === 0 || opacityValue === null) {
+          if (opacityValue === 0 || opacityValue === null || opacityValue === undefined) {
             opacity = isInverseAmenitiesOpacity ? 0.5 : 0.1;
           } else {
             opacity = scaleExp(opacityValue, minOpacityValue, maxOpacityValue, 0.1, 0.8, opacityAmenitiesOrder);
           }
         }
+        
         let weight;
         if (AmenitiesOutline.value === 'None') {
           weight = 0;
@@ -1360,14 +1490,13 @@ function updateAmenitiesCatchmentLayer() {
           fillOpacity: opacity
         };
       },
-      onEachFeature: (feature, layer) => onEachFeature(feature, layer, selectedYear, selectedAmenitiesAmenities.join(','), selectedMode)
+      onEachFeature: (feature, layer) => onEachFeature(feature, layer, selectedYear, null, null)
     }).addTo(map);
 
     drawSelectedAmenities(selectedAmenitiesAmenities);
-
     updateLegend();
     updateFeatureVisibility();
-    updateSummaryStatistics(singlePolygonFeatures);
+    updateSummaryStatistics(filteredFeatures);
     highlightSelectedArea();
   });
 }
@@ -1432,15 +1561,18 @@ function updateSummaryStatistics(features) {
     document.getElementById('total-population').textContent = '-';
     document.getElementById('min-population').textContent = '-';
     document.getElementById('max-population').textContent = '-';
-    document.getElementById('avg-imd').textContent = '-';
-    document.getElementById('min-imd').textContent = '-';
-    document.getElementById('max-imd').textContent = '-';
+    document.getElementById('avg-imd-score').textContent = '-';
+    document.getElementById('min-imd-score').textContent = '-';
+    document.getElementById('max-imd-score').textContent = '-';
+    document.getElementById('avg-imd-decile').textContent = '-';
+    document.getElementById('min-imd-decile').textContent = '-';
+    document.getElementById('max-imd-decile').textContent = '-';
     document.getElementById('avg-car-availability').textContent = '-';
     document.getElementById('min-car-availability').textContent = '-';
     document.getElementById('max-car-availability').textContent = '-';
-    document.getElementById('total-future-dwellings').textContent = '-';
-    document.getElementById('min-future-dwellings').textContent = '-';
-    document.getElementById('max-future-dwellings').textContent = '-';
+    document.getElementById('total-growth-pop').textContent = '-';
+    document.getElementById('min-growth-pop').textContent = '-';
+    document.getElementById('max-growth-pop').textContent = '-';
     return;
   }
 
@@ -1502,13 +1634,8 @@ function updateSummaryStatistics(features) {
     if (wardLayer) {
       const wardPolygon = wardLayer.toGeoJSON();
       filteredFeatures = features.filter(feature => {
-        try {
-          const hexPolygon = turf.polygon(feature.geometry.coordinates);
-          return turf.booleanPointInPolygon(turf.center(hexPolygon), wardPolygon);
-        } catch (error) {
-          console.error('Problematic feature:', feature, error);
-          return false;
-        }
+        const hexPolygon = turf.polygon(feature.geometry.coordinates);
+        return turf.booleanPointInPolygon(turf.center(hexPolygon), wardPolygon);
       });
     }
   } else if (filterType === 'GrowthZone') {
@@ -1516,13 +1643,8 @@ function updateSummaryStatistics(features) {
     if (growthZoneLayer) {
       const growthZonePolygon = growthZoneLayer.toGeoJSON();
       filteredFeatures = features.filter(feature => {
-        try {
-          const hexPolygon = turf.polygon(feature.geometry.coordinates);
-          return turf.booleanPointInPolygon(turf.center(hexPolygon), growthZonePolygon);
-        } catch (error) {
-          console.error('Problematic feature:', feature, error);
-          return false;
-        }
+        const hexPolygon = turf.polygon(feature.geometry.coordinates);
+        return turf.booleanPointInPolygon(turf.center(hexPolygon), growthZonePolygon);
       });
     }
   } else if (filterType === 'LA') {
@@ -1548,13 +1670,8 @@ function updateSummaryStatistics(features) {
 
     if (mergedPolygon) {
       filteredFeatures = features.filter(feature => {
-        try {
-          const hexPolygon = turf.polygon(feature.geometry.coordinates);
-          return turf.booleanPointInPolygon(turf.center(hexPolygon), mergedPolygon);
-        } catch (error) {
-          console.error('Problematic feature:', feature, error);
-          return false;
-        }
+        const hexPolygon = turf.polygon(feature.geometry.coordinates);
+        return turf.booleanPointInPolygon(turf.center(hexPolygon), mergedPolygon);
       });
     }
   }
@@ -1569,15 +1686,18 @@ function updateSummaryStatistics(features) {
     document.getElementById('total-population').textContent = '-';
     document.getElementById('min-population').textContent = '-';
     document.getElementById('max-population').textContent = '-';
-    document.getElementById('avg-imd').textContent = '-';
-    document.getElementById('min-imd').textContent = '-';
-    document.getElementById('max-imd').textContent = '-';
+    document.getElementById('avg-imd-score').textContent = '-';
+    document.getElementById('min-imd-score').textContent = '-';
+    document.getElementById('max-imd-score').textContent = '-';
+    document.getElementById('avg-imd-decile').textContent = '-';
+    document.getElementById('min-imd-decile').textContent = '-';
+    document.getElementById('max-imd-decile').textContent = '-';
     document.getElementById('avg-car-availability').textContent = '-';
     document.getElementById('min-car-availability').textContent = '-';
     document.getElementById('max-car-availability').textContent = '-';
-    document.getElementById('total-future-dwellings').textContent = '-';
-    document.getElementById('min-future-dwellings').textContent = '-';
-    document.getElementById('max-future-dwellings').textContent = '-';
+    document.getElementById('total-growth-pop').textContent = '-';
+    document.getElementById('min-growth-pop').textContent = '-';
+    document.getElementById('max-growth-pop').textContent = '-';
     return;
   }
 
@@ -1590,9 +1710,10 @@ function updateSummaryStatistics(features) {
     score: [],
     percentile: [],
     population: [],
-    imd: [],
+    imd_score: [],
+    imd_decile: [],
     carAvailability: [],
-    futureDwellings: [],
+    growthpop: [],
     time: []
   };
 
@@ -1601,9 +1722,10 @@ function updateSummaryStatistics(features) {
     metrics.score.push(properties[scoreField] || 0);
     metrics.percentile.push(properties[percentileField] || 0);
     metrics.population.push(properties.pop || 0);
-    metrics.imd.push(properties.imd || 0);
-    metrics.carAvailability.push(properties.carav || 0);
-    metrics.futureDwellings.push(properties.hh_fut || 0);
+    metrics.imd_score.push(properties.IMDScore || 0);
+    metrics.imd_decile.push(properties.IMD_Decile || 0);
+    metrics.carAvailability.push(properties.car_availability || 0);
+    metrics.growthpop.push(properties.pop_growth || 0);
     if (AmenitiesCatchmentLayer) {
       const hexId = properties.Hex_ID;
       const time = hexTimeMap[hexId] !== undefined ? hexTimeMap[hexId] : 0;
@@ -1621,15 +1743,18 @@ function updateSummaryStatistics(features) {
     totalPopulation: metrics.population.reduce((a, b) => a + b, 0),
     minPopulation: Math.min(...metrics.population),
     maxPopulation: Math.max(...metrics.population),
-    avgImd: calculateWeightedAverage(metrics.imd, metrics.population),
-    minImd: Math.min(...metrics.imd.filter((_, index) => metrics.population[index] > 0)),
-    maxImd: Math.max(...metrics.imd),
+    avgImdScore: calculateWeightedAverage(metrics.imd_score, metrics.population),
+    minImdScore: Math.min(...metrics.imd_score.filter((_, index) => metrics.population[index] > 0)),
+    maxImdScore: Math.max(...metrics.imd_score),
+    avgImdDecile: calculateWeightedAverage(metrics.imd_decile, metrics.population),
+    minImdDecile: Math.min(...metrics.imd_decile.filter((_, index) => metrics.population[index] > 0)),
+    maxImdDecile: Math.max(...metrics.imd_decile),
     avgCarAvailability: calculateWeightedAverage(metrics.carAvailability, metrics.population),
     minCarAvailability: Math.min(...metrics.carAvailability.filter((_, index) => metrics.population[index] > 0)),
     maxCarAvailability: Math.max(...metrics.carAvailability),
-    totalFutureDwellings: metrics.futureDwellings.reduce((a, b) => a + b, 0),
-    minFutureDwellings: Math.min(...metrics.futureDwellings),
-    maxFutureDwellings: Math.max(...metrics.futureDwellings),
+    totalgrowthpop: metrics.growthpop.reduce((a, b) => a + b, 0),
+    mingrowthpop: Math.min(...metrics.growthpop),
+    maxgrowthpop: Math.max(...metrics.growthpop),
     avgTime: calculateWeightedAverage(metrics.time, metrics.population),
     minTime: Math.min(...metrics.time),
     maxTime: Math.max(...metrics.time)
@@ -1661,15 +1786,18 @@ function updateSummaryStatistics(features) {
   document.getElementById('total-population').textContent = formatValue(summary.totalPopulation, 1);
   document.getElementById('min-population').textContent = formatValue(summary.minPopulation, 1);
   document.getElementById('max-population').textContent = formatValue(summary.maxPopulation, 1);
-  document.getElementById('avg-imd').textContent = formatValue(summary.avgImd, 0.1);
-  document.getElementById('min-imd').textContent = formatValue(summary.minImd, 0.1);
-  document.getElementById('max-imd').textContent = formatValue(summary.maxImd, 0.1);
+  document.getElementById('avg-imd-score').textContent = formatValue(summary.avgImdScore, 0.1);
+  document.getElementById('min-imd-score').textContent = formatValue(summary.minImdScore, 0.1);
+  document.getElementById('max-imd-score').textContent = formatValue(summary.maxImdScore, 0.1);
+  document.getElementById('avg-imd-decile').textContent = formatValue(summary.avgImdDecile, 1);
+  document.getElementById('min-imd-decile').textContent = formatValue(summary.minImdDecile, 1);
+  document.getElementById('max-imd-decile').textContent = formatValue(summary.maxImdDecile, 1);
   document.getElementById('avg-car-availability').textContent = formatValue(summary.avgCarAvailability, 0.01);
   document.getElementById('min-car-availability').textContent = formatValue(summary.minCarAvailability, 0.01);
   document.getElementById('max-car-availability').textContent = formatValue(summary.maxCarAvailability, 0.01);
-  document.getElementById('total-future-dwellings').textContent = formatValue(summary.totalFutureDwellings, 1);
-  document.getElementById('min-future-dwellings').textContent = formatValue(summary.minFutureDwellings, 1);
-  document.getElementById('max-future-dwellings').textContent = formatValue(summary.maxFutureDwellings, 1);
+  document.getElementById('total-growth-pop').textContent = formatValue(summary.totalgrowthpop, 1);
+  document.getElementById('min-growth-pop').textContent = formatValue(summary.mingrowthpop, 1);
+  document.getElementById('max-growth-pop').textContent = formatValue(summary.maxgrowthpop, 1);
 }
 
 function calculateWeightedAverage(values, weights) {
@@ -1742,7 +1870,5 @@ function highlightSelectedArea() {
         fillOpacity: 0.75
       }
     }).addTo(map);
-  } else {
-    console.log('No polygon selected for highlighting.');
   }
 }
