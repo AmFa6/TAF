@@ -403,9 +403,9 @@
           <select id="opacityFieldScoresDropdown" class="small-font">
             <option value="None">-</option>
             <option value="pop">Population</option>
-            <option value="imd">Index of Multiple Deprivation</option>
-            <option value="carav">Car Availability</option>
-            <option value="hh_fut">Future Dwellings</option>
+            <option value="IMDScore">Index of Multiple Deprivation - Score</option>
+            <option value="car_availability">Car Availability</option>
+            <option value="pop_growth">Population Growth</option>
           </select>
           <br>
           <div class="field-container">
@@ -426,10 +426,10 @@
           <label for="outlineFieldScoresDropdown" class="medium-font">Link Hexagon Outline to:</label>
           <select id="outlineFieldScoresDropdown" class="small-font">
             <option value="None">-</option>
-            <option value="imd">Index of Multiple Deprivation</option>
+            <option value="IMDScore">Index of Multiple Deprivation - Score</option>
             <option value="pop">Population</option>
-            <option value="carav">Car Availability</option>
-            <option value="hh_fut">Future Dwellings</option>
+            <option value="car_availability">Car Availability</option>
+            <option value="pop_growth">Population Growth</option>
           </select>
           <br>
           <div class="field-container">
@@ -493,9 +493,9 @@
           <select id="opacityFieldAmenitiesDropdown" class="small-font">
             <option value="None">-</option>
             <option value="pop">Population</option>
-            <option value="imd">Index of Multiple Deprivation</option>
-            <option value="carav">Car Availability</option>
-            <option value="hh_fut">Future Dwellings</option>
+            <option value="IMDScore">Index of Multiple Deprivation - Score</option>
+            <option value="car_availability">Car Availability</option>
+            <option value="pop_growth">Population Growth</option>
           </select>
           <br>
           <div class="field-container">
@@ -516,10 +516,10 @@
           <label for="outlineFieldAmenitiesDropdown" class="medium-font">Link Hexagon Outline to:</label>
           <select id="outlineFieldAmenitiesDropdown" class="small-font">
             <option value="None">-</option>
-            <option value="imd">Index of Multiple Deprivation</option>
+            <option value="IMDScore">Index of Multiple Deprivation - Score</option>
             <option value="pop">Population</option>
-            <option value="carav">Car Availability</option>
-            <option value="hh_fut">Future Dwellings</option>
+            <option value="car_availability">Car Availability</option>
+            <option value="pop_growth">Population Growth</option>
           </select>
           <br>
           <div class="field-container">
@@ -617,11 +617,18 @@
             <td id="max-population"></td>
           </tr>
           <tr>
-            <td>IMD</td>
-            <td id="avg-imd"></td>
+            <td>IMD Score</td>
+            <td id="avg-imd-score"></td>
             <td>-</td>
-            <td id="min-imd"></td>
-            <td id="max-imd"></td>
+            <td id="min-imd-score"></td>
+            <td id="max-imd-score"></td>
+          </tr>
+          <tr>
+            <td>IMD Decile</td>
+            <td id="avg-imd-decile"></td>
+            <td>-</td>
+            <td id="min-imd-decile"></td>
+            <td id="max-imd-decile"></td>
           </tr>
           <tr>
             <td>Car Availability</td>
@@ -631,11 +638,11 @@
             <td id="max-car-availability"></td>
           </tr>
           <tr>
-            <td>Future Dwellings</td>
+            <td>Population Growth</td>
             <td>-</td>
-            <td id="total-future-dwellings"></td>
-            <td id="min-future-dwellings"></td>
-            <td id="max-future-dwellings"></td>
+            <td id="total-growth-pop"></td>
+            <td id="min-growth-pop"></td>
+            <td id="max-growth-pop"></td>
           </tr>
         </tbody>
       </table>
