@@ -510,13 +510,21 @@ document.addEventListener('DOMContentLoaded', (event) => {
   initialLoadComplete = true;
 });
 
+let wasAboveZoomThreshold = false;
 map.on('zoomend', () => {
-  if (ScoresLayer) {
-    drawSelectedAmenities(selectedScoresAmenities);
-  } else if (AmenitiesCatchmentLayer) {
-    drawSelectedAmenities(selectedAmenitiesAmenities);
-  } else {
-    drawSelectedAmenities([]);
+  const currentZoom = map.getZoom();
+  const isAboveZoomThreshold = currentZoom >= 14;
+  
+  if (isAboveZoomThreshold !== wasAboveZoomThreshold) {
+    wasAboveZoomThreshold = isAboveZoomThreshold;
+    
+    if (ScoresLayer) {
+      drawSelectedAmenities(selectedScoresAmenities);
+    } else if (AmenitiesCatchmentLayer) {
+      drawSelectedAmenities(selectedAmenitiesAmenities);
+    } else {
+      drawSelectedAmenities([]);
+    }
   }
 });
 
@@ -914,14 +922,16 @@ function drawSelectedAmenities(amenities) {
   }
 
   const currentZoom = map.getZoom();
-  const minZoomLevel = 14;
+  const isAboveZoomThreshold = currentZoom >= 14;
 
   amenities.forEach(amenity => {
     const amenityLayer = amenityLayers[amenity];
     if (amenityLayer) {
       const layer = L.geoJSON(amenityLayer, {
         pointToLayer: (feature, latlng) => {
-          const icon = currentZoom >= minZoomLevel ? amenityIcons[amenity] : L.divIcon({ className: 'fa-icon', html: '<div class="dot"></div>', iconSize: [5, 5], iconAnchor: [5, 5] });
+          const icon = isAboveZoomThreshold ? 
+            amenityIcons[amenity] : 
+            L.divIcon({ className: 'fa-icon', html: '<div class="dot"></div>', iconSize: [5, 5], iconAnchor: [5, 5] });
           return L.marker(latlng, { icon: icon });
         },
         onEachFeature: (feature, layer) => {
@@ -1183,72 +1193,76 @@ function updateScoresLayer(stylingUpdateOnly = false) {
   if (!initialLoadComplete || !isPanelOpen("Connectivity Scores")) {
     return;
   }
-  console.log('updateScoresLayer');
-  
-  if (AmenitiesCatchmentLayer) {
-    map.removeLayer(AmenitiesCatchmentLayer);
-    AmenitiesCatchmentLayer = null;
-  }
+
+  console.log("Updating ScoresLayer.");
 
   const selectedYear = ScoresYear.value;
-  if (!selectedYear) {
-    updateLegend();
-    updateSummaryStatistics([]);
-    return;
-  }
   const selectedPurpose = ScoresPurpose.value;
   const selectedMode = ScoresMode.value;
   const opacityField = ScoresOpacity.value;
   const outlineField = ScoresOutline.value;
 
-  if (stylingUpdateOnly && ScoresLayer) {
-    let minOpacity = ScoresOpacityRange && ScoresOpacityRange.noUiSlider ? parseFloat(ScoresOpacityRange.noUiSlider.get()[0]) : 0;
-    let maxOpacity = ScoresOpacityRange && ScoresOpacityRange.noUiSlider ? parseFloat(ScoresOpacityRange.noUiSlider.get()[1]) : 0;
-    let minOutline = ScoresOutlineRange && ScoresOutlineRange.noUiSlider ? parseFloat(ScoresOutlineRange.noUiSlider.get()[0]) : 0;
-    let maxOutline = ScoresOutlineRange && ScoresOutlineRange.noUiSlider ? parseFloat(ScoresOutlineRange.noUiSlider.get()[1]) : 0;
-    
-    const fieldToDisplay = selectedYear.includes('-') ? `${selectedPurpose}_${selectedMode}` : `${selectedPurpose}_${selectedMode}_100`;
-    
-    ScoresLayer.eachLayer(layer => {
-      const style = styleScoresFeature(
-        layer.feature, fieldToDisplay, opacityField, outlineField, 
-        minOpacity, maxOpacity, minOutline, maxOutline, selectedYear
-      );
-      
-      layer.options._originalStyling = {
-        opacity: style.opacity,
-        fillOpacity: style.fillOpacity
-      };
-      
-      layer.setStyle(style);
-    });
-    updateFeatureVisibility();
-    
+  if (!selectedYear) {
+    updateLegend();
+    updateSummaryStatistics([]);
     return;
   }
 
-  if (ScoresLayer) {
-    map.removeLayer(ScoresLayer);
-    ScoresLayer = null;
+  const currentYear = ScoresLayer ? ScoresLayer._currentYear : null;
+  
+  if (currentYear !== selectedYear) {
+    stylingUpdateOnly = false;
   }
 
   const fieldToDisplay = selectedYear.includes('-') ? `${selectedPurpose}_${selectedMode}` : `${selectedPurpose}_${selectedMode}_100`;
-  const selectedCsvData = scoreLayers[selectedYear];
 
-  if (selectedCsvData && hexes) {
-    const scoreLookup = {};
-    selectedCsvData.forEach(row => {
-      if (row.Hex_ID && row[fieldToDisplay] !== undefined) {
-        scoreLookup[row.Hex_ID] = row;
-      }
-    });
-    
+  if (!scoreLayers[selectedYear]) {
+    const scoreFile = ScoresFiles.find(file => file.year === selectedYear);
+    if (scoreFile) {
+      fetch(scoreFile.path)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          return response.text();
+        })
+        .then(csvData => {
+          const parsedData = Papa.parse(csvData, { header: true }).data;
+          scoreLayers[selectedYear] = parsedData;
+          updateScoresLayer(false);
+        })
+        .catch(error => {
+        });
+      return;
+    } else {
+      return;
+    }
+  }
+
+  const selectedCsvData = scoreLayers[selectedYear];
+  if (!selectedCsvData) {
+    return;
+  }
+
+  const scoreLookup = {};
+  selectedCsvData.forEach(row => {
+    if (row.Hex_ID && row[fieldToDisplay] !== undefined) {
+      scoreLookup[row.Hex_ID] = row;
+    }
+  });
+
+  if (!stylingUpdateOnly || !ScoresLayer) {
+    if (ScoresLayer) {
+      map.removeLayer(ScoresLayer);
+      ScoresLayer = null;
+    }
+
     const featuresWithScores = hexes.features
       .filter(feature => scoreLookup[feature.properties.Hex_ID])
       .map(feature => {
         const hexId = feature.properties.Hex_ID;
         const scoreData = scoreLookup[hexId];
-        
+
         return {
           type: "Feature",
           geometry: feature.geometry,
@@ -1259,32 +1273,52 @@ function updateScoresLayer(stylingUpdateOnly = false) {
         };
       });
 
-    let minOpacity = ScoresOpacityRange && ScoresOpacityRange.noUiSlider ? parseFloat(ScoresOpacityRange.noUiSlider.get()[0]) : 0;
-    let maxOpacity = ScoresOpacityRange && ScoresOpacityRange.noUiSlider ? parseFloat(ScoresOpacityRange.noUiSlider.get()[1]) : 0;
-    let minOutline = ScoresOutlineRange && ScoresOutlineRange.noUiSlider ? parseFloat(ScoresOutlineRange.noUiSlider.get()[0]) : 0;
-    let maxOutline = ScoresOutlineRange && ScoresOutlineRange.noUiSlider ? parseFloat(ScoresOutlineRange.noUiSlider.get()[1]) : 0;
-
     const filteredScoresLayer = {
       type: "FeatureCollection",
       features: featuresWithScores
     };
 
+    let minOpacity = ScoresOpacityRange && ScoresOpacityRange.noUiSlider ? parseFloat(ScoresOpacityRange.noUiSlider.get()[0]) : 0;
+    let maxOpacity = ScoresOpacityRange && ScoresOpacityRange.noUiSlider ? parseFloat(ScoresOpacityRange.noUiSlider.get()[1]) : 0;
+    let minOutline = ScoresOutlineRange && ScoresOutlineRange.noUiSlider ? parseFloat(ScoresOutlineRange.noUiSlider.get()[0]) : 0;
+    let maxOutline = ScoresOutlineRange && ScoresOutlineRange.noUiSlider ? parseFloat(ScoresOutlineRange.noUiSlider.get()[1]) : 0;
+
     ScoresLayer = L.geoJSON(filteredScoresLayer, {
       style: feature => styleScoresFeature(feature, fieldToDisplay, opacityField, outlineField, minOpacity, maxOpacity, minOutline, maxOutline, selectedYear),
       onEachFeature: (feature, layer) => onEachFeature(feature, layer, selectedYear, selectedPurpose, selectedMode)
     }).addTo(map);
+    
+    ScoresLayer._currentYear = selectedYear;
 
     selectedScoresAmenities = purposeToAmenitiesMap[selectedPurpose];
     drawSelectedAmenities(selectedScoresAmenities);
     updateLegend();
     updateFeatureVisibility();
-  }
-
-  if (!stylingUpdateOnly) {
     updateFilterValues();
     updateSummaryStatistics(getCurrentFeatures());
     highlightSelectedArea();
+    return;
   }
+
+  let minOpacity = ScoresOpacityRange && ScoresOpacityRange.noUiSlider ? parseFloat(ScoresOpacityRange.noUiSlider.get()[0]) : 0;
+  let maxOpacity = ScoresOpacityRange && ScoresOpacityRange.noUiSlider ? parseFloat(ScoresOpacityRange.noUiSlider.get()[1]) : 0;
+  let minOutline = ScoresOutlineRange && ScoresOutlineRange.noUiSlider ? parseFloat(ScoresOutlineRange.noUiSlider.get()[0]) : 0;
+  let maxOutline = ScoresOutlineRange && ScoresOutlineRange.noUiSlider ? parseFloat(ScoresOutlineRange.noUiSlider.get()[1]) : 0;
+
+  ScoresLayer.eachLayer(layer => {
+    const style = styleScoresFeature(
+      layer.feature, fieldToDisplay, opacityField, outlineField,
+      minOpacity, maxOpacity, minOutline, maxOutline, selectedYear
+    );
+
+    layer.options._originalStyling = {
+      opacity: style.opacity,
+      fillOpacity: style.fillOpacity
+    };
+
+    layer.setStyle(style);
+  });
+  updateFeatureVisibility();
 }
 
 function updateAmenitiesCatchmentLayer(stylingUpdateOnly = false) {
