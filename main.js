@@ -259,7 +259,9 @@ ScoresMode.addEventListener("change", updateScoresLayer);
 AmenitiesYear.addEventListener("change", updateAmenitiesCatchmentLayer);
 AmenitiesMode.addEventListener("change", updateAmenitiesCatchmentLayer);
 AmenitiesPurpose.forEach(checkbox => {
-  checkbox.addEventListener("change", updateAmenitiesCatchmentLayer);
+  checkbox.addEventListener("change", () => {
+    updateAmenitiesCatchmentLayer();
+  });
 });
 ScoresOpacity.addEventListener("change", () => updateSliderRanges('Scores', 'Opacity', true));
 ScoresOutline.addEventListener("change", () => updateSliderRanges('Scores', 'Outline', true));
@@ -269,9 +271,7 @@ ScoresInverseOpacity.addEventListener("click", () => toggleInverseScale('Scores'
 ScoresInverseOutline.addEventListener("click", () => toggleInverseScale('Scores', 'Outline'));
 AmenitiesInverseOpacity.addEventListener("click", () => toggleInverseScale('Amenities', 'Opacity'));
 AmenitiesInverseOutline.addEventListener("click", () => toggleInverseScale('Amenities', 'Outline'));
-AmenitiesPurpose.forEach(checkbox => {
-  checkbox.addEventListener("change", updateAmenitiesCatchmentLayer);
-});
+
 filterTypeDropdown.addEventListener('change', () => {
   updateFilterValues();
   updateSummaryStatistics(getCurrentFeatures());
@@ -1417,8 +1417,8 @@ function updateAmenitiesCatchmentLayer(stylingUpdateOnly = false) {
 
   hexTimeMap = {};
 
-  const cacheKeys = selectedAmenitiesAmenities.map(amenity => `${selectedYear}_${amenity}`);
-  const fetchPromises = cacheKeys.map(cacheKey => {
+  const cacheKeys = selectedAmenitiesAmenities.map(amenity => `${selectedYear}_${amenity}`);  
+  const fetchPromises = cacheKeys.map(cacheKey => {  
     if (!csvDataCache[cacheKey]) {
       const csvPath = `https://AmFa6.github.io/TAF_test/${cacheKey}_csv.csv`;
       return fetch(csvPath)
@@ -1462,7 +1462,7 @@ function updateAmenitiesCatchmentLayer(stylingUpdateOnly = false) {
       const time = hexTimeMap[hexId];
       return time !== undefined;
     });
-
+    
     const filteredAmenitiesCatchmentLayer = {
       type: "FeatureCollection",
       features: filteredFeatures
@@ -1524,9 +1524,11 @@ function updateAmenitiesCatchmentLayer(stylingUpdateOnly = false) {
           fillOpacity: opacity
         };
       },
-      onEachFeature: (feature, layer) => onEachFeature(feature, layer, selectedYear, null, null)
+      onEachFeature: (feature, layer) => {
+        onEachFeature(feature, layer, selectedYear, null, null);
+      }
     }).addTo(map);
-
+    
     drawSelectedAmenities(selectedAmenitiesAmenities);
     updateLegend();
     updateFeatureVisibility();
