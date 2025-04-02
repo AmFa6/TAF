@@ -1291,6 +1291,7 @@ function updateScoresLayer(stylingUpdateOnly = false) {
     ScoresLayer._currentYear = selectedYear;
 
     selectedScoresAmenities = purposeToAmenitiesMap[selectedPurpose];
+    console.log("Drawing amenities for selected purpose:", selectedScoresAmenities);
     drawSelectedAmenities(selectedScoresAmenities);
     updateLegend();
     updateFeatureVisibility();
@@ -1318,6 +1319,10 @@ function updateScoresLayer(stylingUpdateOnly = false) {
 
     layer.setStyle(style);
   });
+  selectedScoresAmenities = purposeToAmenitiesMap[selectedPurpose];
+  console.log("Drawing amenities for selected purpose:", selectedScoresAmenities);
+  drawSelectedAmenities(selectedScoresAmenities);
+
   updateFeatureVisibility();
 }
 
