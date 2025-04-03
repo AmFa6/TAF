@@ -6,15 +6,39 @@ const baseLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/lig
 
 const ladCodes = ['E06000022', 'E06000023', 'E06000024', 'E06000025'];
 let lsoaLookup = {};
-let uaBoundariesLayer;
 
 const ladCodesString = ladCodes.map(code => `'${code}'`).join(',');
+
+function convertMultiPolygonToPolygons(geoJson) {
+  const features = [];
+  geoJson.features.forEach(feature => {
+    if (feature.geometry.type === 'MultiPolygon') {
+      feature.geometry.coordinates.forEach(polygonCoords => {
+        features.push({
+          type: 'Feature',
+          geometry: {
+            type: 'Polygon',
+            coordinates: polygonCoords
+          },
+          properties: feature.properties
+        });
+      });
+    } else {
+      features.push(feature);
+    }
+  });
+  return {
+    type: 'FeatureCollection',
+    features: features
+  };
+}
 
 fetch(`https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Local_Authority_Districts_December_2024_Boundaries_UK_BGC/FeatureServer/0/query?outFields=*&where=LAD24CD%20IN%20(${ladCodesString})&f=geojson`)
   .then(response => response.json())
   .then(data => {
-    uaBoundariesGeoJson = data;
-    uaBoundariesLayer = L.geoJSON(data, {
+    const convertedData = convertMultiPolygonToPolygons(data);
+    uaBoundariesLayer = convertedData;
+    uaBoundariesLayer = L.geoJSON(convertedData, {
       style: function (feature) {
         return {
           color: 'black',
@@ -23,14 +47,6 @@ fetch(`https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Local_
           opacity: 0
         };
       },
-      onEachFeature: function (feature, layer) {
-        layer.on('click', function () {
-          L.popup()
-            .setLatLng(layer.getBounds().getCenter())
-            .setContent(`<strong>Local Authority District:</strong> ${feature.properties.LAD24NM}`)
-            .openOn(map);
-        });
-      }
     }).addTo(map);
     updateFilterValues();
   });
@@ -38,7 +54,8 @@ fetch(`https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Local_
 fetch('https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Wards_December_2024_Boundaries_UK_BGC/FeatureServer/0/query?outFields=*&where=1%3D1&geometry=-3.073689%2C51.291726%2C-2.327195%2C51.656841&geometryType=esriGeometryEnvelope&inSR=4326&spatialRel=esriSpatialRelIntersects&outSR=4326&f=geojson')
   .then(response => response.json())
   .then(data => {
-    const filteredFeatures = data.features.filter(feature => ladCodes.includes(feature.properties.LAD24CD));
+    const convertedData = convertMultiPolygonToPolygons(data);
+    const filteredFeatures = convertedData.features.filter(feature => ladCodes.includes(feature.properties.LAD24CD));
     const wardGeoJson = {
       type: 'FeatureCollection',
       features: filteredFeatures
@@ -53,14 +70,6 @@ fetch('https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Wards_
           opacity: 0
         };
       },
-      onEachFeature: function (feature, layer) {
-        layer.on('click', function () {
-          L.popup()
-            .setLatLng(layer.getBounds().getCenter())
-            .setContent(`<strong>Ward Name:</strong> ${feature.properties.WD24NM}`)
-            .openOn(map);
-        });
-      }
     }).addTo(map);
   })
 
@@ -76,7 +85,8 @@ fetch('https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/LSOA21
   })
   .then(response => response.json())
   .then(data => {
-    const filteredFeatures = data.features.filter(feature => lsoaLookup[feature.properties.LSOA21CD]);
+    const convertedData = convertMultiPolygonToPolygons(data);
+    const filteredFeatures = convertedData.features.filter(feature => lsoaLookup[feature.properties.LSOA21CD]);
     const lsoaGeoJson = {
       type: 'FeatureCollection',
       features: filteredFeatures
@@ -91,14 +101,6 @@ fetch('https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/LSOA21
           opacity: 0
         };
       },
-      onEachFeature: function (feature, layer) {
-        layer.on('click', function () {
-          L.popup()
-            .setLatLng(layer.getBounds().getCenter())
-            .setContent(`<strong>LSOA Name:</strong> ${feature.properties.LSOA21NM}`)
-            .openOn(map);
-        });
-      }
     }).addTo(map);
   })
 
@@ -190,14 +192,6 @@ fetch('https://AmFa6.github.io/TAF_test/GrowthZones.geojson')
           opacity: 0
         };
       },
-      onEachFeature: function (feature, layer) {
-        layer.on('click', function () {
-          L.popup()
-            .setLatLng(layer.getBounds().getCenter())
-            .setContent(`<strong>Growth Zone:</strong> ${feature.properties.Name}<br><strong>Growth Type:</strong> ${feature.properties.GrowthType}`)
-            .openOn(map);
-        });
-      }
     }).addTo(map);
   })
   
@@ -234,6 +228,9 @@ let isInverseScoresOutline = false;
 let isInverseAmenitiesOpacity = false;
 let isInverseAmenitiesOutline = false;
 let GrowthZonesLayer;
+let uaBoundariesLayer;
+let wardBoundariesLayer;
+let lsoaBoundariesLayer;
 let ScoresLayer = null;
 let AmenitiesCatchmentLayer = null;
 let hexTimeMap = {};
@@ -334,6 +331,17 @@ document.addEventListener('DOMContentLoaded', (event) => {
         if (otherHeader !== header) {
           otherHeader.classList.add("collapsed");
           otherHeader.nextElementSibling.style.display = "none";
+          if (otherHeader.textContent.includes("Connectivity Scores")) {
+            if(ScoresLayer) {
+              map.removeLayer(ScoresLayer);
+              ScoresLayer = null;
+            }
+          } else if (otherHeader.textContent.includes("Journey Time Catchments - Amenities")) {
+            if(AmenitiesCatchmentLayer) {
+              map.removeLayer(AmenitiesCatchmentLayer);
+              AmenitiesCatchmentLayer = null;
+            }
+          }
         }
       });
       panelContent.style.display = panelContent.style.display === "block" ? "none" : "block";
@@ -528,6 +536,133 @@ map.on('zoomend', () => {
   }
 });
 
+map.on('click', function (e) {
+  const clickedLatLng = e.latlng;
+  const clickedPoint = turf.point([clickedLatLng.lng, clickedLatLng.lat]);
+  const popupContent = {
+    Geographies: [],
+    Amenities: [],
+    Hexagon: []
+  };
+
+  if (uaBoundariesLayer) {
+    uaBoundariesLayer.eachLayer(layer => {
+      const polygon = turf.polygon(layer.feature.geometry.coordinates);
+      if (turf.booleanPointInPolygon(clickedPoint, polygon)) {
+        popupContent.Geographies.push(`<strong>Local Authority:</strong> ${layer.feature.properties.LAD24NM}`);
+      }
+    });
+  }
+
+  if (wardBoundariesLayer) {
+    wardBoundariesLayer.eachLayer(layer => {
+      const polygon = turf.polygon(layer.feature.geometry.coordinates);
+      if (turf.booleanPointInPolygon(clickedPoint, polygon)) {
+        popupContent.Geographies.push(`<strong>Ward:</strong> ${layer.feature.properties.WD24NM}`);
+      }
+    });
+  }
+
+  if (lsoaBoundariesLayer) {
+    lsoaBoundariesLayer.eachLayer(layer => {
+      const polygon = turf.polygon(layer.feature.geometry.coordinates);
+      if (turf.booleanPointInPolygon(clickedPoint, polygon)) {
+        popupContent.Geographies.push(`<strong>LSOA:</strong> ${layer.feature.properties.LSOA21NM}`);
+      }
+    });
+  }
+
+  if (GrowthZonesLayer) {
+    GrowthZonesLayer.eachLayer(layer => {
+      const polygon = turf.polygon(layer.feature.geometry.coordinates);
+      if (turf.booleanPointInPolygon(clickedPoint, polygon)) {
+        popupContent.Geographies.push(`<strong>Growth Zone:</strong> ${layer.feature.properties.Name}`);
+      }
+    });
+  }
+
+  amenitiesLayerGroup.eachLayer(featureGroup => {
+    featureGroup.eachLayer(layer => {
+      if (layer.getLatLng && layer.getLatLng().distanceTo(clickedLatLng) < 100) {
+        if (layer.feature && layer.feature.properties) {
+          const properties = layer.feature.properties;
+          const amenityContent = getAmenityPopupContent(layer._amenityType, properties);
+          popupContent.Amenities.push(amenityContent);
+        }
+      }
+    });
+  });
+
+  if (ScoresLayer || AmenitiesCatchmentLayer) {
+    const hexLayer = ScoresLayer || AmenitiesCatchmentLayer;
+    hexLayer.eachLayer(layer => {
+      const polygon = turf.polygon(layer.feature.geometry.coordinates);
+      if (turf.booleanPointInPolygon(clickedPoint, polygon)) {
+        const properties = layer.feature.properties;
+        if (ScoresLayer) {
+          const selectedYear = ScoresYear.value;
+          const selectedPurpose = ScoresPurpose.value;
+          const selectedMode = ScoresMode.value;
+          const fieldToDisplay = selectedYear.includes('-') ? `${selectedPurpose}_${selectedMode}` : `${selectedPurpose}_${selectedMode}_100`;
+
+          const scoreValue = properties[fieldToDisplay];
+          const score = selectedYear.includes('-') ? `${(scoreValue * 100).toFixed(1)}%` : formatValue(scoreValue, 1);
+          const percentile = formatValue(properties[`${selectedPurpose}_${selectedMode}_100`], 1);
+          const population = formatValue(properties.pop, 1);
+          const imdScore = formatValue(properties.IMDScore, 0.1);
+          const imdDecile = formatValue(properties.IMD_Decile, 1);
+          const carAvailability = formatValue(properties.car_availability, 0.01);
+          const growthPop = formatValue(properties.pop_growth, 1);
+
+          popupContent.Hexagon.push(`
+            <strong>Hex_ID:</strong> ${properties.Hex_ID}<br>
+            <strong>Score:</strong> ${score}<br>
+            <strong>Percentile:</strong> ${percentile}<br>
+            <strong>Population:</strong> ${population}<br>
+            <strong>IMD Score:</strong> ${imdScore}<br>
+            <strong>IMD Decile:</strong> ${imdDecile}<br>
+            <strong>Car Availability:</strong> ${carAvailability}<br>
+            <strong>Population Growth:</strong> ${growthPop}
+          `);
+        } else if (AmenitiesCatchmentLayer) {
+          const time = formatValue(hexTimeMap[properties.Hex_ID], 1);
+          const population = formatValue(properties.pop, 1);
+          const imdScore = formatValue(properties.IMDScore, 0.1);
+          const imdDecile = formatValue(properties.IMD_Decile, 1);
+          const carAvailability = formatValue(properties.car_availability, 0.01);
+          const growthPop = formatValue(properties.pop_growth, 1);
+
+          popupContent.Hexagon.push(`
+            <strong>Hex_ID:</strong> ${properties.Hex_ID}<br>
+            <strong>Journey Time:</strong> ${time} minutes<br>
+            <strong>Population:</strong> ${population}<br>
+            <strong>IMD Score:</strong> ${imdScore}<br>
+            <strong>IMD Decile:</strong> ${imdDecile}<br>
+            <strong>Car Availability:</strong> ${carAvailability}<br>
+            <strong>Population Growth:</strong> ${growthPop}
+          `);
+        }
+      }
+    });
+  }
+
+  const content = `
+    <div>
+      <h4>Geographies</h4>
+      ${popupContent.Geographies.length > 0 ? popupContent.Geographies.join('<br>') : '-'}
+      <h4>Amenities</h4>
+      ${popupContent.Amenities.length > 0 ? popupContent.Amenities.join('<br>') : '-'}
+      <h4>Hexagon</h4>
+      ${popupContent.Hexagon.length > 0 ? popupContent.Hexagon.join('<br>') : '-'}
+    </div>
+  `;
+
+  L.popup()
+    .setLatLng(clickedLatLng)
+    .setContent(content)
+    .openOn(map);
+});
+
 function debounce(func, wait) {
   let timeout;
   return function (...args) {
@@ -692,51 +827,6 @@ function formatValue(value, step) {
   } else {
     return value.toString();
   }
-}
-
-function onEachFeature(feature, layer, selectedYear, selectedPurpose, selectedMode) {
-  layer.on({
-    click: function (e) {
-      const properties = feature.properties;
-      const getValue = (prop) => (properties[prop] !== undefined && properties[prop] !== null) ? properties[prop] : '-';
-      const hexId = getValue('Hex_ID');
-      const scoreValue = getValue(`${selectedPurpose}_${selectedMode}`);
-      let score = '-';
-      let scoreLabel = 'Score';
-
-      if (ScoresLayer) {
-        if (scoreValue !== '-') {
-          if (selectedYear.includes('-')) {
-            score = `${(scoreValue * 100).toFixed(1)}%`;
-            scoreLabel = 'Score Difference';
-          } else {
-            score = formatValue(scoreValue, 1);
-          }
-        }
-
-        const percentile = getValue(`${selectedPurpose}_${selectedMode}_100`) !== '-' ? formatValue(getValue(`${selectedPurpose}_${selectedMode}_100`), 1) : '-';
-        const population = getValue('pop') !== '-' ? formatValue(getValue('pop'), 1) : '-';
-        const imd_score = population === 0 ? '-' : (getValue('IMDScore') !== '-' ? formatValue(getValue('IMDScore'), 0.1) : '-');
-        const imd_decile = population === 0 ? '-' : (getValue('IMD_Decile') !== '-' ? formatValue(getValue('IMD_Decile'), 1) : '-');
-        const carAvailability = population === 0 ? '-' : (getValue('car_availability') !== '-' ? formatValue(getValue('car_availability'), 0.01) : '-');
-        const growthpop = getValue('pop_growth') === 0 ? '-' : (getValue('pop_growth') !== '-' ? formatValue(getValue('pop_growth'), 1) : '-');
-        popupContent = `<strong>Hex_ID:</strong> ${hexId}<br><strong>${scoreLabel}:</strong> ${score}<br><strong>Score Percentile:</strong> ${percentile}<br><strong>Population:</strong> ${population}<br><strong>IMD Score:</strong> ${imd_score}<br><strong>IMD Decile:</strong> ${imd_decile}<br><strong>Car Availability:</strong> ${carAvailability}<br><strong>Population Growth:</strong> ${growthpop}`;
-      } else if (AmenitiesCatchmentLayer) {
-        const time = hexTimeMap[hexId] !== undefined ? formatValue(hexTimeMap[hexId], 1) : '-';
-        const population = getValue('pop') !== '-' ? formatValue(getValue('pop'), 1) : '-';
-        const imd_score = population === 0 ? '-' : (getValue('IMDScore') !== '-' ? formatValue(getValue('IMDScore'), 0.1) : '-');
-        const imd_decile = population === 0 ? '-' : (getValue('IMD_Decile') !== '-' ? formatValue(getValue('IMD_Decile'), 1) : '-');
-        const carAvailability = population === 0 ? '-' : (getValue('car_availability') !== '-' ? formatValue(getValue('car_availability'), 0.01) : '-');
-        const growthpop = getValue('pop_growth') === 0 ? '-' : (getValue('pop_growth') !== '-' ? formatValue(getValue('pop_growth'), 1) : '-');
-        popupContent = `<strong>Hex_ID:</strong> ${hexId}<br><strong>Journey Time:</strong> ${time} minutes<br><strong>Population:</strong> ${population}<br><strong>IMD Score:</strong> ${imd_score}<br><strong>IMD Decile:</strong> ${imd_decile}<br><strong>Car Availability:</strong> ${carAvailability}<br><strong>Population Growth:</strong> ${growthpop}`;
-      }
-
-      L.popup()
-        .setLatLng(e.latlng)
-        .setContent(popupContent)
-        .openOn(map);
-    }
-  });
 }
 
 function isClassVisible(value, selectedYear) {
@@ -909,6 +999,51 @@ function updateLegend() {
   updateMasterCheckbox();
 }
 
+function getAmenityPopupContent(amenityType, properties) {
+  let amenityName = 'Unknown';
+  let amenityTypeDisplay = 'Unknown';
+  
+  if (amenityType === 'PriSch') {
+    amenityTypeDisplay = 'Primary School';
+    amenityName = properties.Establis_1 || properties.Name || 'Unknown';
+  } else if (amenityType === 'SecSch') {
+    amenityTypeDisplay = 'Secondary School';
+    amenityName = properties.Establis_1 || properties.Name || 'Unknown';
+  } else if (amenityType === 'FurEd') {
+    amenityTypeDisplay = 'Further Education';
+    amenityName = properties.Establis_1 || properties.Name || 'Unknown';
+  } else if (amenityType === 'Em500') {
+    amenityTypeDisplay = 'Employment (500+ employees)';
+    amenityName = properties.LSOA11CD && properties.LSOA11NM ? 
+                 `${properties.LSOA11CD}, ${properties.LSOA11NM}` : 
+                 properties.Name || 'Unknown';
+  } else if (amenityType === 'Em5000') {
+    amenityTypeDisplay = 'Employment (5000+ employees)';
+    amenityName = properties.LSOA11CD && properties.LSOA11NM ? 
+                 `${properties.LSOA11CD}, ${properties.LSOA11NM}` : 
+                 properties.Name || 'Unknown';
+  } else if (amenityType === 'StrEmp') {
+    amenityTypeDisplay = 'Strategic Employment';
+    amenityName = properties.NAME || properties.Name || 'Unknown';
+  } else if (amenityType === 'CitCtr') {
+    amenityTypeDisplay = 'City Centre';
+    amenityName = properties.District || properties.Name || 'Unknown';
+  } else if (amenityType === 'MajCtr') {
+    amenityTypeDisplay = 'Major Centre';
+    amenityName = properties.Name || 'Unknown';
+  } else if (amenityType === 'DisCtr') {
+    amenityTypeDisplay = 'District Centre';
+    amenityName = properties.SITE_NAME || properties.Name || 'Unknown';
+  } else if (amenityType === 'GP') {
+    amenityTypeDisplay = 'General Practice';
+    amenityName = properties.WECAplu_14 || properties.Name || 'Unknown';
+  } else if (amenityType === 'Hos') {
+    amenityTypeDisplay = 'Hospital';
+    amenityName = properties.Name || 'Unknown';
+  }
+  return `<strong>Amenity:</strong> ${amenityName} (${amenityTypeDisplay})`;
+}
+
 function drawSelectedAmenities(amenities) {
   const amenitiesCheckbox = document.getElementById('amenitiesCheckbox');
   amenitiesLayerGroup.clearLayers();
@@ -932,87 +1067,14 @@ function drawSelectedAmenities(amenities) {
           const icon = isAboveZoomThreshold ? 
             amenityIcons[amenity] : 
             L.divIcon({ className: 'fa-icon', html: '<div class="dot"></div>', iconSize: [5, 5], iconAnchor: [5, 5] });
-          return L.marker(latlng, { icon: icon });
+          const marker = L.marker(latlng, { icon: icon });
+          marker._amenityType = amenity;
+          return marker;
         },
-        onEachFeature: (feature, layer) => {
-          const popupContent = AmenitiesPopup(amenity, feature.properties);
-          layer.bindPopup(popupContent);
-
-          if (selectingFromMap) {
-            layer.on('click', () => {
-              const index = selectedAmenitiesFromMap.indexOf(feature.properties.COREID);
-              if (index === -1) {
-                selectedAmenitiesFromMap.push(feature.properties.COREID);
-                layer.setIcon(L.divIcon({ className: 'fa-icon', html: '<div class="pin"><i class="fas fa-map-marker-alt" style="color: red;"></i></div>', iconSize: [60, 60], iconAnchor: [15, 15] }));
-              } else {
-                selectedAmenitiesFromMap.splice(index, 1);
-                layer.setIcon(L.divIcon({ className: 'fa-icon', html: '<div class="pin"><i class="fas fa-map-marker-alt" style="color: grey;"></i></div>', iconSize: [60, 60], iconAnchor: [15, 15] }));
-              }
-            });
-          }
-        }
       });
       amenitiesLayerGroup.addLayer(layer);
     }
   });
-}
-
-function AmenitiesPopup(amenity, properties) {
-  let amenityType;
-  let name;
-
-  switch (amenity) {
-    case 'PriSch':
-      amenityType = 'Primary School';
-      name = properties.Establis_1;
-      break;
-    case 'SecSch':
-      amenityType = 'Secondary School';
-      name = properties.Establis_1;
-      break;
-    case 'FurEd':
-      amenityType = 'Further Education';
-      name = properties.Establis_1;
-      break;
-    case 'Em500':
-      amenityType = 'Employment (500+ employees)';
-      name = `${properties.LSOA11CD}, ${properties.LSOA11NM}`;
-      break;
-    case 'Em5000':
-      amenityType = 'Employment (5000+ employees)';
-      name = `${properties.LSOA11CD}, ${properties.LSOA11NM}`;
-      break;
-    case 'StrEmp':
-      amenityType = 'Strategic Employment';
-      name = properties.NAME;
-      break;
-    case 'CitCtr':
-      amenityType = 'City Centre';
-      name = properties.District;
-      break;
-    case 'MajCtr':
-      amenityType = 'Major Centre';
-      name = properties.Name;
-      break;
-    case 'DisCtr':
-      amenityType = 'District Centre';
-      name = properties.SITE_NAME;
-      break;
-    case 'GP':
-      amenityType = 'General Practice';
-      name = properties.WECAplu_14;
-      break;
-    case 'Hos':
-      amenityType = 'Hospital';
-      name = properties.Name;
-      break;
-    default:
-      amenityType = 'Unknown';
-      name = 'Unknown';
-      break;
-  }
-
-  return `<strong>Amenity Type:</strong> ${amenityType}<br><strong>Name:</strong> ${name}<br>`;
 }
 
 function updateSliderRanges(type, scaleType, skipLayerUpdate = false) {
@@ -1285,7 +1347,6 @@ function updateScoresLayer(stylingUpdateOnly = false) {
 
     ScoresLayer = L.geoJSON(filteredScoresLayer, {
       style: feature => styleScoresFeature(feature, fieldToDisplay, opacityField, outlineField, minOpacity, maxOpacity, minOutline, maxOutline, selectedYear),
-      onEachFeature: (feature, layer) => onEachFeature(feature, layer, selectedYear, selectedPurpose, selectedMode)
     }).addTo(map);
     
     ScoresLayer._currentYear = selectedYear;
@@ -1527,9 +1588,6 @@ function updateAmenitiesCatchmentLayer(stylingUpdateOnly = false) {
           fillOpacity: opacity
         };
       },
-      onEachFeature: (feature, layer) => {
-        onEachFeature(feature, layer, selectedYear, null, null);
-      }
     }).addTo(map);
     
     drawSelectedAmenities(selectedAmenitiesAmenities);
