@@ -150,6 +150,14 @@ const AmenitiesOpacityRange = document.getElementById('opacityRangeAmenitiesSlid
 const AmenitiesOutlineRange = document.getElementById('outlineRangeAmenitiesSlider');
 const AmenitiesInverseOpacity = document.getElementById("inverseOpacityScaleAmenitiesButton");
 const AmenitiesInverseOutline = document.getElementById("inverseOutlineScaleAmenitiesButton");
+const baseColorCensus = document.getElementById("baseColorCensus");
+const CensusOpacity = document.getElementById("opacityFieldCensusDropdown");
+const CensusOutline = document.getElementById("outlineFieldCensusDropdown");
+const CensusOpacityRange = document.getElementById('opacityRangeCensusSlider');
+const CensusOutlineRange = document.getElementById('outlineRangeCensusSlider');
+const CensusInverseOpacity = document.getElementById("inverseOpacityScaleCensusButton");
+const CensusInverseOutline = document.getElementById("inverseOutlineScaleCensusButton");
+
 const amenityLayers = {};
 const purposeToAmenitiesMap = {
   Edu: ['PriSch', 'SecSch', 'FurEd'],
@@ -194,15 +202,6 @@ fetch('https://AmFa6.github.io/TAF_test/GrowthZones.geojson')
       },
     }).addTo(map);
   })
-  
-ScoresFiles.forEach(file => {
-  fetch(file.path)
-    .then(response => response.text())
-    .then(csvData => {
-      const parsedData = Papa.parse(csvData, { header: true }).data;
-      scoreLayers[file.year] = parsedData;
-    });
-});
 
 AmenitiesFiles.forEach(file => {
   fetch(file.path)
@@ -223,10 +222,14 @@ let opacityScoresOrder = 'low-to-high';
 let outlineScoresOrder = 'low-to-high';
 let opacityAmenitiesOrder = 'low-to-high';
 let outlineAmenitiesOrder = 'low-to-high';
+let opacityCensusOrder = 'low-to-high';
+let outlineCensusOrder = 'low-to-high';
 let isInverseScoresOpacity = false;
 let isInverseScoresOutline = false;
 let isInverseAmenitiesOpacity = false;
 let isInverseAmenitiesOutline = false;
+let isInverseCensusOpacity = false;
+let isInverseCensusOutline = false;
 let GrowthZonesLayer;
 let uaBoundariesLayer;
 let wardBoundariesLayer;
@@ -244,11 +247,15 @@ let hexes;
 let highlightLayer = null;
 let initialLoadComplete = false;
 let isUpdatingSliders = false;
+let CensusLayer = null;
+let wasAboveZoomThreshold = false;
 
 initializeSliders(ScoresOpacityRange, updateScoresLayer);
 initializeSliders(ScoresOutlineRange, updateScoresLayer);
 initializeSliders(AmenitiesOpacityRange, updateAmenitiesCatchmentLayer);
 initializeSliders(AmenitiesOutlineRange, updateAmenitiesCatchmentLayer);
+initializeSliders(CensusOpacityRange, updateCensusLayer);
+initializeSliders(CensusOutlineRange, updateCensusLayer);
 
 ScoresYear.addEventListener("change", updateScoresLayer);
 ScoresPurpose.addEventListener("change", updateScoresLayer);
@@ -264,10 +271,16 @@ ScoresOpacity.addEventListener("change", () => updateSliderRanges('Scores', 'Opa
 ScoresOutline.addEventListener("change", () => updateSliderRanges('Scores', 'Outline', true));
 AmenitiesOpacity.addEventListener("change", () => updateSliderRanges('Amenities', 'Opacity', true));
 AmenitiesOutline.addEventListener("change", () => updateSliderRanges('Amenities', 'Outline', true));
+CensusOpacity.addEventListener("change", () => updateSliderRanges('Census', 'Opacity'));
+CensusOutline.addEventListener("change", () => updateSliderRanges('Census', 'Outline'));
 ScoresInverseOpacity.addEventListener("click", () => toggleInverseScale('Scores', 'Opacity'));
 ScoresInverseOutline.addEventListener("click", () => toggleInverseScale('Scores', 'Outline'));
 AmenitiesInverseOpacity.addEventListener("click", () => toggleInverseScale('Amenities', 'Opacity'));
 AmenitiesInverseOutline.addEventListener("click", () => toggleInverseScale('Amenities', 'Outline'));
+CensusInverseOpacity.addEventListener("click", () => toggleInverseScale('Census', 'Opacity'));
+CensusInverseOutline.addEventListener("click", () => toggleInverseScale('Census', 'Outline'));
+baseColorCensus.addEventListener("change", updateCensusLayer);
+
 
 filterTypeDropdown.addEventListener('change', () => {
   updateFilterValues();
@@ -341,6 +354,11 @@ document.addEventListener('DOMContentLoaded', (event) => {
               map.removeLayer(AmenitiesCatchmentLayer);
               AmenitiesCatchmentLayer = null;
             }
+          } else if (otherHeader.textContent.includes("Census / Local Plan Data")) {
+            if(CensusLayer) {
+              map.removeLayer(CensusLayer);
+              CensusLayer = null;
+            }
           }
         }
       });
@@ -352,6 +370,8 @@ document.addEventListener('DOMContentLoaded', (event) => {
           updateScoresLayer();
         } else if (header.textContent.includes("Journey Time Catchments - Amenities")) {
           updateAmenitiesCatchmentLayer();
+        } else if (header.textContent.includes("Census / Local Plan Data")) {
+          updateCensusLayer();
         }
       } else {
         if(ScoresLayer) {
@@ -362,6 +382,10 @@ document.addEventListener('DOMContentLoaded', (event) => {
           map.removeLayer(AmenitiesCatchmentLayer);
           AmenitiesCatchmentLayer = null;
         } 
+        if(CensusLayer) {
+          map.removeLayer(CensusLayer);
+          CensusLayer = null;
+        }
         drawSelectedAmenities([]);
         updateLegend();
         updateFilterValues();
@@ -518,7 +542,6 @@ document.addEventListener('DOMContentLoaded', (event) => {
   initialLoadComplete = true;
 });
 
-let wasAboveZoomThreshold = false;
 map.on('zoomend', () => {
   const currentZoom = map.getZoom();
   const isAboveZoomThreshold = currentZoom >= 14;
@@ -754,12 +777,30 @@ function toggleInverseScale(type, scaleType) {
       rangeElement = AmenitiesOutlineRange;
       outlineAmenitiesOrder = isInverse ? 'high-to-low' : 'low-to-high';
     }
+  } else if (type === 'Census') {
+    if (scaleType === 'Opacity') {
+      isInverseCensusOpacity = !isInverseCensusOpacity;
+      isInverse = isInverseCensusOpacity;
+      rangeElement = CensusOpacityRange;
+      opacityCensusOrder = isInverse ? 'high-to-low' : 'low-to-high';
+    } else if (scaleType === 'Outline') {
+      isInverseCensusOutline = !isInverseCensusOutline;
+      isInverse = isInverseCensusOutline;
+      rangeElement = CensusOutlineRange;
+      outlineCensusOrder = isInverse ? 'high-to-low' : 'low-to-high';
+    }
   }
 
   const currentValues = rangeElement.noUiSlider.get();
   
-  configureSlider(rangeElement, type === 'Scores' ? updateScoresLayer : updateAmenitiesCatchmentLayer, isInverse, order);
-
+  configureSlider(
+    rangeElement,
+    type === 'Scores' ? updateScoresLayer :
+    type === 'Amenities' ? updateAmenitiesCatchmentLayer :
+    updateCensusLayer,
+    isInverse,
+    order
+  );
   rangeElement.noUiSlider.set(currentValues, false);
 
   updateSliderRanges(type, scaleType);
@@ -770,7 +811,9 @@ function toggleInverseScale(type, scaleType) {
     updateScoresLayer();
   } else if (type === 'Amenities' && isPanelOpen("Journey Time Catchments - Amenities")) {
     updateAmenitiesCatchmentLayer();
-  }
+  } else if (type === 'Census' && isPanelOpen("Census / Local Plan Data")) {
+      updateCensusLayer();
+    }
 }
 
 function initializeSliders(sliderElement, updateCallback) {
@@ -1119,6 +1162,30 @@ function updateSliderRanges(type, scaleType, skipLayerUpdate = false) {
       order = outlineAmenitiesOrder;
       isInverse = isInverseAmenitiesOutline;
     }
+  } else if (type === 'Census') {
+    if (scaleType === 'Opacity') {
+      field = CensusOpacity.value;
+      rangeElement = CensusOpacityRange;
+      minElement = document.getElementById('opacityRangeCensusMin');
+      maxElement = document.getElementById('opacityRangeCensusMax');
+      hexesData = hexes;
+      order = opacityCensusOrder;
+      isInverse = isInverseCensusOpacity;
+    } else if (scaleType === 'Outline') {
+      field = CensusOutline.value;
+      rangeElement = CensusOutlineRange;
+      minElement = document.getElementById('outlineRangeCensusMin');
+      maxElement = document.getElementById('outlineRangeCensusMax');
+      hexesData = hexes;
+      order = outlineCensusOrder;
+      isInverse = isInverseCensusOutline;
+    }
+  }
+
+  if (!rangeElement || !rangeElement.noUiSlider) {
+    console.error(`Slider not initialized for ${type} ${scaleType}`);
+    isUpdatingSliders = false;
+    return;
   }
 
   if (hexesData) {
@@ -1161,19 +1228,26 @@ function updateSliderRanges(type, scaleType, skipLayerUpdate = false) {
       maxElement.innerText = formatValue(adjustedMaxValue, step);
     }
 
-    configureSlider(rangeElement, type === 'Scores' ? 
-      () => updateScoresLayer(true) : 
-      () => updateAmenitiesCatchmentLayer(true), 
-      isInverse, order);
+    configureSlider(
+      rangeElement,
+      type === 'Scores' ? () => updateScoresLayer(true) :
+      type === 'Amenities' ? () => updateAmenitiesCatchmentLayer(true) :
+      () => updateCensusLayer(),
+      isInverse,
+      order
+    );
   }
 
   isUpdatingSliders = false;
-  
+
+  // Trigger immediate layer update
   if (!skipLayerUpdate) {
-    if (type === 'Scores' && isPanelOpen("Connectivity Scores")) {
+    if (type === 'Scores') {
       updateScoresLayer(true);
-    } else if (type === 'Amenities' && isPanelOpen("Journey Time Catchments - Amenities")) {
+    } else if (type === 'Amenities') {
       updateAmenitiesCatchmentLayer(true);
+    } else if (type === 'Census') {
+      updateCensusLayer();
     }
   }
 }
@@ -1596,6 +1670,83 @@ function updateAmenitiesCatchmentLayer(stylingUpdateOnly = false) {
     updateSummaryStatistics(filteredFeatures);
     highlightSelectedArea();
   });
+}
+
+function updateCensusLayer() {
+  if (!initialLoadComplete || !isPanelOpen("Census / Local Plan Data")) {
+    return;
+  }
+
+  console.log('Updating Census Layer');
+
+  const baseColor = baseColorCensus.value;
+  const opacityField = CensusOpacity.value;
+  const outlineField = CensusOutline.value;
+
+  if (ScoresLayer) {
+    map.removeLayer(ScoresLayer);
+    ScoresLayer = null;
+  }
+
+  if (AmenitiesCatchmentLayer) {
+    map.removeLayer(AmenitiesCatchmentLayer);
+    AmenitiesCatchmentLayer = null;
+  }
+
+  if (CensusLayer) {
+    map.removeLayer(CensusLayer);
+    CensusLayer = null;
+  }
+
+  const minOpacityValue = CensusOpacityRange && CensusOpacityRange.noUiSlider ? 
+    parseFloat(CensusOpacityRange.noUiSlider.get()[0]) : 0;
+  const maxOpacityValue = CensusOpacityRange && CensusOpacityRange.noUiSlider ? 
+    parseFloat(CensusOpacityRange.noUiSlider.get()[1]) : 0;
+  const minOutlineValue = CensusOutlineRange && CensusOutlineRange.noUiSlider ? 
+    parseFloat(CensusOutlineRange.noUiSlider.get()[0]) : 0;
+  const maxOutlineValue = CensusOutlineRange && CensusOutlineRange.noUiSlider ? 
+    parseFloat(CensusOutlineRange.noUiSlider.get()[1]) : 0;
+
+  CensusLayer = L.geoJSON(hexes, {
+    style: function(feature) {
+      let opacity;
+      if (opacityField === 'None') {
+        opacity = 0.5;
+      } else {
+        const opacityValue = feature.properties[opacityField];
+        if (opacityValue === 0 || opacityValue === null || opacityValue === undefined) {
+          opacity = isInverseCensusOpacity ? 0.8 : 0.1;
+        } else {
+          opacity = scaleExp(opacityValue, minOpacityValue, maxOpacityValue, 0.1, 0.8, opacityCensusOrder);
+        }
+      }
+
+      let weight;
+      if (outlineField === 'None') {
+        weight = 0;
+      } else {
+        const outlineValue = feature.properties[outlineField];
+        if (outlineValue === 0 || outlineValue === null || outlineValue === undefined || outlineValue === '') {
+          weight = 0;
+        } else {
+          weight = scaleExp(outlineValue, minOutlineValue, maxOutlineValue, 0, 4, outlineCensusOrder);
+        }
+      }
+
+      return {
+        fillColor: baseColor,
+        weight: weight,
+        opacity: 1,
+        color: 'black',
+        fillOpacity: opacity
+      };
+    }
+  }).addTo(map);
+
+  updateLegend();
+  updateFilterValues();
+  updateSummaryStatistics(hexes.features);
+  highlightSelectedArea();
 }
 
 function updateFilterValues() {
