@@ -560,6 +560,70 @@
         </select>
       </div>
     </div>-->
+    <div id="Census" class="panel">
+      <button class="panel-header">Census / Local Plan Data</button>
+      <div id="panel-content">
+        <label for="baseColorCensus" class="large-font">Base Color:</label>
+        <select id="baseColorCensus" class="medium-font">
+          <option value="#1f77b4">Blue</option>
+          <option value="#ff7f0e">Orange</option>
+          <option value="#2ca02c">Green</option>
+          <option value="#d62728">Red</option>
+          <option value="#9467bd">Purple</option>
+          <option value="#8c564b">Brown</option>
+          <option value="#e377c2">Pink</option>
+          <option value="#7f7f7f">Gray</option>
+        </select>
+        <br>
+        <label for="opacityFieldCensusDropdown" class="large-font">Hexagon Transparency</label>
+        <select id="opacityFieldCensusDropdown" class="medium-font">
+          <option value="None">-</option>
+          <option value="pop">Population</option>
+          <option value="IMDScore">Index of Multiple Deprivation - Score</option>
+          <option value="car_availability">Car Availability</option>
+          <option value="pop_growth">Population Growth</option>
+        </select>
+        <br>
+        <div class="field-container">
+          <div>
+            <div id="opacityRangeCensusSlider"></div>
+            <div class="slider-labels">
+              <span id="opacityRangeCensusMin"></span>
+              <span id="opacityRangeCensusMax"></span>
+            </div>
+          </div>
+        </div>
+        <div class="field-container">
+          <div class="button-container">
+            <button id="inverseOpacityScaleCensusButton" class="small-button">Inverse Scale</button>
+          </div>
+        </div>
+        <br>
+        <label for="outlineFieldCensusDropdown" class="large-font">Hexagon Outline</label>
+        <select id="outlineFieldCensusDropdown" class="medium-font">
+          <option value="None">-</option>
+          <option value="IMDScore">Index of Multiple Deprivation - Score</option>
+          <option value="pop">Population</option>
+          <option value="car_availability">Car Availability</option>
+          <option value="pop_growth">Population Growth</option>
+        </select>
+        <br>
+        <div class="field-container">
+          <div>
+            <div id="outlineRangeCensusSlider"></div>
+            <div class="slider-labels">
+              <span id="outlineRangeCensusMin"></span>
+              <span id="outlineRangeCensusMax"></span>
+            </div>
+          </div>
+        </div>
+        <div class="field-container">
+          <div class="button-container">
+            <button id="inverseOutlineScaleCensusButton" class="small-button">Inverse Scale</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
   <div id="legend">
     <h4 style="font-size: 1.2em; margin-top: 0;">Legend</h4>
