@@ -720,11 +720,11 @@ map.on('click', function (e) {
 
   const content = `
     <div>
-      <h4>Geographies</h4>
+      <h4 style="text-decoration: underline;">Geographies</h4>
       ${popupContent.Geographies.length > 0 ? popupContent.Geographies.join('<br>') : '-'}
-      <h4>Amenities</h4>
+      <h4 style="text-decoration: underline;">Amenities</h4>
       ${popupContent.Amenities.length > 0 ? popupContent.Amenities.join('<br>') : '-'}
-      <h4>Hexagon</h4>
+      <h4 style="text-decoration: underline;">Hexagon</h4>
       ${popupContent.Hexagon.length > 0 ? popupContent.Hexagon.join('<br>') : '-'}
     </div>
   `;
