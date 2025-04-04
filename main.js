@@ -1516,7 +1516,14 @@ function updateAmenitiesCatchmentLayer(stylingUpdateOnly = false) {
   if (!initialLoadComplete || !isPanelOpen("Journey Time Catchments - Amenities")) {
     return;
   }
-    
+
+  const selectedYear = AmenitiesYear.value;
+  const selectedMode = AmenitiesMode.value;
+  if (AmenitiesCatchmentLayer && AmenitiesCatchmentLayer._currentMode !== selectedMode) {
+    // Force a full redraw if the mode has changed
+    stylingUpdateOnly = false;
+  }
+
   if (stylingUpdateOnly && AmenitiesCatchmentLayer) {
     const minOpacityValue = AmenitiesOpacityRange && AmenitiesOpacityRange.noUiSlider ? 
       parseFloat(AmenitiesOpacityRange.noUiSlider.get()[0]) : 0;
@@ -1591,9 +1598,6 @@ function updateAmenitiesCatchmentLayer(stylingUpdateOnly = false) {
     map.removeLayer(ScoresLayer);
     ScoresLayer = null;
   }
-
-  const selectedYear = AmenitiesYear.value;
-  const selectedMode = AmenitiesMode.value;
 
   if (!selectedYear || !selectedMode || selectedAmenitiesAmenities.length === 0) {
     if (AmenitiesCatchmentLayer) {
@@ -1716,7 +1720,9 @@ function updateAmenitiesCatchmentLayer(stylingUpdateOnly = false) {
         };
       },
     }).addTo(map);
-    
+
+    AmenitiesCatchmentLayer._currentMode = selectedMode;
+
     drawSelectedAmenities(selectedAmenitiesAmenities);
     updateLegend();
     updateFeatureVisibility();
@@ -1805,7 +1811,46 @@ function updateCensusLayer() {
 function updateFilterValues() {
   console.log('updateFilterValues');
   const currentFilterType = filterTypeDropdown.value;
-  const currentFilterValue = filterValueDropdown.value;
+  
+  let filterValueButton = document.getElementById('filterValueButton');
+  if (!filterValueButton) {
+    if (filterValueDropdown.parentNode) {
+      const dropdownButton = document.createElement('button');
+      dropdownButton.type = 'button';
+      dropdownButton.className = 'dropdown-toggle';
+      dropdownButton.id = 'filterValueButton';
+      dropdownButton.textContent = '';
+      dropdownButton.style.minHeight = '28px';
+      const dropdownContainer = document.createElement('div');
+      dropdownContainer.className = 'dropdown';
+      dropdownContainer.style.width = '100%';
+      
+      const dropdownMenu = document.createElement('div');
+      dropdownMenu.className = 'dropdown-menu';
+      dropdownMenu.id = 'filterValueContainer';
+      dropdownMenu.style.width = '100%';
+      dropdownMenu.style.boxSizing = 'border-box';
+      
+      dropdownContainer.appendChild(dropdownButton);
+      dropdownContainer.appendChild(dropdownMenu);
+      
+      filterValueDropdown.parentNode.replaceChild(dropdownContainer, filterValueDropdown);
+      
+      dropdownButton.addEventListener('click', () => {
+        dropdownMenu.classList.toggle('show');
+      });
+      
+      window.addEventListener('click', (event) => {
+        if (!event.target.matches('#filterValueButton') && !event.target.closest('#filterValueContainer')) {
+          dropdownMenu.classList.remove('show');
+        }
+      });
+    }
+  }
+  
+  const filterValueContainer = document.getElementById('filterValueContainer');
+  filterValueContainer.innerHTML = '';
+  filterValueButton = document.getElementById('filterValueButton');
 
   let options = [];
 
@@ -1839,34 +1884,169 @@ function updateFilterValues() {
     options = options.concat(uaOptions);
   }
 
-  filterValueDropdown.innerHTML = options.map(option => `<option value="${option}">${option}</option>`).join('');
+  const selectAllLabel = document.createElement('label');
+  selectAllLabel.className = 'checkbox-label';
+  
+  const selectAllCheckbox = document.createElement('input');
+  selectAllCheckbox.type = 'checkbox';
+  selectAllCheckbox.id = 'select-all-filter';
+  selectAllCheckbox.checked = false;
+  
+  const selectAllSpan = document.createElement('span');
+  selectAllSpan.innerHTML = '<i>Select/Deselect All</i>';
+  
+  selectAllLabel.appendChild(selectAllCheckbox);
+  selectAllLabel.appendChild(selectAllSpan);
+  filterValueContainer.appendChild(selectAllLabel);
 
-  if (options.includes(currentFilterValue)) {
-    filterValueDropdown.value = currentFilterValue;
+  const checkboxes = [];
+  options.forEach((option, index) => {
+    const label = document.createElement('label');
+    label.className = 'checkbox-label';
+    
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.id = `filter-${option.replace(/\s+/g, '-').replace(/[^\w-]/g, '')}`;
+    checkbox.value = option;
+    checkbox.checked = index === 0;
+    checkbox.className = 'filter-value-checkbox';
+    checkboxes.push(checkbox);
+    
+    const span = document.createElement('span');
+    span.textContent = option;
+    
+    label.appendChild(checkbox);
+    label.appendChild(span);
+    filterValueContainer.appendChild(label);
+    
+    checkbox.addEventListener('change', function() {
+      updateFilterButtonText();
+      updateSummaryStatistics(getCurrentFeatures());
+      if (document.getElementById('highlightAreaCheckbox').checked) {
+        highlightSelectedArea();
+      }
+    });
+  });
+  
+  selectAllCheckbox.addEventListener('change', function() {
+    const isChecked = this.checked;
+    checkboxes.forEach(cb => cb.checked = isChecked);
+    updateFilterButtonText();
+    updateSummaryStatistics(getCurrentFeatures());
+    if (document.getElementById('highlightAreaCheckbox').checked) {
+      highlightSelectedArea();
+    }
+  });
+  
+  function updateFilterButtonText() {
+    const selectedValues = checkboxes
+      .filter(cb => cb.checked)
+      .map(cb => cb.value);
+    
+    if (selectedValues.length === 0) {
+      filterValueButton.textContent = '\u00A0';
+      filterValueButton.style.minHeight = '28px';
+    } else {
+      filterValueButton.textContent = selectedValues.join(', ');
+    }
   }
+  updateFilterButtonText();
 }
 
 function updateSummaryStatistics(features) {
   console.log('updateSummaryStatistics');
   
+  const filterValueContainer = document.getElementById('filterValueContainer');
+  if (filterValueContainer) {
+    const selectedValues = Array.from(filterValueContainer.querySelectorAll('.filter-value-checkbox:checked'))
+      .map(checkbox => checkbox.value);
+    
+    if (selectedValues.length === 0) {
+      displayEmptyStatistics();
+      return;
+    }
+  }
+  
   const filteredFeatures = applyFilters(features);
   
+  if (!filteredFeatures || filteredFeatures.length === 0) {
+    displayEmptyStatistics();
+    return;
+  }
   const stats = calculateStatistics(filteredFeatures);
-  
   updateStatisticsUI(stats);
+}
+
+function displayEmptyStatistics() {
+  document.getElementById('total-population').textContent = '-';
+  document.getElementById('min-population').textContent = '-';
+  document.getElementById('max-population').textContent = '-';
+  document.getElementById('avg-imd-score').textContent = '-';
+  document.getElementById('min-imd-score').textContent = '-';
+  document.getElementById('max-imd-score').textContent = '-';
+  document.getElementById('avg-imd-decile').textContent = '-';
+  document.getElementById('min-imd-decile').textContent = '-';
+  document.getElementById('max-imd-decile').textContent = '-';
+  document.getElementById('avg-car-availability').textContent = '-';
+  document.getElementById('min-car-availability').textContent = '-';
+  document.getElementById('max-car-availability').textContent = '-';
+  document.getElementById('total-growth-pop').textContent = '-';
+  document.getElementById('min-growth-pop').textContent = '-';
+  document.getElementById('max-growth-pop').textContent = '-';
+  document.getElementById('avg-score').textContent = '-';
+  document.getElementById('min-score').textContent = '-';
+  document.getElementById('max-score').textContent = '-';
+  document.getElementById('avg-percentile').textContent = '-';
+  document.getElementById('min-percentile').textContent = '-';
+  document.getElementById('max-percentile').textContent = '-';
 }
 
 function applyFilters(features) {
   const filterType = filterTypeDropdown.value;
-  const filterValue = filterValueDropdown.value;
   
   let filteredFeatures = features.length ? features : hexes.features;
   
   if (filterType === 'Range') {
-    filteredFeatures = applyRangeFilter(filteredFeatures, filterValue);
+    const filterValueContainer = document.getElementById('filterValueContainer');
+    if (!filterValueContainer) return filteredFeatures;
+    
+    const selectedValues = Array.from(filterValueContainer.querySelectorAll('.filter-value-checkbox:checked'))
+      .map(checkbox => checkbox.value);
+    
+    if (selectedValues.length === 0) return [];
+    
+    const combinedFeatures = [];
+    selectedValues.forEach(filterValue => {
+      const rangeFiltered = applyRangeFilter(filteredFeatures, filterValue);
+      rangeFiltered.forEach(feature => {
+        if (!combinedFeatures.includes(feature)) {
+          combinedFeatures.push(feature);
+        }
+      });
+    });
+    
+    filteredFeatures = combinedFeatures;
   } 
   else if (['Ward', 'GrowthZone', 'LA'].includes(filterType)) {
-    filteredFeatures = applyGeographicFilter(filteredFeatures, filterType, filterValue);
+    const filterValueContainer = document.getElementById('filterValueContainer');
+    if (!filterValueContainer) return filteredFeatures;
+    
+    const selectedValues = Array.from(filterValueContainer.querySelectorAll('.filter-value-checkbox:checked'))
+      .map(checkbox => checkbox.value);
+    
+    if (selectedValues.length === 0) return [];
+    
+    const combinedFeatures = [];
+    selectedValues.forEach(filterValue => {
+      const geographicFiltered = applyGeographicFilter(filteredFeatures, filterType, filterValue);
+      geographicFiltered.forEach(feature => {
+        if (!combinedFeatures.some(f => f.properties.Hex_ID === feature.properties.Hex_ID)) {
+          combinedFeatures.push(feature);
+        }
+      });
+    });
+    
+    filteredFeatures = combinedFeatures;
   }
   
   return filteredFeatures;
@@ -1897,18 +2077,24 @@ function applyGeographicFilter(features, filterType, filterValue) {
     let polygon = null;
     
     if (filterType === 'Ward') {
+      if (!wardBoundariesLayer) return null;
+      
       const wardLayer = wardBoundariesLayer.getLayers().find(layer => 
         layer.feature.properties.WD24NM === filterValue
       );
       polygon = wardLayer?.toGeoJSON();
     } 
     else if (filterType === 'GrowthZone') {
+      if (!GrowthZonesLayer) return null;
+      
       const growthZoneLayer = GrowthZonesLayer.getLayers().find(layer => 
         layer.feature.properties.Name === filterValue
       );
       polygon = growthZoneLayer?.toGeoJSON();
     }
     else if (filterType === 'LA') {
+      if (!uaBoundariesLayer) return null;
+      
       if (filterValue === 'MCA') {
         const mcaLayers = uaBoundariesLayer.getLayers().filter(layer => 
           layer.feature.properties.LAD24NM !== 'North Somerset'
@@ -2199,27 +2385,52 @@ function highlightSelectedArea() {
     return;
   }
   const filterType = filterTypeDropdown.value;
-  const filterValue = filterValueDropdown.value;
+  
+  const filterValueContainer = document.getElementById('filterValueContainer');
+  if (!filterValueContainer) return;
+  
+  const selectedValues = Array.from(filterValueContainer.querySelectorAll('.filter-value-checkbox:checked'))
+    .map(checkbox => checkbox.value);
+  
+  if (selectedValues.length === 0) {
+    if (highlightLayer) {
+      map.removeLayer(highlightLayer);
+      highlightLayer = null;
+    }
+    return;
+  }
 
   let selectedPolygons = [];
 
   if (filterType === 'Ward') {
-    const wardLayers = wardBoundariesLayer.getLayers().filter(layer => layer.feature.properties.WD24NM === filterValue);
-    selectedPolygons = wardLayers.map(layer => layer.toGeoJSON());
+    if (!wardBoundariesLayer) return;
+    
+    selectedValues.forEach(filterValue => {
+      const wardLayers = wardBoundariesLayer.getLayers().filter(layer => layer.feature.properties.WD24NM === filterValue);
+      selectedPolygons = [...selectedPolygons, ...wardLayers.map(layer => layer.toGeoJSON())];
+    });
   } else if (filterType === 'GrowthZone') {
-    const growthZoneLayers = GrowthZonesLayer.getLayers().filter(layer => layer.feature.properties.Name === filterValue);
-    selectedPolygons = growthZoneLayers.map(layer => layer.toGeoJSON());
+    if (!GrowthZonesLayer) return;
+    
+    selectedValues.forEach(filterValue => {
+      const growthZoneLayers = GrowthZonesLayer.getLayers().filter(layer => layer.feature.properties.Name === filterValue);
+      selectedPolygons = [...selectedPolygons, ...growthZoneLayers.map(layer => layer.toGeoJSON())];
+    });
   } else if (filterType === 'LA') {
-    if (filterValue === 'MCA') {
-      const mcaLayers = uaBoundariesLayer.getLayers().filter(layer => layer.feature.properties.LAD24NM !== 'North Somerset');
-      selectedPolygons = mcaLayers.map(layer => layer.toGeoJSON());
-    } else if (filterValue === 'LEP') {
-      const lepLayers = uaBoundariesLayer.getLayers();
-      selectedPolygons = lepLayers.map(layer => layer.toGeoJSON());
-    } else {
-      const uaLayers = uaBoundariesLayer.getLayers().filter(layer => layer.feature.properties.LAD24NM === filterValue);
-      selectedPolygons = uaLayers.map(layer => layer.toGeoJSON());
-    }
+    if (!uaBoundariesLayer) return;
+    
+    selectedValues.forEach(filterValue => {
+      if (filterValue === 'MCA') {
+        const mcaLayers = uaBoundariesLayer.getLayers().filter(layer => layer.feature.properties.LAD24NM !== 'North Somerset');
+        selectedPolygons = [...selectedPolygons, ...mcaLayers.map(layer => layer.toGeoJSON())];
+      } else if (filterValue === 'LEP') {
+        const lepLayers = uaBoundariesLayer.getLayers();
+        selectedPolygons = [...selectedPolygons, ...lepLayers.map(layer => layer.toGeoJSON())];
+      } else {
+        const uaLayers = uaBoundariesLayer.getLayers().filter(layer => layer.feature.properties.LAD24NM === filterValue);
+        selectedPolygons = [...selectedPolygons, ...uaLayers.map(layer => layer.toGeoJSON())];
+      }
+    });
   }
 
   if (selectedPolygons.length > 0) {
