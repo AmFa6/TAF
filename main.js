@@ -663,10 +663,11 @@ map.on('click', function (e) {
           const imdDecile = formatValue(properties.IMD_Decile, 1);
           const carAvailability = formatValue(properties.car_availability, 0.01);
           const growthPop = formatValue(properties.pop_growth, 1);
-  
+          const scoreLabel = selectedYear.includes('-') ? 'Score Difference' : 'Score';
+
           popupContent.Hexagon.push(`
             <strong>Hex_ID:</strong> ${properties.Hex_ID}<br>
-            <strong>Score:</strong> ${score}<br>
+            <strong>${scoreLabel}:</strong> ${score}<br>
             <strong>Percentile:</strong> ${percentile}<br>
             <strong>Population:</strong> ${population}<br>
             <strong>IMD Score:</strong> ${imdScore}<br>
