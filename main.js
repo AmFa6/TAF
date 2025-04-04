@@ -24,28 +24,16 @@ function convertMultiPolygonToPolygons(geoJson) {
       });
       
       parts.sort((a, b) => b.area - a.area);
-            
-      if (name === 'North Somerset' || name === 'South Gloucestershire') {
-        features.push({
-          type: 'Feature',
-          geometry: {
-            type: 'Polygon',
-            coordinates: parts[0].coords
-          },
-          properties: feature.properties
-        });
-      } else {
-        feature.geometry.coordinates.forEach(polygonCoords => {
-          features.push({
-            type: 'Feature',
-            geometry: {
-              type: 'Polygon',
-              coordinates: polygonCoords
-            },
-            properties: feature.properties
-          });
-        });
-      }
+      
+      // Keep only the largest part for all features
+      features.push({
+        type: 'Feature',
+        geometry: {
+          type: 'Polygon',
+          coordinates: parts[0].coords
+        },
+        properties: feature.properties
+      });
     } else {
       features.push(feature);
     }
