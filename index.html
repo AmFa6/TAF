@@ -259,7 +259,6 @@
       display: inline-block;
       margin-right: 10px;
     }
-
     .checkbox-container input[type="checkbox"] {
       width: auto;
       margin: 0;
@@ -281,12 +280,17 @@
       font-size: 1em;
       text-align: left;
       cursor: pointer;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     .dropdown-menu {
       display: none;
       position: absolute;
       background-color: white;
       min-width: 100%;
+      max-height: 300px;
+      overflow-y: auto;
       box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
       z-index: 1001;
       padding: 10px;
@@ -296,6 +300,9 @@
     .dropdown-menu label {
       display: block;
       margin-bottom: 5px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     .dropdown-menu input {
       margin-right: 5px;
@@ -660,6 +667,7 @@
         </div>
       </div>
       <select id="filterValueDropdown" class="small-font" style="width: 100%; margin-bottom: 10px; margin-top: 2px;"></select>  
+      <div style="margin-bottom: 15px;"></div>
       <table id="summary-table">
         <thead>
           <tr>
