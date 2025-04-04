@@ -25,7 +25,6 @@ function convertMultiPolygonToPolygons(geoJson) {
       
       parts.sort((a, b) => b.area - a.area);
       
-      // Keep only the largest part for all features
       features.push({
         type: 'Feature',
         geometry: {
@@ -1508,7 +1507,6 @@ function updateAmenitiesCatchmentLayer(stylingUpdateOnly = false) {
   const selectedYear = AmenitiesYear.value;
   const selectedMode = AmenitiesMode.value;
   if (AmenitiesCatchmentLayer && AmenitiesCatchmentLayer._currentMode !== selectedMode) {
-    // Force a full redraw if the mode has changed
     stylingUpdateOnly = false;
   }
 
