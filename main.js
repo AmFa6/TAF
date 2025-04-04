@@ -907,16 +907,21 @@ function scaleExp(value, minVal, maxVal, minScale, maxScale, order) {
 }
 
 function formatValue(value, step) {
+  if (value === null || value === undefined || isNaN(value)) {
+    return '-';
+  }
+  
   if (step >= 10) {
-    return Math.round(value / 10) * 10;
+    return Math.round(value / 10) * 10 !== 0 ? Math.round(value / 10) * 10 
+      .toLocaleString() : '0';
   } else if (step >= 1) {
-    return parseFloat(value).toFixed(0).toLocaleString();
+    return parseFloat(value).toLocaleString(undefined, { maximumFractionDigits: 0 });
   } else if (step >= 0.1) {
-    return parseFloat(value).toFixed(1).toLocaleString();
+    return parseFloat(value).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
   } else if (step >= 0.01) {
-    return parseFloat(value).toFixed(2).toLocaleString();
+    return parseFloat(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   } else {
-    return value.toString();
+    return parseFloat(value).toString();
   }
 }
 
@@ -2012,10 +2017,10 @@ function calculateScoreStatistics(features) {
 
   return {
     avgScore: calculateWeightedAverage(metrics.score, metrics.population),
-    minScore: Math.min(...metrics.score.filter(val => val > 0), Infinity) || 0,
-    maxScore: Math.max(...metrics.score, 0),
+    minScore: Math.min(...metrics.score),
+    maxScore: Math.max(...metrics.score),
     avgPercentile: calculateWeightedAverage(metrics.percentile, metrics.population),
-    minPercentile: Math.min(...metrics.percentile.filter(val => val > 0), Infinity) || 0,
+    minPercentile: Math.min(...metrics.percentile, 0),
     maxPercentile: Math.max(...metrics.percentile, 0),
     metricRow1: 'Score',
     metricRow2: 'Score Percentile',
@@ -2096,33 +2101,50 @@ function updateStatisticsUI(stats) {
 }
 
 function filterByScoreDifference(features, fieldToDisplay, filterValue) {
-  if (filterValue.includes('=') || filterValue.includes('>') || filterValue.includes('<')) {
-    const rangePattern = /([<>]=?)?\s*(-?\d+(\.\d+)?%?)/g;
-    const ranges = [];
-    let match;
-    
-    while ((match = rangePattern.exec(filterValue)) !== null) {
-      ranges.push({ 
-        operator: match[1], 
-        value: parseFloat(match[2].replace('%', '')) / 100 
-      });
-    }
-
+  if (filterValue === '= 0') {
     return features.filter(feature => {
       const value = feature.properties[fieldToDisplay];
-      return ranges.every(range => {
-        if (range.operator === '<=') return value <= range.value;
-        if (range.operator === '>=') return value >= range.value;
-        if (range.operator === '<') return value < range.value;
-        if (range.operator === '>') return value > range.value;
-        return value === range.value;
-      });
+      return Math.abs(value) < 0.0001;
     });
-  } else if (filterValue === '= 0') {
-    return features.filter(feature => 
-      feature.properties[fieldToDisplay] === 0
-    );
   }
+  
+  if (filterValue.includes('<=') || filterValue.includes('>=') || filterValue.includes('>') || filterValue.includes('<')) {
+    let min = -Infinity;
+    let max = Infinity;
+    
+    if (filterValue.includes('<=')) {
+      max = parseFloat(filterValue.split('<=')[1].replace('%', '')) / 100;
+    }
+    if (filterValue.includes('>=')) {
+      min = parseFloat(filterValue.split('>=')[1].replace('%', '')) / 100;
+    }
+    if (filterValue.includes('>') && !filterValue.includes('>=')) {
+      const value = parseFloat(filterValue.split('>')[1].split('and')[0].replace('%', '')) / 100;
+      min = Number.isNaN(value) ? -Infinity : value;
+    }
+    if (filterValue.includes('<') && !filterValue.includes('<=')) {
+      const value = parseFloat(filterValue.split('<')[1].split('and')[0].replace('%', '')) / 100;
+      max = Number.isNaN(value) ? Infinity : value;
+    }
+    
+    if (filterValue.includes('and')) {
+      if (filterValue.includes('>') && filterValue.includes('<=')) {
+        min = parseFloat(filterValue.split('>')[1].split('and')[0].replace('%', '')) / 100;
+        max = parseFloat(filterValue.split('<=')[1].replace('%', '')) / 100;
+      } else if (filterValue.includes('>=') && filterValue.includes('<')) {
+        min = parseFloat(filterValue.split('>=')[1].split('and')[0].replace('%', '')) / 100;
+        max = parseFloat(filterValue.split('<')[1].replace('%', '')) / 100;
+      }
+    }
+    
+    return features.filter(feature => {
+      const value = feature.properties[fieldToDisplay];
+      const isAboveMin = min === -Infinity || value > min;
+      const isBelowMax = max === Infinity || value <= max;
+      return isAboveMin && isBelowMax;
+    });
+  }
+  
   return features;
 }
 
