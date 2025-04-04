@@ -654,7 +654,7 @@ map.on('click', function (e) {
           const selectedPurpose = ScoresPurpose.value;
           const selectedMode = ScoresMode.value;
           const fieldToDisplay = selectedYear.includes('-') ? `${selectedPurpose}_${selectedMode}` : `${selectedPurpose}_${selectedMode}_100`;
-
+  
           const scoreValue = properties[fieldToDisplay];
           const score = selectedYear.includes('-') ? `${(scoreValue * 100).toFixed(1)}%` : formatValue(scoreValue, 1);
           const percentile = formatValue(properties[`${selectedPurpose}_${selectedMode}_100`], 1);
@@ -663,7 +663,7 @@ map.on('click', function (e) {
           const imdDecile = formatValue(properties.IMD_Decile, 1);
           const carAvailability = formatValue(properties.car_availability, 0.01);
           const growthPop = formatValue(properties.pop_growth, 1);
-
+  
           popupContent.Hexagon.push(`
             <strong>Hex_ID:</strong> ${properties.Hex_ID}<br>
             <strong>Score:</strong> ${score}<br>
@@ -681,7 +681,7 @@ map.on('click', function (e) {
           const imdDecile = formatValue(properties.IMD_Decile, 1);
           const carAvailability = formatValue(properties.car_availability, 0.01);
           const growthPop = formatValue(properties.pop_growth, 1);
-
+  
           popupContent.Hexagon.push(`
             <strong>Hex_ID:</strong> ${properties.Hex_ID}<br>
             <strong>Journey Time:</strong> ${time} minutes<br>
@@ -692,6 +692,27 @@ map.on('click', function (e) {
             <strong>Population Growth:</strong> ${growthPop}
           `);
         }
+      }
+    });
+  } else if (hexes) {
+    hexes.features.forEach(feature => {
+      const polygon = turf.polygon(feature.geometry.coordinates);
+      if (turf.booleanPointInPolygon(clickedPoint, polygon)) {
+        const properties = feature.properties;
+        const population = formatValue(properties.pop, 1);
+        const imdScore = formatValue(properties.IMDScore, 0.1);
+        const imdDecile = formatValue(properties.IMD_Decile, 1);
+        const carAvailability = formatValue(properties.car_availability, 0.01);
+        const growthPop = formatValue(properties.pop_growth, 1);
+  
+        popupContent.Hexagon.push(`
+          <strong>Hex_ID:</strong> ${properties.Hex_ID}<br>
+          <strong>Population:</strong> ${population}<br>
+          <strong>IMD Score:</strong> ${imdScore}<br>
+          <strong>IMD Decile:</strong> ${imdDecile}<br>
+          <strong>Car Availability:</strong> ${carAvailability}<br>
+          <strong>Population Growth:</strong> ${growthPop}
+        `);
       }
     });
   }
@@ -1267,7 +1288,6 @@ function updateSliderRanges(type, scaleType, skipLayerUpdate = false) {
 
   isUpdatingSliders = false;
 
-  // Trigger immediate layer update
   if (!skipLayerUpdate) {
     if (type === 'Scores') {
       updateScoresLayer(true);
@@ -1822,62 +1842,119 @@ function updateFilterValues() {
 
 function updateSummaryStatistics(features) {
   console.log('updateSummaryStatistics');
+  
+  const filteredFeatures = applyFilters(features);
+  
+  const stats = calculateStatistics(filteredFeatures);
+  
+  updateStatisticsUI(stats);
+}
+
+function applyFilters(features) {
   const filterType = filterTypeDropdown.value;
   const filterValue = filterValueDropdown.value;
   
-  let filteredHexes = hexes.features;
+  let filteredFeatures = features.length ? features : hexes.features;
   
   if (filterType === 'Range') {
-    // Range filtering only applies to layer data, not to hexes
-    filteredHexes = hexes.features;
-  } else if (filterType === 'Ward') {
-    const wardLayer = wardBoundariesLayer.getLayers().find(layer => layer.feature.properties.WD24NM === filterValue);
-    if (wardLayer) {
-      const wardPolygon = wardLayer.toGeoJSON();
-      filteredHexes = hexes.features.filter(feature => {
-        const hexPolygon = turf.polygon(feature.geometry.coordinates);
-        return turf.booleanPointInPolygon(turf.center(hexPolygon), wardPolygon);
-      });
-    }
-  } else if (filterType === 'GrowthZone') {
-    const growthZoneLayer = GrowthZonesLayer.getLayers().find(layer => layer.feature.properties.Name === filterValue);
-    if (growthZoneLayer) {
-      const growthZonePolygon = growthZoneLayer.toGeoJSON();
-      filteredHexes = hexes.features.filter(feature => {
-        const hexPolygon = turf.polygon(feature.geometry.coordinates);
-        return turf.booleanPointInPolygon(turf.center(hexPolygon), growthZonePolygon);
-      });
-    }
-  } else if (filterType === 'LA') {
-    let mergedPolygon;
-    if (filterValue === 'MCA') {
-      const mcaLayers = uaBoundariesLayer.getLayers().filter(layer => layer.feature.properties.LAD24NM !== 'North Somerset');
-      mergedPolygon = mcaLayers.reduce((acc, layer) => {
-        const polygon = layer.toGeoJSON();
-        return acc ? turf.union(acc, polygon) : polygon;
-      }, null);
-    } else if (filterValue === 'LEP') {
-      const lepLayers = uaBoundariesLayer.getLayers();
-      mergedPolygon = lepLayers.reduce((acc, layer) => {
-        const polygon = layer.toGeoJSON();
-        return acc ? turf.union(acc, polygon) : polygon;
-      }, null);
+    filteredFeatures = applyRangeFilter(filteredFeatures, filterValue);
+  } 
+  else if (['Ward', 'GrowthZone', 'LA'].includes(filterType)) {
+    filteredFeatures = applyGeographicFilter(filteredFeatures, filterType, filterValue);
+  }
+  
+  return filteredFeatures;
+}
+
+function applyRangeFilter(features, filterValue) {
+  if (ScoresLayer) {
+    const selectedYear = ScoresYear.value;
+    const fieldToDisplay = selectedYear.includes('-') ? 
+      `${ScoresPurpose.value}_${ScoresMode.value}` : 
+      `${ScoresPurpose.value}_${ScoresMode.value}_100`;
+    
+    if (selectedYear.includes('-')) {
+      return filterByScoreDifference(features, fieldToDisplay, filterValue);
     } else {
-      const uaLayer = uaBoundariesLayer.getLayers().find(layer => layer.feature.properties.LAD24NM === filterValue);
-      if (uaLayer) {
-        mergedPolygon = uaLayer.toGeoJSON();
+      return filterByPercentileRange(features, fieldToDisplay, filterValue);
+    }
+  } 
+  else if (AmenitiesCatchmentLayer) {
+    return filterByJourneyTime(features, filterValue);
+  }
+  
+  return features;
+}
+
+function applyGeographicFilter(features, filterType, filterValue) {
+  const getPolygonForFilter = () => {
+    let polygon = null;
+    
+    if (filterType === 'Ward') {
+      const wardLayer = wardBoundariesLayer.getLayers().find(layer => 
+        layer.feature.properties.WD24NM === filterValue
+      );
+      polygon = wardLayer?.toGeoJSON();
+    } 
+    else if (filterType === 'GrowthZone') {
+      const growthZoneLayer = GrowthZonesLayer.getLayers().find(layer => 
+        layer.feature.properties.Name === filterValue
+      );
+      polygon = growthZoneLayer?.toGeoJSON();
+    }
+    else if (filterType === 'LA') {
+      if (filterValue === 'MCA') {
+        const mcaLayers = uaBoundariesLayer.getLayers().filter(layer => 
+          layer.feature.properties.LAD24NM !== 'North Somerset'
+        );
+        polygon = mcaLayers.reduce((acc, layer) => {
+          const poly = layer.toGeoJSON();
+          return acc ? turf.union(acc, poly) : poly;
+        }, null);
+      } 
+      else if (filterValue === 'LEP') {
+        const lepLayers = uaBoundariesLayer.getLayers();
+        polygon = lepLayers.reduce((acc, layer) => {
+          const poly = layer.toGeoJSON();
+          return acc ? turf.union(acc, poly) : poly;
+        }, null);
+      } 
+      else {
+        const uaLayer = uaBoundariesLayer.getLayers().find(layer => 
+          layer.feature.properties.LAD24NM === filterValue
+        );
+        polygon = uaLayer?.toGeoJSON();
       }
     }
+    
+    return polygon;
+  };
+  
+  const polygon = getPolygonForFilter();
+  if (!polygon) return features;
+  
+  return features.filter(feature => {
+    const hexPolygon = turf.polygon(feature.geometry.coordinates);
+    return turf.booleanPointInPolygon(turf.center(hexPolygon), polygon);
+  });
+}
 
-    if (mergedPolygon) {
-      filteredHexes = hexes.features.filter(feature => {
-        const hexPolygon = turf.polygon(feature.geometry.coordinates);
-        return turf.booleanPointInPolygon(turf.center(hexPolygon), mergedPolygon);
-      });
-    }
+function calculateStatistics(features) {
+  const baseStats = calculateBaseStatistics(features);
+  
+  let layerStats = {};
+  
+  if (ScoresLayer) {
+    layerStats = calculateScoreStatistics(features);
+  } else if (AmenitiesCatchmentLayer) {
+    layerStats = calculateTimeStatistics(features);
   }
+  
+  return {...baseStats, ...layerStats};
+}
 
-  const socioeconomicMetrics = {
+function calculateBaseStatistics(features) {
+  const metrics = {
     population: [],
     imd_score: [],
     imd_decile: [],
@@ -1885,198 +1962,192 @@ function updateSummaryStatistics(features) {
     growthpop: []
   };
 
-  filteredHexes.forEach(feature => {
-    const properties = feature.properties;
-    socioeconomicMetrics.population.push(properties.pop || 0);
-    socioeconomicMetrics.imd_score.push(properties.IMDScore || 0);
-    socioeconomicMetrics.imd_decile.push(properties.IMD_Decile || 0);
-    socioeconomicMetrics.carAvailability.push(properties.car_availability || 0);
-    socioeconomicMetrics.growthpop.push(properties.pop_growth || 0);
+  features.forEach(feature => {
+    const props = feature.properties;
+    metrics.population.push(props.pop || 0);
+    metrics.imd_score.push(props.IMDScore || 0);
+    metrics.imd_decile.push(props.IMD_Decile || 0);
+    metrics.carAvailability.push(props.car_availability || 0);
+    metrics.growthpop.push(props.pop_growth || 0);
   });
 
-  const socioeconomicSummary = {
-    totalPopulation: socioeconomicMetrics.population.reduce((a, b) => a + b, 0),
-    minPopulation: Math.min(...socioeconomicMetrics.population),
-    maxPopulation: Math.max(...socioeconomicMetrics.population),
-    avgImdScore: calculateWeightedAverage(socioeconomicMetrics.imd_score, socioeconomicMetrics.population),
-    minImdScore: Math.min(...socioeconomicMetrics.imd_score.filter((_, index) => socioeconomicMetrics.population[index] > 0)),
-    maxImdScore: Math.max(...socioeconomicMetrics.imd_score),
-    avgImdDecile: calculateWeightedAverage(socioeconomicMetrics.imd_decile, socioeconomicMetrics.population),
-    minImdDecile: Math.min(...socioeconomicMetrics.imd_decile.filter((_, index) => socioeconomicMetrics.population[index] > 0)),
-    maxImdDecile: Math.max(...socioeconomicMetrics.imd_decile),
-    avgCarAvailability: calculateWeightedAverage(socioeconomicMetrics.carAvailability, socioeconomicMetrics.population),
-    minCarAvailability: Math.min(...socioeconomicMetrics.carAvailability.filter((_, index) => socioeconomicMetrics.population[index] > 0)),
-    maxCarAvailability: Math.max(...socioeconomicMetrics.carAvailability),
-    totalgrowthpop: socioeconomicMetrics.growthpop.reduce((a, b) => a + b, 0),
-    mingrowthpop: Math.min(...socioeconomicMetrics.growthpop),
-    maxgrowthpop: Math.max(...socioeconomicMetrics.growthpop)
+  return {
+    totalPopulation: metrics.population.reduce((a, b) => a + b, 0),
+    minPopulation: Math.min(...metrics.population.filter(val => val > 0), Infinity) || 0,
+    maxPopulation: Math.max(...metrics.population, 0),
+    avgImdScore: calculateWeightedAverage(metrics.imd_score, metrics.population),
+    minImdScore: Math.min(...metrics.imd_score.filter((val, index) => val > 0 && metrics.population[index] > 0), Infinity) || 0,
+    maxImdScore: Math.max(...metrics.imd_score, 0),
+    avgImdDecile: calculateWeightedAverage(metrics.imd_decile, metrics.population),
+    minImdDecile: Math.min(...metrics.imd_decile.filter((val, index) => val > 0 && metrics.population[index] > 0), Infinity) || 0,
+    maxImdDecile: Math.max(...metrics.imd_decile, 0),
+    avgCarAvailability: calculateWeightedAverage(metrics.carAvailability, metrics.population),
+    minCarAvailability: Math.min(...metrics.carAvailability.filter((val, index) => val > 0 && metrics.population[index] > 0), Infinity) || 0,
+    maxCarAvailability: Math.max(...metrics.carAvailability, 0),
+    totalgrowthpop: metrics.growthpop.reduce((a, b) => a + b, 0),
+    mingrowthpop: Math.min(...metrics.growthpop, 0),
+    maxgrowthpop: Math.max(...metrics.growthpop, 0)
+  };
+}
+
+function calculateScoreStatistics(features) {
+  const selectedYear = ScoresYear.value;
+  const selectedPurpose = ScoresPurpose.value;
+  const selectedMode = ScoresMode.value;
+  const scoreField = `${selectedPurpose}_${selectedMode}`;
+  const percentileField = `${selectedPurpose}_${selectedMode}_100`;
+  
+  const metrics = {
+    score: [],
+    percentile: [],
+    population: []
   };
 
-  document.getElementById('total-population').textContent = formatValue(socioeconomicSummary.totalPopulation, 1);
-  document.getElementById('min-population').textContent = formatValue(socioeconomicSummary.minPopulation, 1);
-  document.getElementById('max-population').textContent = formatValue(socioeconomicSummary.maxPopulation, 1);
-  document.getElementById('avg-imd-score').textContent = formatValue(socioeconomicSummary.avgImdScore, 0.1);
-  document.getElementById('min-imd-score').textContent = formatValue(socioeconomicSummary.minImdScore, 0.1);
-  document.getElementById('max-imd-score').textContent = formatValue(socioeconomicSummary.maxImdScore, 0.1);
-  document.getElementById('avg-imd-decile').textContent = formatValue(socioeconomicSummary.avgImdDecile, 1);
-  document.getElementById('min-imd-decile').textContent = formatValue(socioeconomicSummary.minImdDecile, 1);
-  document.getElementById('max-imd-decile').textContent = formatValue(socioeconomicSummary.maxImdDecile, 1);
-  document.getElementById('avg-car-availability').textContent = formatValue(socioeconomicSummary.avgCarAvailability, 0.01);
-  document.getElementById('min-car-availability').textContent = formatValue(socioeconomicSummary.minCarAvailability, 0.01);
-  document.getElementById('max-car-availability').textContent = formatValue(socioeconomicSummary.maxCarAvailability, 0.01);
-  document.getElementById('total-growth-pop').textContent = formatValue(socioeconomicSummary.totalgrowthpop, 1);
-  document.getElementById('min-growth-pop').textContent = formatValue(socioeconomicSummary.mingrowthpop, 1);
-  document.getElementById('max-growth-pop').textContent = formatValue(socioeconomicSummary.maxgrowthpop, 1);
+  features.forEach(feature => {
+    const props = feature.properties;
+    metrics.score.push(props[scoreField] || 0);
+    metrics.percentile.push(props[percentileField] || 0);
+    metrics.population.push(props.pop || 0);
+  });
 
-  if (ScoresLayer) {
-    // For Scores Layer, we need to filter based on range if that's the filter type
-    let filteredScoresFeatures = features;
-    if (filterType === 'Range') {
-      const selectedYear = ScoresYear.value;
-      const selectedPurpose = ScoresPurpose.value;
-      const selectedMode = ScoresMode.value;
-      const fieldToDisplay = selectedYear.includes('-') ? `${selectedPurpose}_${selectedMode}` : `${selectedPurpose}_${selectedMode}_100`;
+  return {
+    avgScore: calculateWeightedAverage(metrics.score, metrics.population),
+    minScore: Math.min(...metrics.score.filter(val => val > 0), Infinity) || 0,
+    maxScore: Math.max(...metrics.score, 0),
+    avgPercentile: calculateWeightedAverage(metrics.percentile, metrics.population),
+    minPercentile: Math.min(...metrics.percentile.filter(val => val > 0), Infinity) || 0,
+    maxPercentile: Math.max(...metrics.percentile, 0),
+    metricRow1: 'Score',
+    metricRow2: 'Score Percentile',
+    isScoreLayer: true,
+    selectedYear
+  };
+}
 
-      if (selectedYear.includes('-')) {
-        const rangePattern = /([<>]=?)?\s*(-?\d+(\.\d+)?%?)/g;
-        const ranges = [];
-        let match;
-        while ((match = rangePattern.exec(filterValue)) !== null) {
-          ranges.push({ operator: match[1], value: parseFloat(match[2]) / 100 });
-        }
+function calculateTimeStatistics(features) {
+  const metrics = {
+    time: [],
+    population: []
+  };
 
-        filteredScoresFeatures = features.filter(feature => {
-          const value = feature.properties[fieldToDisplay];
-          return ranges.every(range => {
-            if (range.operator === '<=') return value <= range.value;
-            if (range.operator === '>=') return value >= range.value;
-            if (range.operator === '<') return value < range.value;
-            if (range.operator === '>') return value > range.value;
-            return value === range.value;
-          });
-        });
-      } else {
-        const [minRange, maxRange] = filterValue.split('-').map(parseFloat);
-        filteredScoresFeatures = features.filter(feature => {
-          const value = feature.properties[fieldToDisplay];
-          return value >= minRange && (maxRange ? value < maxRange : true);
-        });
-      }
-    } else {
-      filteredScoresFeatures = features.filter(feature => {
-        const hexPolygon = turf.polygon(feature.geometry.coordinates);
-        return filteredHexes.some(hex => 
-          feature.properties.Hex_ID === hex.properties.Hex_ID
-        );
-      });
-    }
+  features.forEach(feature => {
+    const props = feature.properties;
+    const hexId = props.Hex_ID;
+    const time = hexTimeMap[hexId] !== undefined ? hexTimeMap[hexId] : 0;
+    metrics.time.push(time);
+    metrics.population.push(props.pop || 0);
+  });
 
-    // Calculate score metrics
-    const selectedYear = ScoresYear.value;
-    const selectedPurpose = ScoresPurpose.value;
-    const selectedMode = ScoresMode.value;
-    const scoreField = `${selectedPurpose}_${selectedMode}`;
-    const percentileField = `${selectedPurpose}_${selectedMode}_100`;
-    
-    const scoreMetrics = {
-      score: [],
-      percentile: [],
-      population: [] // For weighted average calculations
-    };
+  return {
+    avgTime: calculateWeightedAverage(metrics.time, metrics.population),
+    minTime: Math.min(...metrics.time.filter(val => val > 0), Infinity) || 0,
+    maxTime: Math.max(...metrics.time, 0),
+    metricRow1: '-',
+    metricRow2: 'Journey Time',
+    isTimeLayer: true
+  };
+}
 
-    filteredScoresFeatures.forEach(feature => {
-      const properties = feature.properties;
-      scoreMetrics.score.push(properties[scoreField] || 0);
-      scoreMetrics.percentile.push(properties[percentileField] || 0);
-      scoreMetrics.population.push(properties.pop || 0);
-    });
+function updateStatisticsUI(stats) {
+  document.getElementById('total-population').textContent = formatValue(stats.totalPopulation, 1);
+  document.getElementById('min-population').textContent = formatValue(stats.minPopulation, 1);
+  document.getElementById('max-population').textContent = formatValue(stats.maxPopulation, 1);
+  document.getElementById('avg-imd-score').textContent = formatValue(stats.avgImdScore, 0.1);
+  document.getElementById('min-imd-score').textContent = formatValue(stats.minImdScore, 0.1);
+  document.getElementById('max-imd-score').textContent = formatValue(stats.maxImdScore, 0.1);
+  document.getElementById('avg-imd-decile').textContent = formatValue(stats.avgImdDecile, 1);
+  document.getElementById('min-imd-decile').textContent = formatValue(stats.minImdDecile, 1);
+  document.getElementById('max-imd-decile').textContent = formatValue(stats.maxImdDecile, 1);
+  document.getElementById('avg-car-availability').textContent = formatValue(stats.avgCarAvailability, 0.01);
+  document.getElementById('min-car-availability').textContent = formatValue(stats.minCarAvailability, 0.01);
+  document.getElementById('max-car-availability').textContent = formatValue(stats.maxCarAvailability, 0.01);
+  document.getElementById('total-growth-pop').textContent = formatValue(stats.totalgrowthpop, 1);
+  document.getElementById('min-growth-pop').textContent = formatValue(stats.mingrowthpop, 1);
+  document.getElementById('max-growth-pop').textContent = formatValue(stats.maxgrowthpop, 1);
 
-    const scoreSummary = {
-      avgScore: calculateWeightedAverage(scoreMetrics.score, scoreMetrics.population),
-      minScore: Math.min(...scoreMetrics.score),
-      maxScore: Math.max(...scoreMetrics.score),
-      avgPercentile: calculateWeightedAverage(scoreMetrics.percentile, scoreMetrics.population),
-      minPercentile: Math.min(...scoreMetrics.percentile),
-      maxPercentile: Math.max(...scoreMetrics.percentile)
-    };
-
-    const formatScore = value => selectedYear.includes('-') ? `${(value * 100).toFixed(1)}%` : formatValue(value, 1);
-
-    document.getElementById('metric-row-1').textContent = 'Score';
-    document.getElementById('metric-row-2').textContent = 'Score Percentile';
-    document.getElementById('avg-score').textContent = formatScore(scoreSummary.avgScore);
-    document.getElementById('min-score').textContent = formatScore(scoreSummary.minScore);
-    document.getElementById('max-score').textContent = formatScore(scoreSummary.maxScore);
-    document.getElementById('avg-percentile').textContent = formatValue(scoreSummary.avgPercentile, 1);
-    document.getElementById('min-percentile').textContent = formatValue(scoreSummary.minPercentile, 1);
-    document.getElementById('max-percentile').textContent = formatValue(scoreSummary.maxPercentile, 1);
-
-  } else if (AmenitiesCatchmentLayer) {
-    // For Amenities Layer, we need to filter based on range if that's the filter type
-    let filteredAmenitiesFeatures = features;
-    if (filterType === 'Range') {
-      if (filterValue === '>30') {
-        filteredAmenitiesFeatures = features.filter(feature => {
-          const hexId = feature.properties.Hex_ID;
-          const time = hexTimeMap[hexId];
-          return time > 30;
-        });
-      } else {
-        const [minRange, maxRange] = filterValue.split('-').map(parseFloat);
-        filteredAmenitiesFeatures = features.filter(feature => {
-          const hexId = feature.properties.Hex_ID;
-          const time = hexTimeMap[hexId];
-          return time >= minRange && (maxRange ? time < maxRange : true);
-        });
-      }
-    } else {
-      filteredAmenitiesFeatures = features.filter(feature => {
-        const hexPolygon = turf.polygon(feature.geometry.coordinates);
-        return filteredHexes.some(hex => 
-          feature.properties.Hex_ID === hex.properties.Hex_ID
-        );
-      });
-    }
-
-    // Calculate journey time metrics
-    const timeMetrics = {
-      time: [],
-      population: [] // For weighted average calculations
-    };
-
-    filteredAmenitiesFeatures.forEach(feature => {
-      const properties = feature.properties;
-      const hexId = properties.Hex_ID;
-      const time = hexTimeMap[hexId] !== undefined ? hexTimeMap[hexId] : 0;
-      timeMetrics.time.push(time);
-      timeMetrics.population.push(properties.pop || 0);
-    });
-
-    const timeSummary = {
-      avgTime: calculateWeightedAverage(timeMetrics.time, timeMetrics.population),
-      minTime: Math.min(...timeMetrics.time),
-      maxTime: Math.max(...timeMetrics.time)
-    };
-
-    document.getElementById('metric-row-1').textContent = '-';
-    document.getElementById('metric-row-2').textContent = 'Journey Time';
+  document.getElementById('metric-row-1').textContent = stats.metricRow1 || '-';
+  document.getElementById('metric-row-2').textContent = stats.metricRow2 || '-';
+  
+  if (stats.isScoreLayer) {
+    const formatScore = value => stats.selectedYear.includes('-') ? `${(value * 100).toFixed(1)}%` : formatValue(value, 1);
+    document.getElementById('avg-score').textContent = formatScore(stats.avgScore);
+    document.getElementById('min-score').textContent = formatScore(stats.minScore);
+    document.getElementById('max-score').textContent = formatScore(stats.maxScore);
+    document.getElementById('avg-percentile').textContent = formatValue(stats.avgPercentile, 1);
+    document.getElementById('min-percentile').textContent = formatValue(stats.minPercentile, 1);
+    document.getElementById('max-percentile').textContent = formatValue(stats.maxPercentile, 1);
+  } 
+  else if (stats.isTimeLayer) {
     document.getElementById('avg-score').textContent = '-';
     document.getElementById('min-score').textContent = '-';
     document.getElementById('max-score').textContent = '-';
-    document.getElementById('avg-percentile').textContent = formatValue(timeSummary.avgTime, 1);
-    document.getElementById('min-percentile').textContent = formatValue(timeSummary.minTime, 1);
-    document.getElementById('max-percentile').textContent = formatValue(timeSummary.maxTime, 1);
-
-  } else {
-    // No layer is active
-    document.getElementById('metric-row-1').textContent = '-';
-    document.getElementById('metric-row-2').textContent = '-';
+    document.getElementById('avg-percentile').textContent = formatValue(stats.avgTime, 1);
+    document.getElementById('min-percentile').textContent = formatValue(stats.minTime, 1);
+    document.getElementById('max-percentile').textContent = formatValue(stats.maxTime, 1);
+  }
+  else {
     document.getElementById('avg-score').textContent = '-';
     document.getElementById('min-score').textContent = '-';
     document.getElementById('max-score').textContent = '-';
     document.getElementById('avg-percentile').textContent = '-';
     document.getElementById('min-percentile').textContent = '-';
     document.getElementById('max-percentile').textContent = '-';
+  }
+}
+
+function filterByScoreDifference(features, fieldToDisplay, filterValue) {
+  if (filterValue.includes('=') || filterValue.includes('>') || filterValue.includes('<')) {
+    const rangePattern = /([<>]=?)?\s*(-?\d+(\.\d+)?%?)/g;
+    const ranges = [];
+    let match;
+    
+    while ((match = rangePattern.exec(filterValue)) !== null) {
+      ranges.push({ 
+        operator: match[1], 
+        value: parseFloat(match[2].replace('%', '')) / 100 
+      });
+    }
+
+    return features.filter(feature => {
+      const value = feature.properties[fieldToDisplay];
+      return ranges.every(range => {
+        if (range.operator === '<=') return value <= range.value;
+        if (range.operator === '>=') return value >= range.value;
+        if (range.operator === '<') return value < range.value;
+        if (range.operator === '>') return value > range.value;
+        return value === range.value;
+      });
+    });
+  } else if (filterValue === '= 0') {
+    return features.filter(feature => 
+      feature.properties[fieldToDisplay] === 0
+    );
+  }
+  return features;
+}
+
+function filterByPercentileRange(features, fieldToDisplay, filterValue) {
+  const [minRange, maxRange] = filterValue.split('-').map(parseFloat);
+  return features.filter(feature => {
+    const value = feature.properties[fieldToDisplay];
+    return value >= minRange && (maxRange ? value <= maxRange : true);
+  });
+}
+
+function filterByJourneyTime(features, filterValue) {
+  if (filterValue === '>30') {
+    return features.filter(feature => {
+      const hexId = feature.properties.Hex_ID;
+      const time = hexTimeMap[hexId];
+      return time > 30;
+    });
+  } else {
+    const [minRange, maxRange] = filterValue.split('-').map(parseFloat);
+    return features.filter(feature => {
+      const hexId = feature.properties.Hex_ID;
+      const time = hexTimeMap[hexId];
+      return time >= minRange && (maxRange ? time <= maxRange : true);
+    });
   }
 }
 
