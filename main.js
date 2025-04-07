@@ -294,19 +294,19 @@ AmenitiesPurpose.forEach(checkbox => {
 });
 
 ScoresOpacity.addEventListener("change", () => {
-  updateSliderRanges('Scores', 'Opacity', true);
+  updateSliderRanges('Scores', 'Opacity');
   if (ScoresLayer) applyScoresLayerStyling();
 });
 ScoresOutline.addEventListener("change", () => {
-  updateSliderRanges('Scores', 'Outline', true);
+  updateSliderRanges('Scores', 'Outline');
   if (ScoresLayer) applyScoresLayerStyling();
 });
 AmenitiesOpacity.addEventListener("change", () => {
-  updateSliderRanges('Amenities', 'Opacity', true);
+  updateSliderRanges('Amenities', 'Opacity');
   if (AmenitiesCatchmentLayer) applyAmenitiesCatchmentLayerStyling();
 });
 AmenitiesOutline.addEventListener("change", () => {
-  updateSliderRanges('Amenities', 'Outline', true);
+  updateSliderRanges('Amenities', 'Outline');
   if (AmenitiesCatchmentLayer) applyAmenitiesCatchmentLayerStyling();
 });
 baseColorCensus.addEventListener("change", () => {
@@ -858,7 +858,7 @@ function configureSlider(sliderElement, updateCallback, isInverse, order, deboun
   });
 }
 
-function updateSliderRanges(type, scaleType, skipLayerUpdate = false) {
+function updateSliderRanges(type, scaleType) {
   if (isUpdatingSliders) return;
   isUpdatingSliders = true;
 
@@ -926,20 +926,33 @@ function updateSliderRanges(type, scaleType, skipLayerUpdate = false) {
     return;
   }
 
+  console.group(`Slider Range Update: ${type} - ${scaleType}`);
+  console.log('Field selected:', field);
+  
   if (hexesData) {
-    const values = field !== "None" ? hexesData.features.map(feature => feature.properties[field]).filter(value => value !== null && value !== 0) : [];
+    const values = field !== "None" ? 
+      hexesData.features.map(feature => feature.properties[field]).filter(value => value !== null && value !== 0) : [];
+    console.log('Values count:', values.length);
+    console.log('First few values:', values.slice(0, 5));
+    
     const minValue = Math.min(...values);
     const maxValue = Math.max(...values);
+    console.log('Raw min/max:', minValue, maxValue);
+    
     const roundedMaxValue = Math.pow(10, Math.ceil(Math.log10(maxValue)));
     let step = roundedMaxValue / 100;
+    console.log('Rounded max value:', roundedMaxValue);
+    console.log('Step calculation:', step);
 
     if (isNaN(step) || step <= 0) {
+      console.warn('Invalid step calculated, defaulting to 1');
       step = 1;
     }
 
     const adjustedMaxValue = Math.ceil(maxValue / step) * step;
     const adjustedMinValue = Math.floor(minValue / step) * step;
-
+    console.log('Adjusted min/max:', adjustedMinValue, adjustedMaxValue);
+    
     if (field === "None") {
       rangeElement.setAttribute('disabled', true);
       rangeElement.noUiSlider.updateOptions({
@@ -969,16 +982,15 @@ function updateSliderRanges(type, scaleType, skipLayerUpdate = false) {
     configureSlider(rangeElement, null, isInverse, order);
   }
 
+  console.groupEnd();
   isUpdatingSliders = false;
 
-  if (!skipLayerUpdate) {
-    if (type === 'Scores' && ScoresLayer) {
-      applyScoresLayerStyling();
-    } else if (type === 'Amenities' && AmenitiesCatchmentLayer) {
-      applyAmenitiesCatchmentLayerStyling();
-    } else if (type === 'Census' && CensusLayer) {
-      applyCensusLayerStyling();
-    }
+  if (type === 'Scores' && ScoresLayer) {
+    applyScoresLayerStyling();
+  } else if (type === 'Amenities' && AmenitiesCatchmentLayer) {
+    applyAmenitiesCatchmentLayerStyling();
+  } else if (type === 'Census' && CensusLayer) {
+    applyCensusLayerStyling();
   }
 }
 
