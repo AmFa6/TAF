@@ -603,13 +603,19 @@ map.on('click', function (e) {
     Hexagon: []
   };
 
+  let isWithinLEP = false;
   if (uaBoundariesLayer) {
     uaBoundariesLayer.eachLayer(layer => {
       const polygon = turf.polygon(layer.feature.geometry.coordinates);
       if (turf.booleanPointInPolygon(clickedPoint, polygon)) {
+        isWithinLEP = true;
         popupContent.Geographies.push(`<strong>Local Authority:</strong> ${layer.feature.properties.LAD24NM}`);
       }
     });
+  }
+
+  if (!isWithinLEP) {
+    return;
   }
 
   if (wardBoundariesLayer) {
@@ -662,7 +668,7 @@ map.on('click', function (e) {
           const selectedPurpose = ScoresPurpose.value;
           const selectedMode = ScoresMode.value;
           const fieldToDisplay = selectedYear.includes('-') ? `${selectedPurpose}_${selectedMode}` : `${selectedPurpose}_${selectedMode}_100`;
-  
+
           const scoreValue = properties[fieldToDisplay];
           const score = selectedYear.includes('-') ? `${(scoreValue * 100).toFixed(1)}%` : formatValue(scoreValue, 1);
           const percentile = formatValue(properties[`${selectedPurpose}_${selectedMode}_100`], 1);
@@ -690,7 +696,7 @@ map.on('click', function (e) {
           const imdDecile = formatValue(properties.IMD_Decile, 1);
           const carAvailability = formatValue(properties.car_availability, 0.01);
           const growthPop = formatValue(properties.pop_growth, 100);
-  
+
           popupContent.Hexagon.push(`
             <strong>Hex_ID:</strong> ${properties.Hex_ID}<br>
             <strong>Journey Time:</strong> ${time} minutes<br>
@@ -713,7 +719,7 @@ map.on('click', function (e) {
         const imdDecile = formatValue(properties.IMD_Decile, 1);
         const carAvailability = formatValue(properties.car_availability, 0.01);
         const growthPop = formatValue(properties.pop_growth, 100);
-  
+
         popupContent.Hexagon.push(`
           <strong>Hex_ID:</strong> ${properties.Hex_ID}<br>
           <strong>Population:</strong> ${population}<br>
