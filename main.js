@@ -284,30 +284,66 @@ initializeSliders(AmenitiesOutlineRange, updateAmenitiesCatchmentLayer);
 initializeSliders(CensusOpacityRange, updateCensusLayer);
 initializeSliders(CensusOutlineRange, updateCensusLayer);
 
-ScoresYear.addEventListener("change", updateScoresLayer);
-ScoresPurpose.addEventListener("change", updateScoresLayer);
-ScoresMode.addEventListener("change", updateScoresLayer);
-AmenitiesYear.addEventListener("change", updateAmenitiesCatchmentLayer);
-AmenitiesMode.addEventListener("change", updateAmenitiesCatchmentLayer);
+ScoresYear.addEventListener("change", () => updateScoresLayer());
+ScoresPurpose.addEventListener("change", () => updateScoresLayer());
+ScoresMode.addEventListener("change", () => updateScoresLayer());
+AmenitiesYear.addEventListener("change", () => updateAmenitiesCatchmentLayer());
+AmenitiesMode.addEventListener("change", () => updateAmenitiesCatchmentLayer());
 AmenitiesPurpose.forEach(checkbox => {
-  checkbox.addEventListener("change", () => {
-    updateAmenitiesCatchmentLayer();
-  });
+  checkbox.addEventListener("change", () => updateAmenitiesCatchmentLayer());
 });
-ScoresOpacity.addEventListener("change", () => updateSliderRanges('Scores', 'Opacity', true));
-ScoresOutline.addEventListener("change", () => updateSliderRanges('Scores', 'Outline', true));
-AmenitiesOpacity.addEventListener("change", () => updateSliderRanges('Amenities', 'Opacity', true));
-AmenitiesOutline.addEventListener("change", () => updateSliderRanges('Amenities', 'Outline', true));
-CensusOpacity.addEventListener("change", () => updateSliderRanges('Census', 'Opacity'));
-CensusOutline.addEventListener("change", () => updateSliderRanges('Census', 'Outline'));
-ScoresInverseOpacity.addEventListener("click", () => toggleInverseScale('Scores', 'Opacity'));
-ScoresInverseOutline.addEventListener("click", () => toggleInverseScale('Scores', 'Outline'));
-AmenitiesInverseOpacity.addEventListener("click", () => toggleInverseScale('Amenities', 'Opacity'));
-AmenitiesInverseOutline.addEventListener("click", () => toggleInverseScale('Amenities', 'Outline'));
-CensusInverseOpacity.addEventListener("click", () => toggleInverseScale('Census', 'Opacity'));
-CensusInverseOutline.addEventListener("click", () => toggleInverseScale('Census', 'Outline'));
-baseColorCensus.addEventListener("change", updateCensusLayer);
-
+baseColorCensus.addEventListener("change", () => {
+  if (CensusLayer) applyCensusLayerStyling();
+  else updateCensusLayer();
+});
+ScoresOpacity.addEventListener("change", () => {
+  updateSliderRanges('Scores', 'Opacity', true);
+  if (ScoresLayer) applyScoresLayerStyling();
+});
+ScoresOutline.addEventListener("change", () => {
+  updateSliderRanges('Scores', 'Outline', true);
+  if (ScoresLayer) applyScoresLayerStyling();
+});
+AmenitiesOpacity.addEventListener("change", () => {
+  updateSliderRanges('Amenities', 'Opacity', true);
+  if (AmenitiesCatchmentLayer) applyAmenitiesCatchmentLayerStyling();
+});
+AmenitiesOutline.addEventListener("change", () => {
+  updateSliderRanges('Amenities', 'Outline', true);
+  if (AmenitiesCatchmentLayer) applyAmenitiesCatchmentLayerStyling();
+});
+CensusOpacity.addEventListener("change", () => {
+  updateSliderRanges('Census', 'Opacity');
+  if (CensusLayer) applyCensusLayerStyling();
+});
+CensusOutline.addEventListener("change", () => {
+  updateSliderRanges('Census', 'Outline');
+  if (CensusLayer) applyCensusLayerStyling();
+});
+ScoresInverseOpacity.addEventListener("click", () => {
+  toggleInverseScale('Scores', 'Opacity');
+  if (ScoresLayer) applyScoresLayerStyling();
+});
+ScoresInverseOutline.addEventListener("click", () => {
+  toggleInverseScale('Scores', 'Outline');
+  if (ScoresLayer) applyScoresLayerStyling();
+});
+AmenitiesInverseOpacity.addEventListener("click", () => {
+  toggleInverseScale('Amenities', 'Opacity');
+  if (AmenitiesCatchmentLayer) applyAmenitiesCatchmentLayerStyling();
+});
+AmenitiesInverseOutline.addEventListener("click", () => {
+  toggleInverseScale('Amenities', 'Outline');
+  if (AmenitiesCatchmentLayer) applyAmenitiesCatchmentLayerStyling();
+});
+CensusInverseOpacity.addEventListener("click", () => {
+  toggleInverseScale('Census', 'Opacity');
+  if (CensusLayer) applyCensusLayerStyling();
+});
+CensusInverseOutline.addEventListener("click", () => {
+  toggleInverseScale('Census', 'Outline');
+  if (CensusLayer) applyCensusLayerStyling();
+});
 
 filterTypeDropdown.addEventListener('change', () => {
   updateFilterValues();
@@ -768,7 +804,17 @@ function isPanelOpen(panelName) {
 }
 
 function configureSlider(sliderElement, updateCallback, isInverse, order, debounceDelay = 250) {
-  const debouncedUpdateCallback = debounce(updateCallback, debounceDelay);
+  const updateStylesCallback = () => {
+    if (ScoresLayer && isPanelOpen("Connectivity Scores")) {
+      applyScoresLayerStyling();
+    } else if (AmenitiesCatchmentLayer && isPanelOpen("Journey Time Catchments - Amenities")) {
+      applyAmenitiesCatchmentLayerStyling();
+    } else if (CensusLayer && isPanelOpen("Census / Local Plan Data")) {
+      applyCensusLayerStyling();
+    }
+  };
+
+  const debouncedUpdateCallback = debounce(updateStylesCallback, debounceDelay);
 
   sliderElement.noUiSlider.off();
   
@@ -809,6 +855,164 @@ function configureSlider(sliderElement, updateCallback, isInverse, order, deboun
     handleElement.setAttribute('data-value', formatValue(values[handle], sliderElement.noUiSlider.options.step));
     debouncedUpdateCallback();
   });
+}
+
+function updateSliderRanges(type, scaleType, skipLayerUpdate = false) {
+  if (isUpdatingSliders) return;
+  isUpdatingSliders = true;
+
+  let field, rangeElement, minElement, maxElement, hexesData, order, isInverse;
+
+  if (type === 'Scores') {
+    if (scaleType === 'Opacity') {
+      field = ScoresOpacity.value;
+      rangeElement = ScoresOpacityRange;
+      minElement = document.getElementById('opacityRangeScoresMin');
+      maxElement = document.getElementById('opacityRangeScoresMax');
+      hexesData = hexes;
+      order = opacityScoresOrder;
+      isInverse = isInverseScoresOpacity;
+    } else if (scaleType === 'Outline') {
+      field = ScoresOutline.value;
+      rangeElement = ScoresOutlineRange;
+      minElement = document.getElementById('outlineRangeScoresMin');
+      maxElement = document.getElementById('outlineRangeScoresMax');
+      hexesData = hexes;
+      order = outlineScoresOrder;
+      isInverse = isInverseScoresOutline;
+    }
+  } else if (type === 'Amenities') {
+    if (scaleType === 'Opacity') {
+      field = AmenitiesOpacity.value;
+      rangeElement = AmenitiesOpacityRange;
+      minElement = document.getElementById('opacityRangeAmenitiesMin');
+      maxElement = document.getElementById('opacityRangeAmenitiesMax');
+      hexesData = hexes;
+      order = opacityAmenitiesOrder;
+      isInverse = isInverseAmenitiesOpacity;
+    } else if (scaleType === 'Outline') {
+      field = AmenitiesOutline.value;
+      rangeElement = AmenitiesOutlineRange;
+      minElement = document.getElementById('outlineRangeAmenitiesMin');
+      maxElement = document.getElementById('outlineRangeAmenitiesMax');
+      hexesData = hexes;
+      order = outlineAmenitiesOrder;
+      isInverse = isInverseAmenitiesOutline;
+    }
+  } else if (type === 'Census') {
+    if (scaleType === 'Opacity') {
+      field = CensusOpacity.value;
+      rangeElement = CensusOpacityRange;
+      minElement = document.getElementById('opacityRangeCensusMin');
+      maxElement = document.getElementById('opacityRangeCensusMax');
+      hexesData = hexes;
+      order = opacityCensusOrder;
+      isInverse = isInverseCensusOpacity;
+    } else if (scaleType === 'Outline') {
+      field = CensusOutline.value;
+      rangeElement = CensusOutlineRange;
+      minElement = document.getElementById('outlineRangeCensusMin');
+      maxElement = document.getElementById('outlineRangeCensusMax');
+      hexesData = hexes;
+      order = outlineCensusOrder;
+      isInverse = isInverseCensusOutline;
+    }
+  }
+
+  if (!rangeElement || !rangeElement.noUiSlider) {
+    console.error(`Slider not initialized for ${type} ${scaleType}`);
+    isUpdatingSliders = false;
+    return;
+  }
+
+  if (hexesData) {
+    const values = field !== "None" ? hexesData.features.map(feature => feature.properties[field]).filter(value => value !== null && value !== 0) : [];
+    const minValue = Math.min(...values);
+    const maxValue = Math.max(...values);
+    const roundedMaxValue = Math.pow(10, Math.ceil(Math.log10(maxValue)));
+    let step = roundedMaxValue / 100;
+
+    if (isNaN(step) || step <= 0) {
+      step = 1;
+    }
+
+    const adjustedMaxValue = Math.ceil(maxValue / step) * step;
+    const adjustedMinValue = Math.floor(minValue / step) * step;
+
+    if (field === "None") {
+      rangeElement.setAttribute('disabled', true);
+      rangeElement.noUiSlider.updateOptions({
+        range: {
+          'min': 0,
+          'max': 0
+        },
+        step: 1
+      }, false);
+      rangeElement.noUiSlider.set(['', ''], false);
+      minElement.innerText = '';
+      maxElement.innerText = '';
+    } else {
+      rangeElement.removeAttribute('disabled');
+      rangeElement.noUiSlider.updateOptions({
+        range: {
+          'min': adjustedMinValue,
+          'max': adjustedMaxValue
+        },
+        step: step
+      }, false);
+      rangeElement.noUiSlider.set([adjustedMinValue, adjustedMaxValue], false);
+      minElement.innerText = formatValue(adjustedMinValue, step);
+      maxElement.innerText = formatValue(adjustedMaxValue, step);
+    }
+
+    configureSlider(rangeElement, null, isInverse, order);
+  }
+
+  isUpdatingSliders = false;
+
+  if (!skipLayerUpdate) {
+    if (type === 'Scores' && ScoresLayer) {
+      applyScoresLayerStyling();
+    } else if (type === 'Amenities' && AmenitiesCatchmentLayer) {
+      applyAmenitiesCatchmentLayerStyling();
+    } else if (type === 'Census' && CensusLayer) {
+      applyCensusLayerStyling();
+    }
+  }
+}
+
+function initializeSliders(sliderElement, updateCallback) {
+  if (sliderElement.noUiSlider) {
+    sliderElement.noUiSlider.destroy();
+  }
+
+  noUiSlider.create(sliderElement, {
+    start: ['', ''],
+    connect: [true, true, true],
+    range: {
+      'min': 0,
+      'max': 0
+    },
+    step: 1,
+    tooltips: false,
+    format: {
+      to: value => parseFloat(value).toFixed(2),
+      from: value => parseFloat(value)
+    }
+  });
+
+  const handles = sliderElement.querySelectorAll('.noUi-handle');
+  if (handles.length > 0) {
+    handles[0].classList.add('noUi-handle-transparent');
+  }
+
+  const connectElements = sliderElement.querySelectorAll('.noUi-connect');
+  if (connectElements.length > 2) {
+    connectElements[1].classList.add('noUi-connect-gradient-right');
+    connectElements[2].classList.add('noUi-connect-dark-grey');
+  }
+
+  configureSlider(sliderElement, null, false, 'low-to-high');
 }
 
 function toggleInverseScale(type, scaleType) {
@@ -856,61 +1060,12 @@ function toggleInverseScale(type, scaleType) {
 
   const currentValues = rangeElement.noUiSlider.get();
   
-  configureSlider(
-    rangeElement,
-    type === 'Scores' ? updateScoresLayer :
-    type === 'Amenities' ? updateAmenitiesCatchmentLayer :
-    updateCensusLayer,
-    isInverse,
-    order
-  );
+  configureSlider(rangeElement, null, isInverse, order);
   rangeElement.noUiSlider.set(currentValues, false);
 
   updateSliderRanges(type, scaleType);
 
   isUpdatingSliders = false;
-  
-  if (type === 'Scores' && isPanelOpen("Connectivity Scores")) {
-    updateScoresLayer();
-  } else if (type === 'Amenities' && isPanelOpen("Journey Time Catchments - Amenities")) {
-    updateAmenitiesCatchmentLayer();
-  } else if (type === 'Census' && isPanelOpen("Census / Local Plan Data")) {
-      updateCensusLayer();
-    }
-}
-
-function initializeSliders(sliderElement, updateCallback) {
-  if (sliderElement.noUiSlider) {
-    sliderElement.noUiSlider.destroy();
-  }
-
-  noUiSlider.create(sliderElement, {
-    start: ['', ''],
-    connect: [true, true, true],
-    range: {
-      'min': 0,
-      'max': 0
-    },
-    step: 1,
-    tooltips: false,
-    format: {
-      to: value => parseFloat(value).toFixed(2),
-      from: value => parseFloat(value)
-    }
-  });
-
-  const handles = sliderElement.querySelectorAll('.noUi-handle');
-  if (handles.length > 0) {
-    handles[0].classList.add('noUi-handle-transparent');
-  }
-
-  const connectElements = sliderElement.querySelectorAll('.noUi-connect');
-  if (connectElements.length > 2) {
-    connectElements[1].classList.add('noUi-connect-gradient-right');
-    connectElements[2].classList.add('noUi-connect-dark-grey');
-  }
-
-  configureSlider(sliderElement, updateCallback, false, 'low-to-high');
 }
 
 function scaleExp(value, minVal, maxVal, minScale, maxScale, order) {
@@ -1192,139 +1347,152 @@ function drawSelectedAmenities(amenities) {
   });
 }
 
-function updateSliderRanges(type, scaleType, skipLayerUpdate = false) {
-  if (isUpdatingSliders) return;
-  isUpdatingSliders = true;
-
-  let field, rangeElement, minElement, maxElement, hexesData, order, isInverse;
-
-  if (type === 'Scores') {
-    if (scaleType === 'Opacity') {
-      field = ScoresOpacity.value;
-      rangeElement = ScoresOpacityRange;
-      minElement = document.getElementById('opacityRangeScoresMin');
-      maxElement = document.getElementById('opacityRangeScoresMax');
-      hexesData = hexes;
-      order = opacityScoresOrder;
-      isInverse = isInverseScoresOpacity;
-    } else if (scaleType === 'Outline') {
-      field = ScoresOutline.value;
-      rangeElement = ScoresOutlineRange;
-      minElement = document.getElementById('outlineRangeScoresMin');
-      maxElement = document.getElementById('outlineRangeScoresMax');
-      hexesData = hexes;
-      order = outlineScoresOrder;
-      isInverse = isInverseScoresOutline;
-    }
-  } else if (type === 'Amenities') {
-    if (scaleType === 'Opacity') {
-      field = AmenitiesOpacity.value;
-      rangeElement = AmenitiesOpacityRange;
-      minElement = document.getElementById('opacityRangeAmenitiesMin');
-      maxElement = document.getElementById('opacityRangeAmenitiesMax');
-      hexesData = hexes;
-      order = opacityAmenitiesOrder;
-      isInverse = isInverseAmenitiesOpacity;
-    } else if (scaleType === 'Outline') {
-      field = AmenitiesOutline.value;
-      rangeElement = AmenitiesOutlineRange;
-      minElement = document.getElementById('outlineRangeAmenitiesMin');
-      maxElement = document.getElementById('outlineRangeAmenitiesMax');
-      hexesData = hexes;
-      order = outlineAmenitiesOrder;
-      isInverse = isInverseAmenitiesOutline;
-    }
-  } else if (type === 'Census') {
-    if (scaleType === 'Opacity') {
-      field = CensusOpacity.value;
-      rangeElement = CensusOpacityRange;
-      minElement = document.getElementById('opacityRangeCensusMin');
-      maxElement = document.getElementById('opacityRangeCensusMax');
-      hexesData = hexes;
-      order = opacityCensusOrder;
-      isInverse = isInverseCensusOpacity;
-    } else if (scaleType === 'Outline') {
-      field = CensusOutline.value;
-      rangeElement = CensusOutlineRange;
-      minElement = document.getElementById('outlineRangeCensusMin');
-      maxElement = document.getElementById('outlineRangeCensusMax');
-      hexesData = hexes;
-      order = outlineCensusOrder;
-      isInverse = isInverseCensusOutline;
-    }
-  }
-
-  if (!rangeElement || !rangeElement.noUiSlider) {
-    console.error(`Slider not initialized for ${type} ${scaleType}`);
-    isUpdatingSliders = false;
+function updateScoresLayer() {
+  if (!initialLoadComplete || !isPanelOpen("Connectivity Scores")) {
     return;
   }
 
-  if (hexesData) {
-    const values = field !== "None" ? hexesData.features.map(feature => feature.properties[field]).filter(value => value !== null && value !== 0) : [];
-    const minValue = Math.min(...values);
-    const maxValue = Math.max(...values);
-    const roundedMaxValue = Math.pow(10, Math.ceil(Math.log10(maxValue)));
-    let step = roundedMaxValue / 100;
+  console.log("Updating ScoresLayer.");
 
-    if (isNaN(step) || step <= 0) {
-      step = 1;
-    }
+  const selectedYear = ScoresYear.value;
+  const selectedPurpose = ScoresPurpose.value;
+  const selectedMode = ScoresMode.value;
 
-    const adjustedMaxValue = Math.ceil(maxValue / step) * step;
-    const adjustedMinValue = Math.floor(minValue / step) * step;
+  if (!selectedYear) {
+    updateLegend();
+    updateSummaryStatistics([]);
+    return;
+  }
 
-    if (field === "None") {
-      rangeElement.setAttribute('disabled', true);
-      rangeElement.noUiSlider.updateOptions({
-        range: {
-          'min': 0,
-          'max': 0
-        },
-        step: 1
-      }, false);
-      rangeElement.noUiSlider.set(['', ''], false);
-      minElement.innerText = '';
-      maxElement.innerText = '';
+  const fieldToDisplay = selectedYear.includes('-') ? 
+    `${selectedPurpose}_${selectedMode}` : 
+    `${selectedPurpose}_${selectedMode}_100`;
+
+  if (!scoreLayers[selectedYear]) {
+    const scoreFile = ScoresFiles.find(file => file.year === selectedYear);
+    if (scoreFile) {
+      fetch(scoreFile.path)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          return response.text();
+        })
+        .then(csvData => {
+          const parsedData = Papa.parse(csvData, { header: true }).data;
+          scoreLayers[selectedYear] = parsedData;
+          updateScoresLayer();
+        })
+        .catch(error => {
+          console.error("Error loading scores data:", error);
+        });
+      return;
     } else {
-      rangeElement.removeAttribute('disabled');
-      rangeElement.noUiSlider.updateOptions({
-        range: {
-          'min': adjustedMinValue,
-          'max': adjustedMaxValue
-        },
-        step: step
-      }, false);
-      rangeElement.noUiSlider.set([adjustedMinValue, adjustedMaxValue], false);
-      minElement.innerText = formatValue(adjustedMinValue, step);
-      maxElement.innerText = formatValue(adjustedMaxValue, step);
+      return;
     }
+  }
 
-    configureSlider(
-      rangeElement,
-      type === 'Scores' ? () => updateScoresLayer(true) :
-      type === 'Amenities' ? () => updateAmenitiesCatchmentLayer(true) :
-      () => updateCensusLayer(),
-      isInverse,
-      order
+  const selectedCsvData = scoreLayers[selectedYear];
+  if (!selectedCsvData) {
+    return;
+  }
+
+  const scoreLookup = {};
+  selectedCsvData.forEach(row => {
+    if (row.Hex_ID && row[fieldToDisplay] !== undefined) {
+      scoreLookup[row.Hex_ID] = row;
+    }
+  });
+
+  if (ScoresLayer) {
+    map.removeLayer(ScoresLayer);
+    ScoresLayer = null;
+  }
+
+  const featuresWithScores = hexes.features
+    .filter(feature => scoreLookup[feature.properties.Hex_ID])
+    .map(feature => {
+      const hexId = feature.properties.Hex_ID;
+      const scoreData = scoreLookup[hexId];
+
+      return {
+        type: "Feature",
+        geometry: feature.geometry,
+        properties: {
+          ...feature.properties,
+          ...scoreData
+        }
+      };
+    });
+
+  const filteredScoresLayer = {
+    type: "FeatureCollection",
+    features: featuresWithScores
+  };
+
+  ScoresLayer = L.geoJSON(filteredScoresLayer).addTo(map);
+  ScoresLayer._currentYear = selectedYear;
+
+  applyScoresLayerStyling();
+  
+  selectedScoresAmenities = purposeToAmenitiesMap[selectedPurpose];
+  drawSelectedAmenities(selectedScoresAmenities);
+  updateLegend();
+  updateFeatureVisibility();
+  updateFilterValues();
+  updateSummaryStatistics(getCurrentFeatures());
+  highlightSelectedArea();
+}
+
+function applyScoresLayerStyling() {
+  if (!ScoresLayer) return;
+  
+  const selectedYear = ScoresYear.value;
+  const selectedPurpose = ScoresPurpose.value;
+  const selectedMode = ScoresMode.value;
+  const opacityField = ScoresOpacity.value;
+  const outlineField = ScoresOutline.value;
+  
+  const fieldToDisplay = selectedYear.includes('-') ? 
+    `${selectedPurpose}_${selectedMode}` : 
+    `${selectedPurpose}_${selectedMode}_100`;
+    
+  let minOpacity = ScoresOpacityRange && ScoresOpacityRange.noUiSlider ? 
+    parseFloat(ScoresOpacityRange.noUiSlider.get()[0]) : 0;
+  let maxOpacity = ScoresOpacityRange && ScoresOpacityRange.noUiSlider ? 
+    parseFloat(ScoresOpacityRange.noUiSlider.get()[1]) : 0;
+  let minOutline = ScoresOutlineRange && ScoresOutlineRange.noUiSlider ? 
+    parseFloat(ScoresOutlineRange.noUiSlider.get()[0]) : 0;
+  let maxOutline = ScoresOutlineRange && ScoresOutlineRange.noUiSlider ? 
+    parseFloat(ScoresOutlineRange.noUiSlider.get()[1]) : 0;
+  
+  ScoresLayer.eachLayer(layer => {
+    const style = styleScoresFeature(
+      layer.feature, 
+      fieldToDisplay, 
+      opacityField, 
+      outlineField,
+      minOpacity, 
+      maxOpacity, 
+      minOutline, 
+      maxOutline, 
+      selectedYear
     );
-  }
 
-  isUpdatingSliders = false;
+    layer.options._originalStyling = {
+      opacity: style.opacity,
+      fillOpacity: style.fillOpacity
+    };
 
-  if (!skipLayerUpdate) {
-    if (type === 'Scores') {
-      updateScoresLayer(true);
-    } else if (type === 'Amenities') {
-      updateAmenitiesCatchmentLayer(true);
-    } else if (type === 'Census') {
-      updateCensusLayer();
-    }
-  }
+    layer.setStyle(style);
+  });
+  
+  updateFeatureVisibility();
 }
 
 function styleScoresFeature(feature, fieldToDisplay, opacityField, outlineField, minOpacityValue, maxOpacityValue, minOutlineValue, maxOutlineValue, selectedYear) {
   const value = feature.properties[fieldToDisplay];
+  
   function getColor(value, selectedYear) {
     if (!selectedYear) {
       return 'transparent';
@@ -1359,7 +1527,6 @@ function styleScoresFeature(feature, fieldToDisplay, opacityField, outlineField,
                           '#440154';
     }
   }
-  const color = getColor(parseFloat(value), selectedYear);
 
   let opacity;
   if (opacityField === 'None') {
@@ -1367,7 +1534,7 @@ function styleScoresFeature(feature, fieldToDisplay, opacityField, outlineField,
   } else {
     const opacityValue = feature.properties[opacityField];
     if (opacityValue === 0 || opacityValue === null || opacityValue === undefined || opacityValue === '') {
-      opacity = 0.1;
+      opacity = isInverseScoresOpacity ? 0.5 : 0.1;
     } else {
       opacity = scaleExp(opacityValue, minOpacityValue, maxOpacityValue, 0.1, 0.8, opacityScoresOrder);
     }
@@ -1385,228 +1552,24 @@ function styleScoresFeature(feature, fieldToDisplay, opacityField, outlineField,
     }
   }
 
-  const style = {
-    fillColor: color,
+  return {
+    fillColor: getColor(parseFloat(value), selectedYear),
     weight: weight,
     opacity: 1,
     color: 'black',
     fillOpacity: opacity
   };
-
-  return style;
 }
 
-function updateScoresLayer(stylingUpdateOnly = false) {
-  if (!initialLoadComplete || !isPanelOpen("Connectivity Scores")) {
-    return;
-  }
-
-  console.log("Updating ScoresLayer.");
-
-  const selectedYear = ScoresYear.value;
-  const selectedPurpose = ScoresPurpose.value;
-  const selectedMode = ScoresMode.value;
-  const opacityField = ScoresOpacity.value;
-  const outlineField = ScoresOutline.value;
-
-  if (!selectedYear) {
-    updateLegend();
-    updateSummaryStatistics([]);
-    return;
-  }
-
-  const currentYear = ScoresLayer ? ScoresLayer._currentYear : null;
-  
-  if (currentYear !== selectedYear) {
-    stylingUpdateOnly = false;
-  }
-
-  const fieldToDisplay = selectedYear.includes('-') ? `${selectedPurpose}_${selectedMode}` : `${selectedPurpose}_${selectedMode}_100`;
-
-  if (!scoreLayers[selectedYear]) {
-    const scoreFile = ScoresFiles.find(file => file.year === selectedYear);
-    if (scoreFile) {
-      fetch(scoreFile.path)
-        .then(response => {
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-          return response.text();
-        })
-        .then(csvData => {
-          const parsedData = Papa.parse(csvData, { header: true }).data;
-          scoreLayers[selectedYear] = parsedData;
-          updateScoresLayer(false);
-        })
-        .catch(error => {
-        });
-      return;
-    } else {
-      return;
-    }
-  }
-
-  const selectedCsvData = scoreLayers[selectedYear];
-  if (!selectedCsvData) {
-    return;
-  }
-
-  const scoreLookup = {};
-  selectedCsvData.forEach(row => {
-    if (row.Hex_ID && row[fieldToDisplay] !== undefined) {
-      scoreLookup[row.Hex_ID] = row;
-    }
-  });
-
-  if (!stylingUpdateOnly || !ScoresLayer) {
-    if (ScoresLayer) {
-      map.removeLayer(ScoresLayer);
-      ScoresLayer = null;
-    }
-
-    const featuresWithScores = hexes.features
-      .filter(feature => scoreLookup[feature.properties.Hex_ID])
-      .map(feature => {
-        const hexId = feature.properties.Hex_ID;
-        const scoreData = scoreLookup[hexId];
-
-        return {
-          type: "Feature",
-          geometry: feature.geometry,
-          properties: {
-            ...feature.properties,
-            ...scoreData
-          }
-        };
-      });
-
-    const filteredScoresLayer = {
-      type: "FeatureCollection",
-      features: featuresWithScores
-    };
-
-    let minOpacity = ScoresOpacityRange && ScoresOpacityRange.noUiSlider ? parseFloat(ScoresOpacityRange.noUiSlider.get()[0]) : 0;
-    let maxOpacity = ScoresOpacityRange && ScoresOpacityRange.noUiSlider ? parseFloat(ScoresOpacityRange.noUiSlider.get()[1]) : 0;
-    let minOutline = ScoresOutlineRange && ScoresOutlineRange.noUiSlider ? parseFloat(ScoresOutlineRange.noUiSlider.get()[0]) : 0;
-    let maxOutline = ScoresOutlineRange && ScoresOutlineRange.noUiSlider ? parseFloat(ScoresOutlineRange.noUiSlider.get()[1]) : 0;
-
-    ScoresLayer = L.geoJSON(filteredScoresLayer, {
-      style: feature => styleScoresFeature(feature, fieldToDisplay, opacityField, outlineField, minOpacity, maxOpacity, minOutline, maxOutline, selectedYear),
-    }).addTo(map);
-    
-    ScoresLayer._currentYear = selectedYear;
-
-    selectedScoresAmenities = purposeToAmenitiesMap[selectedPurpose];
-    drawSelectedAmenities(selectedScoresAmenities);
-    updateLegend();
-    updateFeatureVisibility();
-    updateFilterValues();
-    updateSummaryStatistics(getCurrentFeatures());
-    highlightSelectedArea();
-    return;
-  }
-
-  let minOpacity = ScoresOpacityRange && ScoresOpacityRange.noUiSlider ? parseFloat(ScoresOpacityRange.noUiSlider.get()[0]) : 0;
-  let maxOpacity = ScoresOpacityRange && ScoresOpacityRange.noUiSlider ? parseFloat(ScoresOpacityRange.noUiSlider.get()[1]) : 0;
-  let minOutline = ScoresOutlineRange && ScoresOutlineRange.noUiSlider ? parseFloat(ScoresOutlineRange.noUiSlider.get()[0]) : 0;
-  let maxOutline = ScoresOutlineRange && ScoresOutlineRange.noUiSlider ? parseFloat(ScoresOutlineRange.noUiSlider.get()[1]) : 0;
-
-  ScoresLayer.eachLayer(layer => {
-    const style = styleScoresFeature(
-      layer.feature, fieldToDisplay, opacityField, outlineField,
-      minOpacity, maxOpacity, minOutline, maxOutline, selectedYear
-    );
-
-    layer.options._originalStyling = {
-      opacity: style.opacity,
-      fillOpacity: style.fillOpacity
-    };
-
-    layer.setStyle(style);
-  });
-  selectedScoresAmenities = purposeToAmenitiesMap[selectedPurpose];
-  drawSelectedAmenities(selectedScoresAmenities);
-
-  updateFeatureVisibility();
-}
-
-function updateAmenitiesCatchmentLayer(stylingUpdateOnly = false) {
+function updateAmenitiesCatchmentLayer() {
   if (!initialLoadComplete || !isPanelOpen("Journey Time Catchments - Amenities")) {
     return;
   }
 
+  console.log('Updating Amenities Catchment Layer');
+
   const selectedYear = AmenitiesYear.value;
   const selectedMode = AmenitiesMode.value;
-  if (AmenitiesCatchmentLayer && AmenitiesCatchmentLayer._currentMode !== selectedMode) {
-    stylingUpdateOnly = false;
-  }
-
-  if (stylingUpdateOnly && AmenitiesCatchmentLayer) {
-    const minOpacityValue = AmenitiesOpacityRange && AmenitiesOpacityRange.noUiSlider ? 
-      parseFloat(AmenitiesOpacityRange.noUiSlider.get()[0]) : 0;
-    const maxOpacityValue = AmenitiesOpacityRange && AmenitiesOpacityRange.noUiSlider ? 
-      parseFloat(AmenitiesOpacityRange.noUiSlider.get()[1]) : 0;
-    const minOutlineValue = AmenitiesOutlineRange && AmenitiesOutlineRange.noUiSlider ? 
-      parseFloat(AmenitiesOutlineRange.noUiSlider.get()[0]) : 0;
-    const maxOutlineValue = AmenitiesOutlineRange && AmenitiesOutlineRange.noUiSlider ? 
-      parseFloat(AmenitiesOutlineRange.noUiSlider.get()[1]) : 0;
-    
-    AmenitiesCatchmentLayer.eachLayer(layer => {
-      const feature = layer.feature;
-      const hexId = feature.properties.Hex_ID;
-      const time = hexTimeMap[hexId];
-      let color = 'transparent';
-
-      if (time !== undefined) {
-        if (time <= 5) color = '#fde725';
-        else if (time <= 10) color = '#7ad151';
-        else if (time <= 15) color = '#23a884';
-        else if (time <= 20) color = '#2a788e';
-        else if (time <= 25) color = '#414387';
-        else if (time <= 30) color = '#440154';
-        else color = 'grey';
-      }
-
-      let opacity;
-      if (AmenitiesOpacity.value === 'None') {
-        opacity = 0.5;
-      } else {
-        const opacityValue = feature.properties[AmenitiesOpacity.value];
-        if (opacityValue === 0 || opacityValue === null || opacityValue === undefined) {
-          opacity = isInverseAmenitiesOpacity ? 0.5 : 0.1;
-        } else {
-          opacity = scaleExp(opacityValue, minOpacityValue, maxOpacityValue, 0.1, 0.8, opacityAmenitiesOrder);
-        }
-      }
-      
-      let weight;
-      if (AmenitiesOutline.value === 'None') {
-        weight = 0;
-      } else {
-        const outlineValue = feature.properties[AmenitiesOutline.value];
-        if (outlineValue === 0 || outlineValue === null || outlineValue === undefined || outlineValue === '') {
-          weight = 0;
-        } else {
-          weight = scaleExp(outlineValue, minOutlineValue, maxOutlineValue, 0, 4, outlineAmenitiesOrder);
-        }
-      }
-
-      layer.options._originalStyling = {
-        opacity: 1,
-        fillOpacity: opacity
-      };
-
-      layer.setStyle({
-        fillColor: color,
-        weight: weight,
-        opacity: 1,
-        color: 'black',
-        fillOpacity: opacity
-      });
-    });
-    updateFeatureVisibility();
-    return;
-  }
   
   selectedAmenitiesAmenities = Array.from(AmenitiesPurpose)
     .filter(checkbox => checkbox.checked)
@@ -1693,67 +1656,11 @@ function updateAmenitiesCatchmentLayer(stylingUpdateOnly = false) {
       type: "FeatureCollection",
       features: filteredFeatures
     };
-
-    const minOpacityValue = AmenitiesOpacityRange && AmenitiesOpacityRange.noUiSlider ? 
-      parseFloat(AmenitiesOpacityRange.noUiSlider.get()[0]) : 0;
-    const maxOpacityValue = AmenitiesOpacityRange && AmenitiesOpacityRange.noUiSlider ? 
-      parseFloat(AmenitiesOpacityRange.noUiSlider.get()[1]) : 0;
-    const minOutlineValue = AmenitiesOutlineRange && AmenitiesOutlineRange.noUiSlider ? 
-      parseFloat(AmenitiesOutlineRange.noUiSlider.get()[0]) : 0;
-    const maxOutlineValue = AmenitiesOutlineRange && AmenitiesOutlineRange.noUiSlider ? 
-      parseFloat(AmenitiesOutlineRange.noUiSlider.get()[1]) : 0;
     
-    AmenitiesCatchmentLayer = L.geoJSON(filteredAmenitiesCatchmentLayer, {
-      style: feature => {
-        const hexId = feature.properties.Hex_ID;
-        const time = hexTimeMap[hexId];
-        let color = 'transparent';
-
-        if (time !== undefined) {
-          if (time <= 5) color = '#fde725';
-          else if (time <= 10) color = '#7ad151';
-          else if (time <= 15) color = '#23a884';
-          else if (time <= 20) color = '#2a788e';
-          else if (time <= 25) color = '#414387';
-          else if (time <= 30) color = '#440154';
-          else color = 'grey';
-        }
-
-        let opacity;
-        if (AmenitiesOpacity.value === 'None') {
-          opacity = 0.5;
-        } else {
-          const opacityValue = feature.properties[AmenitiesOpacity.value];
-          if (opacityValue === 0 || opacityValue === null || opacityValue === undefined) {
-            opacity = isInverseAmenitiesOpacity ? 0.5 : 0.1;
-          } else {
-            opacity = scaleExp(opacityValue, minOpacityValue, maxOpacityValue, 0.1, 0.8, opacityAmenitiesOrder);
-          }
-        }
-        
-        let weight;
-        if (AmenitiesOutline.value === 'None') {
-          weight = 0;
-        } else {
-          const outlineValue = feature.properties[AmenitiesOutline.value];
-          if (outlineValue === 0 || outlineValue === null || outlineValue === undefined || outlineValue === '') {
-            weight = 0;
-          } else {
-            weight = scaleExp(outlineValue, minOutlineValue, maxOutlineValue, 0, 4, outlineAmenitiesOrder);
-          }
-        }
-
-        return {
-          fillColor: color,
-          weight: weight,
-          opacity: 1,
-          color: 'black',
-          fillOpacity: opacity
-        };
-      },
-    }).addTo(map);
-
+    AmenitiesCatchmentLayer = L.geoJSON(filteredAmenitiesCatchmentLayer).addTo(map);
     AmenitiesCatchmentLayer._currentMode = selectedMode;
+
+    applyAmenitiesCatchmentLayerStyling();
 
     drawSelectedAmenities(selectedAmenitiesAmenities);
     updateLegend();
@@ -1763,16 +1670,105 @@ function updateAmenitiesCatchmentLayer(stylingUpdateOnly = false) {
   });
 }
 
+function applyAmenitiesCatchmentLayerStyling() {
+  if (!AmenitiesCatchmentLayer) return;
+
+  const minOpacityValue = AmenitiesOpacityRange && AmenitiesOpacityRange.noUiSlider ? 
+    parseFloat(AmenitiesOpacityRange.noUiSlider.get()[0]) : 0;
+  const maxOpacityValue = AmenitiesOpacityRange && AmenitiesOpacityRange.noUiSlider ? 
+    parseFloat(AmenitiesOpacityRange.noUiSlider.get()[1]) : 0;
+  const minOutlineValue = AmenitiesOutlineRange && AmenitiesOutlineRange.noUiSlider ? 
+    parseFloat(AmenitiesOutlineRange.noUiSlider.get()[0]) : 0;
+  const maxOutlineValue = AmenitiesOutlineRange && AmenitiesOutlineRange.noUiSlider ? 
+    parseFloat(AmenitiesOutlineRange.noUiSlider.get()[1]) : 0;
+  
+  AmenitiesCatchmentLayer.eachLayer(layer => {
+    const feature = layer.feature;
+    const hexId = feature.properties.Hex_ID;
+    const time = hexTimeMap[hexId];
+    let color = 'transparent';
+
+    if (time !== undefined) {
+      if (time <= 5) color = '#fde725';
+      else if (time <= 10) color = '#7ad151';
+      else if (time <= 15) color = '#23a884';
+      else if (time <= 20) color = '#2a788e';
+      else if (time <= 25) color = '#414387';
+      else if (time <= 30) color = '#440154';
+      else color = 'grey';
+    }
+
+    let opacity;
+    if (AmenitiesOpacity.value === 'None') {
+      opacity = 0.5;
+    } else {
+      const opacityValue = feature.properties[AmenitiesOpacity.value];
+      if (opacityValue === 0 || opacityValue === null || opacityValue === undefined) {
+        opacity = isInverseAmenitiesOpacity ? 0.5 : 0.1;
+      } else {
+        opacity = scaleExp(opacityValue, minOpacityValue, maxOpacityValue, 0.1, 0.8, opacityAmenitiesOrder);
+      }
+    }
+    
+    let weight;
+    if (AmenitiesOutline.value === 'None') {
+      weight = 0;
+    } else {
+      const outlineValue = feature.properties[AmenitiesOutline.value];
+      if (outlineValue === 0 || outlineValue === null || outlineValue === undefined || outlineValue === '') {
+        weight = 0;
+      } else {
+        weight = scaleExp(outlineValue, minOutlineValue, maxOutlineValue, 0, 4, outlineAmenitiesOrder);
+      }
+    }
+
+    layer.options._originalStyling = {
+      opacity: 1,
+      fillOpacity: opacity
+    };
+
+    layer.setStyle({
+      fillColor: color,
+      weight: weight,
+      opacity: 1,
+      color: 'black',
+      fillOpacity: opacity
+    });
+  });
+  
+  updateFeatureVisibility();
+}
+
+function styleAmenitiesCatchment(feature) {
+  const hexId = feature.properties.Hex_ID;
+  const time = hexTimeMap[hexId];
+  let color = 'transparent';
+
+  if (time !== undefined) {
+    if (time <= 5) color = '#fde725';
+    else if (time <= 10) color = '#7ad151';
+    else if (time <= 15) color = '#23a884';
+    else if (time <= 20) color = '#2a788e';
+    else if (time <= 25) color = '#414387';
+    else if (time <= 30) color = '#440154';
+    else color = 'grey';
+  }
+
+  return {
+    fillColor: color,
+    weight: 0.5,
+    opacity: 1,
+    color: 'black',
+    fillOpacity: 0.5
+  };
+}
+
 function updateCensusLayer() {
   if (!initialLoadComplete || !isPanelOpen("Census / Local Plan Data")) {
     return;
   }
 
   console.log('Updating Census Layer');
-
-  const baseColor = baseColorCensus.value;
-  const opacityField = CensusOpacity.value;
-  const outlineField = CensusOutline.value;
 
   if (ScoresLayer) {
     map.removeLayer(ScoresLayer);
@@ -1789,6 +1785,33 @@ function updateCensusLayer() {
     CensusLayer = null;
   }
 
+  CensusLayer = L.geoJSON(hexes, {
+    style: feature => {
+      return {
+        fillColor: baseColorCensus.value,
+        weight: 0.5,
+        opacity: 1,
+        color: 'black',
+        fillOpacity: 0.5
+      };
+    }
+  }).addTo(map);
+
+  applyCensusLayerStyling();
+
+  updateLegend();
+  updateFilterValues();
+  updateSummaryStatistics(hexes.features);
+  highlightSelectedArea();
+}
+
+function applyCensusLayerStyling() {
+  if (!CensusLayer) return;
+
+  const baseColor = baseColorCensus.value;
+  const opacityField = CensusOpacity.value;
+  const outlineField = CensusOutline.value;
+  
   const minOpacityValue = CensusOpacityRange && CensusOpacityRange.noUiSlider ? 
     parseFloat(CensusOpacityRange.noUiSlider.get()[0]) : 0;
   const maxOpacityValue = CensusOpacityRange && CensusOpacityRange.noUiSlider ? 
@@ -1798,46 +1821,41 @@ function updateCensusLayer() {
   const maxOutlineValue = CensusOutlineRange && CensusOutlineRange.noUiSlider ? 
     parseFloat(CensusOutlineRange.noUiSlider.get()[1]) : 0;
 
-  CensusLayer = L.geoJSON(hexes, {
-    style: function(feature) {
-      let opacity;
-      if (opacityField === 'None') {
-        opacity = 0.5;
+  CensusLayer.eachLayer(layer => {
+    const feature = layer.feature;
+    
+    let opacity;
+    if (opacityField === 'None') {
+      opacity = 0.5;
+    } else {
+      const opacityValue = feature.properties[opacityField];
+      if (opacityValue === 0 || opacityValue === null || opacityValue === undefined) {
+        opacity = isInverseCensusOpacity ? 0.8 : 0.1;
       } else {
-        const opacityValue = feature.properties[opacityField];
-        if (opacityValue === 0 || opacityValue === null || opacityValue === undefined) {
-          opacity = isInverseCensusOpacity ? 0.8 : 0.1;
-        } else {
-          opacity = scaleExp(opacityValue, minOpacityValue, maxOpacityValue, 0.1, 0.8, opacityCensusOrder);
-        }
+        opacity = scaleExp(opacityValue, minOpacityValue, maxOpacityValue, 0.1, 0.8, opacityCensusOrder);
       }
+    }
 
-      let weight;
-      if (outlineField === 'None') {
+    let weight;
+    if (outlineField === 'None') {
+      weight = 0;
+    } else {
+      const outlineValue = feature.properties[outlineField];
+      if (outlineValue === 0 || outlineValue === null || outlineValue === undefined || outlineValue === '') {
         weight = 0;
       } else {
-        const outlineValue = feature.properties[outlineField];
-        if (outlineValue === 0 || outlineValue === null || outlineValue === undefined || outlineValue === '') {
-          weight = 0;
-        } else {
-          weight = scaleExp(outlineValue, minOutlineValue, maxOutlineValue, 0, 4, outlineCensusOrder);
-        }
+        weight = scaleExp(outlineValue, minOutlineValue, maxOutlineValue, 0, 4, outlineCensusOrder);
       }
-
-      return {
-        fillColor: baseColor,
-        weight: weight,
-        opacity: 1,
-        color: 'black',
-        fillOpacity: opacity
-      };
     }
-  }).addTo(map);
 
-  updateLegend();
-  updateFilterValues();
-  updateSummaryStatistics(hexes.features);
-  highlightSelectedArea();
+    layer.setStyle({
+      fillColor: baseColor,
+      weight: weight,
+      opacity: 1,
+      color: 'black',
+      fillOpacity: opacity
+    });
+  });
 }
 
 function updateFilterValues() {
