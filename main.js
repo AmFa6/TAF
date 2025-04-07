@@ -908,26 +908,24 @@ function scaleExp(value, minVal, maxVal, minScale, maxScale, order) {
 }
 
 function formatValue(value, step) {
-  console.log('formatValue called with:', { value, step }); // Debugging log
-
   if (value === null || value === undefined || isNaN(value)) {
     return '-';
   }
 
   if (step >= 100) {
-    return Math.round(value / 100) * 100
+    return (Math.round(value / 100) * 100)
       .toLocaleString(undefined, { maximumFractionDigits: 0 });
   } else if (step >= 10) {
-    return Math.round(value / 10) * 10
+    return (Math.round(value / 10) * 10)
       .toLocaleString(undefined, { maximumFractionDigits: 0 });
   } else if (step >= 1) {
-    return parseFloat(value).toLocaleString(undefined, { maximumFractionDigits: 0 });
+    return value.toLocaleString(undefined, { maximumFractionDigits: 0 });
   } else if (step >= 0.1) {
-    return parseFloat(value).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    return value.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
   } else if (step >= 0.01) {
-    return parseFloat(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   } else {
-    return parseFloat(value).toString();
+    return value.toString();
   }
 }
 
