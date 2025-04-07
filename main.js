@@ -658,11 +658,11 @@ map.on('click', function (e) {
           const scoreValue = properties[fieldToDisplay];
           const score = selectedYear.includes('-') ? `${(scoreValue * 100).toFixed(1)}%` : formatValue(scoreValue, 1);
           const percentile = formatValue(properties[`${selectedPurpose}_${selectedMode}_100`], 1);
-          const population = formatValue(properties.pop, 1);
+          const population = formatValue(properties.pop, 100);
           const imdScore = formatValue(properties.IMDScore, 0.1);
           const imdDecile = formatValue(properties.IMD_Decile, 1);
           const carAvailability = formatValue(properties.car_availability, 0.01);
-          const growthPop = formatValue(properties.pop_growth, 1);
+          const growthPop = formatValue(properties.pop_growth, 100);
           const scoreLabel = selectedYear.includes('-') ? 'Score Difference' : 'Score';
 
           popupContent.Hexagon.push(`
@@ -677,11 +677,11 @@ map.on('click', function (e) {
           `);
         } else if (AmenitiesCatchmentLayer) {
           const time = formatValue(hexTimeMap[properties.Hex_ID], 1);
-          const population = formatValue(properties.pop, 1);
+          const population = formatValue(properties.pop, 100);
           const imdScore = formatValue(properties.IMDScore, 0.1);
           const imdDecile = formatValue(properties.IMD_Decile, 1);
           const carAvailability = formatValue(properties.car_availability, 0.01);
-          const growthPop = formatValue(properties.pop_growth, 1);
+          const growthPop = formatValue(properties.pop_growth, 100);
   
           popupContent.Hexagon.push(`
             <strong>Hex_ID:</strong> ${properties.Hex_ID}<br>
@@ -700,11 +700,11 @@ map.on('click', function (e) {
       const polygon = turf.polygon(feature.geometry.coordinates);
       if (turf.booleanPointInPolygon(clickedPoint, polygon)) {
         const properties = feature.properties;
-        const population = formatValue(properties.pop, 1);
+        const population = formatValue(properties.pop, 100);
         const imdScore = formatValue(properties.IMDScore, 0.1);
         const imdDecile = formatValue(properties.IMD_Decile, 1);
         const carAvailability = formatValue(properties.car_availability, 0.01);
-        const growthPop = formatValue(properties.pop_growth, 1);
+        const growthPop = formatValue(properties.pop_growth, 100);
   
         popupContent.Hexagon.push(`
           <strong>Hex_ID:</strong> ${properties.Hex_ID}<br>
@@ -908,13 +908,18 @@ function scaleExp(value, minVal, maxVal, minScale, maxScale, order) {
 }
 
 function formatValue(value, step) {
+  console.log('formatValue called with:', { value, step }); // Debugging log
+
   if (value === null || value === undefined || isNaN(value)) {
     return '-';
   }
-  
-  if (step >= 10) {
-    return Math.round(value / 10) * 10 !== 0 ? Math.round(value / 10) * 10 
-      .toLocaleString() : '0';
+
+  if (step >= 100) {
+    return Math.round(value / 100) * 100
+      .toLocaleString(undefined, { maximumFractionDigits: 0 });
+  } else if (step >= 10) {
+    return Math.round(value / 10) * 10
+      .toLocaleString(undefined, { maximumFractionDigits: 0 });
   } else if (step >= 1) {
     return parseFloat(value).toLocaleString(undefined, { maximumFractionDigits: 0 });
   } else if (step >= 0.1) {
@@ -1652,10 +1657,16 @@ function updateAmenitiesCatchmentLayer(stylingUpdateOnly = false) {
       AmenitiesCatchmentLayer = null;
     }
 
-    const filteredFeatures = hexes.features.filter(feature => {
+    const filteredFeatures = hexes.features.map(feature => {
       const hexId = feature.properties.Hex_ID;
-      const time = hexTimeMap[hexId];
-      return time !== undefined;
+      const time = hexTimeMap[hexId] !== undefined ? hexTimeMap[hexId] : 120;
+      return {
+        ...feature,
+        properties: {
+          ...feature.properties,
+          time: time
+        }
+      };
     });
     
     const filteredAmenitiesCatchmentLayer = {
@@ -2248,21 +2259,21 @@ function calculateTimeStatistics(features) {
 }
 
 function updateStatisticsUI(stats) {
-  document.getElementById('total-population').textContent = formatValue(stats.totalPopulation, 1);
-  document.getElementById('min-population').textContent = formatValue(stats.minPopulation, 1);
-  document.getElementById('max-population').textContent = formatValue(stats.maxPopulation, 1);
+  document.getElementById('total-population').textContent = formatValue(stats.totalPopulation, 100);
+  document.getElementById('min-population').textContent = formatValue(stats.minPopulation, 100);
+  document.getElementById('max-population').textContent = formatValue(stats.maxPopulation, 100);
   document.getElementById('avg-imd-score').textContent = formatValue(stats.avgImdScore, 0.1);
   document.getElementById('min-imd-score').textContent = formatValue(stats.minImdScore, 0.1);
   document.getElementById('max-imd-score').textContent = formatValue(stats.maxImdScore, 0.1);
   document.getElementById('avg-imd-decile').textContent = formatValue(stats.avgImdDecile, 1);
   document.getElementById('min-imd-decile').textContent = formatValue(stats.minImdDecile, 1);
-  document.getElementById('max-imd-decile').textContent = formatValue(stats.maxImdDecile, 1);
+  document.getElementById('max-imd-decile').textContent = formatValue(stats.maxImdDecile, 100);
   document.getElementById('avg-car-availability').textContent = formatValue(stats.avgCarAvailability, 0.01);
   document.getElementById('min-car-availability').textContent = formatValue(stats.minCarAvailability, 0.01);
   document.getElementById('max-car-availability').textContent = formatValue(stats.maxCarAvailability, 0.01);
-  document.getElementById('total-growth-pop').textContent = formatValue(stats.totalgrowthpop, 1);
-  document.getElementById('min-growth-pop').textContent = formatValue(stats.mingrowthpop, 1);
-  document.getElementById('max-growth-pop').textContent = formatValue(stats.maxgrowthpop, 1);
+  document.getElementById('total-growth-pop').textContent = formatValue(stats.totalgrowthpop, 100);
+  document.getElementById('min-growth-pop').textContent = formatValue(stats.mingrowthpop, 100);
+  document.getElementById('max-growth-pop').textContent = formatValue(stats.maxgrowthpop, 100);
 
   document.getElementById('metric-row-1').textContent = stats.metricRow1 || '-';
   document.getElementById('metric-row-2').textContent = stats.metricRow2 || '-';
