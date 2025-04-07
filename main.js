@@ -294,19 +294,19 @@ AmenitiesPurpose.forEach(checkbox => {
 });
 
 ScoresOpacity.addEventListener("change", () => {
-  updateSliderRanges('Scores', 'Opacity', true);
+  updateSliderRanges('Scores', 'Opacity');
   if (ScoresLayer) applyScoresLayerStyling();
 });
 ScoresOutline.addEventListener("change", () => {
-  updateSliderRanges('Scores', 'Outline', true);
+  updateSliderRanges('Scores', 'Outline');
   if (ScoresLayer) applyScoresLayerStyling();
 });
 AmenitiesOpacity.addEventListener("change", () => {
-  updateSliderRanges('Amenities', 'Opacity', true);
+  updateSliderRanges('Amenities', 'Opacity');
   if (AmenitiesCatchmentLayer) applyAmenitiesCatchmentLayerStyling();
 });
 AmenitiesOutline.addEventListener("change", () => {
-  updateSliderRanges('Amenities', 'Outline', true);
+  updateSliderRanges('Amenities', 'Outline');
   if (AmenitiesCatchmentLayer) applyAmenitiesCatchmentLayerStyling();
 });
 baseColorCensus.addEventListener("change", () => {
@@ -805,6 +805,10 @@ function isPanelOpen(panelName) {
 }
 
 function configureSlider(sliderElement, updateCallback, isInverse, order, debounceDelay = 250) {
+  if (sliderElement.noUiSlider) {
+    sliderElement.noUiSlider.off('update');
+  }
+  
   const updateStylesCallback = () => {
     if (ScoresLayer && isPanelOpen("Connectivity Scores")) {
       applyScoresLayerStyling();
@@ -816,15 +820,19 @@ function configureSlider(sliderElement, updateCallback, isInverse, order, deboun
   };
 
   const debouncedUpdateCallback = debounce(updateStylesCallback, debounceDelay);
-
-  sliderElement.noUiSlider.off();
   
+  const sliderId = sliderElement.id;
+  const sliderType = sliderId.includes('Scores') ? 'Scores' : 
+                     sliderId.includes('Amenities') ? 'Amenities' : 'Census';
+  const sliderFunction = sliderId.includes('Opacity') ? 'Opacity' : 'Outline';
+    
   const handles = sliderElement.querySelectorAll('.noUi-handle');
   const connectElements = sliderElement.querySelectorAll('.noUi-connect');
 
   handles.forEach(handle => {
     handle.classList.remove('noUi-handle-transparent');
   });
+  
   connectElements.forEach(connect => {
     connect.classList.remove('noUi-connect-dark-grey', 'noUi-connect-gradient-right', 'noUi-connect-gradient-left');
   });
@@ -833,32 +841,56 @@ function configureSlider(sliderElement, updateCallback, isInverse, order, deboun
     sliderElement.noUiSlider.updateOptions({
       connect: [true, true, true]
     }, false);
-    handles[1].classList.add('noUi-handle-transparent');
-    handles[0].classList.remove('noUi-handle-transparent');
-    connectElements[0].classList.add('noUi-connect-dark-grey');
-    connectElements[1].classList.remove('noUi-connect-gradient-right');
-    connectElements[1].classList.add('noUi-connect-gradient-left');
-    connectElements[2].classList.remove('noUi-connect-dark-grey');
+    
+    if (handles.length >= 2) {
+      handles[1].classList.add('noUi-handle-transparent');
+      handles[0].classList.remove('noUi-handle-transparent');
+    }
+    
+    if (connectElements.length >= 3) {
+      connectElements[0].classList.add('noUi-connect-dark-grey');
+      connectElements[1].classList.remove('noUi-connect-gradient-right');
+      connectElements[1].classList.add('noUi-connect-gradient-left');
+      connectElements[2].classList.remove('noUi-connect-dark-grey');
+    }
   } else {
     sliderElement.noUiSlider.updateOptions({
       connect: [true, true, true]
     }, false);
-    handles[1].classList.remove('noUi-handle-transparent');
-    handles[0].classList.add('noUi-handle-transparent');
-    connectElements[0].classList.remove('noUi-connect-dark-grey');
-    connectElements[1].classList.remove('noUi-connect-gradient-left');
-    connectElements[1].classList.add('noUi-connect-gradient-right');
-    connectElements[2].classList.add('noUi-connect-dark-grey');
+    
+    if (handles.length >= 2) {
+      handles[1].classList.remove('noUi-handle-transparent');
+      handles[0].classList.add('noUi-handle-transparent');
+    }
+    
+    if (connectElements.length >= 3) {
+      connectElements[0].classList.remove('noUi-connect-dark-grey');
+      connectElements[1].classList.remove('noUi-connect-gradient-left');
+      connectElements[1].classList.add('noUi-connect-gradient-right');
+      connectElements[2].classList.add('noUi-connect-dark-grey');
+    }
   }
 
   sliderElement.noUiSlider.on('update', function (values, handle) {
     const handleElement = handles[handle];
-    handleElement.setAttribute('data-value', formatValue(values[handle], sliderElement.noUiSlider.options.step));
+    const step = sliderElement.noUiSlider.options.step;
+    const formattedValue = formatValue(values[handle], step);
+    handleElement.setAttribute('data-value', formattedValue);
+    
+    let fieldName;
+    if (sliderType === 'Scores') {
+      fieldName = sliderFunction === 'Opacity' ? ScoresOpacity.value : ScoresOutline.value;
+    } else if (sliderType === 'Amenities') {
+      fieldName = sliderFunction === 'Opacity' ? AmenitiesOpacity.value : AmenitiesOutline.value;
+    } else {
+      fieldName = sliderFunction === 'Opacity' ? CensusOpacity.value : CensusOutline.value;
+    }
+    
     debouncedUpdateCallback();
   });
 }
 
-function updateSliderRanges(type, scaleType, skipLayerUpdate = false) {
+function updateSliderRanges(type, scaleType) {
   if (isUpdatingSliders) return;
   isUpdatingSliders = true;
 
@@ -921,15 +953,17 @@ function updateSliderRanges(type, scaleType, skipLayerUpdate = false) {
   }
 
   if (!rangeElement || !rangeElement.noUiSlider) {
-    console.error(`Slider not initialized for ${type} ${scaleType}`);
     isUpdatingSliders = false;
     return;
   }
-
+  
   if (hexesData) {
-    const values = field !== "None" ? hexesData.features.map(feature => feature.properties[field]).filter(value => value !== null && value !== 0) : [];
+    const values = field !== "None" ? 
+      hexesData.features.map(feature => feature.properties[field]).filter(value => value !== null && value !== 0) : [];
+    
     const minValue = Math.min(...values);
     const maxValue = Math.max(...values);
+    
     const roundedMaxValue = Math.pow(10, Math.ceil(Math.log10(maxValue)));
     let step = roundedMaxValue / 100;
 
@@ -939,7 +973,7 @@ function updateSliderRanges(type, scaleType, skipLayerUpdate = false) {
 
     const adjustedMaxValue = Math.ceil(maxValue / step) * step;
     const adjustedMinValue = Math.floor(minValue / step) * step;
-
+    
     if (field === "None") {
       rangeElement.setAttribute('disabled', true);
       rangeElement.noUiSlider.updateOptions({
@@ -966,19 +1000,17 @@ function updateSliderRanges(type, scaleType, skipLayerUpdate = false) {
       maxElement.innerText = formatValue(adjustedMaxValue, step);
     }
 
-    configureSlider(rangeElement, null, isInverse, order);
+    configureSlider(rangeElement, null, isInverse, order);   
   }
 
   isUpdatingSliders = false;
 
-  if (!skipLayerUpdate) {
-    if (type === 'Scores' && ScoresLayer) {
-      applyScoresLayerStyling();
-    } else if (type === 'Amenities' && AmenitiesCatchmentLayer) {
-      applyAmenitiesCatchmentLayerStyling();
-    } else if (type === 'Census' && CensusLayer) {
-      applyCensusLayerStyling();
-    }
+  if (type === 'Scores' && ScoresLayer) {
+    applyScoresLayerStyling();
+  } else if (type === 'Amenities' && AmenitiesCatchmentLayer) {
+    applyAmenitiesCatchmentLayerStyling();
+  } else if (type === 'Census' && CensusLayer) {
+    applyCensusLayerStyling();
   }
 }
 
@@ -997,7 +1029,7 @@ function initializeSliders(sliderElement, updateCallback) {
     step: 1,
     tooltips: false,
     format: {
-      to: value => parseFloat(value).toFixed(2),
+      to: value => parseFloat(value),
       from: value => parseFloat(value)
     }
   });
@@ -1089,7 +1121,7 @@ function formatValue(value, step) {
     return (Math.round(value / 10) * 10)
       .toLocaleString(undefined, { maximumFractionDigits: 0 });
   } else if (step >= 1) {
-    return value.toLocaleString(undefined, { maximumFractionDigits: 0 });
+    return Math.round(value).toLocaleString(undefined, { maximumFractionDigits: 0 });
   } else if (step >= 0.1) {
     return value.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
   } else if (step >= 0.01) {
@@ -1194,12 +1226,12 @@ function updateLegend() {
     headerText = "Journey Time Catchment (minutes)";
     classes = [
       { range: `> 0 and <= 5`, color: "#fde725" },
-      { range: `> 5 and <= 10`, color: "#7ad151" },
-      { range: `> 10 and <= 15`, color: "#23a884" },
-      { range: `> 15 and <= 20`, color: "#2a788e" },
-      { range: `> 20 and <= 25`, color: "#414387" },
-      { range: `> 25 and <= 30`, color: "#440154" },
-      { range: `> 30`, color: "grey" }
+      { range: `> 5 and <= 10`, color: "#8fd744" },
+      { range: `> 10 and <= 15`, color: "#35b779" },
+      { range: `> 15 and <= 20`, color: "#21908d" },
+      { range: `> 20 and <= 25`, color: "#31688e" },
+      { range: `> 25 and <= 30`, color: "#443a82" },
+      { range: `> 30`, color: "#440154" }
     ];
   } else if (ScoresLayer) {
     headerText = selectedYear.includes('-') ? "Score Difference" : "Population Percentiles";
@@ -1353,8 +1385,6 @@ function updateScoresLayer() {
     return;
   }
 
-  console.log("Updating ScoresLayer.");
-
   const selectedYear = ScoresYear.value;
   const selectedPurpose = ScoresPurpose.value;
   const selectedMode = ScoresMode.value;
@@ -1384,9 +1414,6 @@ function updateScoresLayer() {
           scoreLayers[selectedYear] = parsedData;
           updateScoresLayer();
         })
-        .catch(error => {
-          console.error("Error loading scores data:", error);
-        });
       return;
     } else {
       return;
@@ -1691,12 +1718,12 @@ function applyAmenitiesCatchmentLayerStyling() {
 
     if (time !== undefined) {
       if (time <= 5) color = '#fde725';
-      else if (time <= 10) color = '#7ad151';
-      else if (time <= 15) color = '#23a884';
-      else if (time <= 20) color = '#2a788e';
-      else if (time <= 25) color = '#414387';
-      else if (time <= 30) color = '#440154';
-      else color = 'grey';
+      else if (time <= 10) color = '#8fd744';
+      else if (time <= 15) color = '#35b779';
+      else if (time <= 20) color = '#21908d';
+      else if (time <= 25) color = '#31688e';
+      else if (time <= 30) color = '#443a82';
+      else color = '#440154';
     }
 
     let opacity;
@@ -1747,12 +1774,12 @@ function styleAmenitiesCatchment(feature) {
 
   if (time !== undefined) {
     if (time <= 5) color = '#fde725';
-    else if (time <= 10) color = '#7ad151';
-    else if (time <= 15) color = '#23a884';
-    else if (time <= 20) color = '#2a788e';
-    else if (time <= 25) color = '#414387';
-    else if (time <= 30) color = '#440154';
-    else color = 'grey';
+    else if (time <= 10) color = '#8fd744';
+    else if (time <= 15) color = '#35b779';
+    else if (time <= 20) color = '#21908d';
+    else if (time <= 25) color = '#31688e';
+    else if (time <= 30) color = '#443a82';
+    else color = '#440154';
   }
 
   return {
