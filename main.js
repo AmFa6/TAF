@@ -24,15 +24,28 @@ function convertMultiPolygonToPolygons(geoJson) {
       });
       
       parts.sort((a, b) => b.area - a.area);
-      
-      features.push({
-        type: 'Feature',
-        geometry: {
-          type: 'Polygon',
-          coordinates: parts[0].coords
-        },
-        properties: feature.properties
-      });
+            
+      if (name === 'North Somerset' || name === 'South Gloucestershire') {
+        features.push({
+          type: 'Feature',
+          geometry: {
+            type: 'Polygon',
+            coordinates: parts[0].coords
+          },
+          properties: feature.properties
+        });
+      } else {
+        feature.geometry.coordinates.forEach(polygonCoords => {
+          features.push({
+            type: 'Feature',
+            geometry: {
+              type: 'Polygon',
+              coordinates: polygonCoords
+            },
+            properties: feature.properties
+          });
+        });
+      }
     } else {
       features.push(feature);
     }
@@ -1507,6 +1520,7 @@ function updateAmenitiesCatchmentLayer(stylingUpdateOnly = false) {
   const selectedYear = AmenitiesYear.value;
   const selectedMode = AmenitiesMode.value;
   if (AmenitiesCatchmentLayer && AmenitiesCatchmentLayer._currentMode !== selectedMode) {
+    // Force a full redraw if the mode has changed
     stylingUpdateOnly = false;
   }
 
@@ -1858,8 +1872,15 @@ function updateFilterValues() {
       ];
     }
   } else if (currentFilterType === 'Ward') {
-    options = wardBoundariesLayer ? wardBoundariesLayer.getLayers().map(layer => layer.feature.properties.WD24NM) : [];
-    options.sort();
+    const wardNames = new Set();
+    options = wardBoundariesLayer
+      ? wardBoundariesLayer.getLayers().map(layer => {
+          const wardName = layer.feature.properties.WD24NM;
+          wardNames.add(wardName);
+          return wardName;
+        })
+      : [];
+    options = Array.from(wardNames).sort();
   } else if (currentFilterType === 'GrowthZone') {
     options = GrowthZonesLayer ? GrowthZonesLayer.getLayers().map(layer => layer.feature.properties.Name) : [];
     options.sort();
@@ -2061,56 +2082,56 @@ function applyRangeFilter(features, filterValue) {
 function applyGeographicFilter(features, filterType, filterValue) {
   const getPolygonForFilter = () => {
     let polygon = null;
-    
+
     if (filterType === 'Ward') {
       if (!wardBoundariesLayer) return null;
-      
-      const wardLayer = wardBoundariesLayer.getLayers().find(layer => 
+
+      const wardLayers = wardBoundariesLayer.getLayers().filter(layer =>
         layer.feature.properties.WD24NM === filterValue
       );
-      polygon = wardLayer?.toGeoJSON();
-    } 
-    else if (filterType === 'GrowthZone') {
+
+      polygon = wardLayers.reduce((acc, layer) => {
+        const poly = layer.toGeoJSON();
+        return acc ? turf.union(acc, poly) : poly;
+      }, null);
+    } else if (filterType === 'GrowthZone') {
       if (!GrowthZonesLayer) return null;
-      
-      const growthZoneLayer = GrowthZonesLayer.getLayers().find(layer => 
+
+      const growthZoneLayer = GrowthZonesLayer.getLayers().find(layer =>
         layer.feature.properties.Name === filterValue
       );
       polygon = growthZoneLayer?.toGeoJSON();
-    }
-    else if (filterType === 'LA') {
+    } else if (filterType === 'LA') {
       if (!uaBoundariesLayer) return null;
-      
+
       if (filterValue === 'MCA') {
-        const mcaLayers = uaBoundariesLayer.getLayers().filter(layer => 
+        const mcaLayers = uaBoundariesLayer.getLayers().filter(layer =>
           layer.feature.properties.LAD24NM !== 'North Somerset'
         );
         polygon = mcaLayers.reduce((acc, layer) => {
           const poly = layer.toGeoJSON();
           return acc ? turf.union(acc, poly) : poly;
         }, null);
-      } 
-      else if (filterValue === 'LEP') {
+      } else if (filterValue === 'LEP') {
         const lepLayers = uaBoundariesLayer.getLayers();
         polygon = lepLayers.reduce((acc, layer) => {
           const poly = layer.toGeoJSON();
           return acc ? turf.union(acc, poly) : poly;
         }, null);
-      } 
-      else {
-        const uaLayer = uaBoundariesLayer.getLayers().find(layer => 
+      } else {
+        const uaLayer = uaBoundariesLayer.getLayers().find(layer =>
           layer.feature.properties.LAD24NM === filterValue
         );
         polygon = uaLayer?.toGeoJSON();
       }
     }
-    
+
     return polygon;
   };
-  
+
   const polygon = getPolygonForFilter();
   if (!polygon) return features;
-  
+
   return features.filter(feature => {
     const hexPolygon = turf.polygon(feature.geometry.coordinates);
     return turf.booleanPointInPolygon(turf.center(hexPolygon), polygon);
