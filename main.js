@@ -440,8 +440,16 @@ document.addEventListener('DOMContentLoaded', (event) => {
   });
 
   function updateAmenitiesDropdownLabel() {
-    const selectedCount = Array.from(amenitiesCheckboxes).filter(checkbox => checkbox.checked).length;
-    amenitiesDropdown.textContent = `${selectedCount} selected`;
+    const selectedCheckboxes = Array.from(amenitiesCheckboxes).filter(checkbox => checkbox.checked);
+    const selectedCount = selectedCheckboxes.length;
+  
+    if (selectedCount === 0) {
+      amenitiesDropdown.textContent = '\u00A0';
+    } else if (selectedCount === 1) {
+      amenitiesDropdown.textContent = selectedCheckboxes[0].nextElementSibling.textContent;
+    } else {
+      amenitiesDropdown.textContent = 'Multiple Selection';
+    }
   }
 
   amenitiesCheckboxes.forEach(checkbox => {
@@ -1028,7 +1036,8 @@ function updateLegend() {
       { range: `> 10 and <= 15`, color: "#23a884" },
       { range: `> 15 and <= 20`, color: "#2a788e" },
       { range: `> 20 and <= 25`, color: "#414387" },
-      { range: `> 25 and <= 30`, color: "#440154" }
+      { range: `> 25 and <= 30`, color: "#440154" },
+      { range: `> 30`, color: "grey" }
     ];
   } else if (ScoresLayer) {
     headerText = selectedYear.includes('-') ? "Score Difference" : "Population Percentiles";
@@ -1549,6 +1558,7 @@ function updateAmenitiesCatchmentLayer(stylingUpdateOnly = false) {
         else if (time <= 20) color = '#2a788e';
         else if (time <= 25) color = '#414387';
         else if (time <= 30) color = '#440154';
+        else color = 'grey';
       }
 
       let opacity;
@@ -1649,6 +1659,13 @@ function updateAmenitiesCatchmentLayer(stylingUpdateOnly = false) {
   });
 
   Promise.all(fetchPromises).then(() => {
+    hexes.features.forEach(feature => {
+      const hexId = feature.properties.Hex_ID;
+      if (hexTimeMap[hexId] === undefined) {
+        hexTimeMap[hexId] = 120;
+      }
+    });
+
     if (AmenitiesCatchmentLayer) {
       map.removeLayer(AmenitiesCatchmentLayer);
       AmenitiesCatchmentLayer = null;
@@ -1656,7 +1673,7 @@ function updateAmenitiesCatchmentLayer(stylingUpdateOnly = false) {
 
     const filteredFeatures = hexes.features.map(feature => {
       const hexId = feature.properties.Hex_ID;
-      const time = hexTimeMap[hexId] !== undefined ? hexTimeMap[hexId] : 120;
+      const time = hexTimeMap[hexId];
       return {
         ...feature,
         properties: {
@@ -1693,6 +1710,7 @@ function updateAmenitiesCatchmentLayer(stylingUpdateOnly = false) {
           else if (time <= 20) color = '#2a788e';
           else if (time <= 25) color = '#414387';
           else if (time <= 30) color = '#440154';
+          else color = 'grey';
         }
 
         let opacity;
