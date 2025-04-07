@@ -1523,7 +1523,6 @@ function updateAmenitiesCatchmentLayer(stylingUpdateOnly = false) {
   const selectedYear = AmenitiesYear.value;
   const selectedMode = AmenitiesMode.value;
   if (AmenitiesCatchmentLayer && AmenitiesCatchmentLayer._currentMode !== selectedMode) {
-    // Force a full redraw if the mode has changed
     stylingUpdateOnly = false;
   }
 
