@@ -829,6 +829,10 @@ function configureSlider(sliderElement, updateCallback, isInverse, order, deboun
   const handles = sliderElement.querySelectorAll('.noUi-handle');
   const connectElements = sliderElement.querySelectorAll('.noUi-connect');
 
+  if (handles.length >= 2) {
+    handles[0].classList.add('noUi-handle-lower');
+    handles[1].classList.add('noUi-handle-upper');
+  }
   handles.forEach(handle => {
     handle.classList.remove('noUi-handle-transparent');
   });
