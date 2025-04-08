@@ -188,7 +188,18 @@
       border: none;
       font-size: 0.8em;
       top: -18px;
-      transform: translateX(-200%);
+      left: 50%;
+      transform: translateX(-50%);
+      white-space: nowrap;
+    }
+    .noUi-handle-lower::after {
+      left: 0;
+      transform: translateX(0);
+    }
+    .noUi-handle-upper::after {
+      right: 0;
+      left: auto;
+      transform: translateX(-150%);
     }
     .slider-labels {
       display: flex;
@@ -197,13 +208,6 @@
     }
     .slider-labels span {
       font-size: 0.8em;
-    }
-    .noUi-tooltip {
-      background: #007bff;
-      color: #fff;
-      border-radius: 3px;
-      padding: 5px;
-      font-size: 0.9em;
     }
     .collapsible-content label,
     .collapsible-content select,
