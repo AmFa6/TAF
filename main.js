@@ -744,6 +744,26 @@ map.on('zoomend', () => {
 map.on('click', function (e) {
   const clickedLatLng = e.latlng;
   const clickedPoint = turf.point([clickedLatLng.lng, clickedLatLng.lat]);
+  
+  const busStopsVisible = document.getElementById('busStopsCheckbox')?.checked;
+  const busLinesVisible = document.getElementById('busLinesCheckbox')?.checked;
+  
+  if (busStopsVisible || busLinesVisible) {
+    const nearbyFeatures = findNearbyInfrastructure(clickedLatLng);
+    
+    if (!busStopsVisible) nearbyFeatures.busStops = [];
+    if (!busLinesVisible) nearbyFeatures.busLines = [];
+    
+    const hasNearbyFeatures = 
+      nearbyFeatures.busStops.length > 0 || 
+      nearbyFeatures.busLines.length > 0;
+    
+    if (hasNearbyFeatures) {
+      showInfrastructurePopup(clickedLatLng, nearbyFeatures);
+      return;
+    }
+  }
+  
   const popupContent = {
     Geographies: [],
     Hexagon: []
@@ -1401,6 +1421,319 @@ function updateLegend() {
   updateMasterCheckbox();
 }
 
+function getAmenityPopupContent(amenityType, properties) {
+  let amenityName = 'Unknown';
+  let amenityTypeDisplay = 'Unknown';
+  let amenityId = properties.fid || properties.id || '';
+  
+  if (amenityType === 'PriSch') {
+    amenityTypeDisplay = 'Primary School';
+    amenityName = properties.Establis_1 || properties.Name || 'Unknown';
+  } else if (amenityType === 'SecSch') {
+    amenityTypeDisplay = 'Secondary School';
+    amenityName = properties.Establis_1 || properties.Name || 'Unknown';
+  } else if (amenityType === 'FurEd') {
+    amenityTypeDisplay = 'Further Education';
+    amenityName = properties.Establis_1 || properties.Name || 'Unknown';
+  } else if (amenityType === 'Em500') {
+    amenityTypeDisplay = 'Employment (500+ employees)';
+    amenityName = properties.LSOA11CD && properties.LSOA11NM ? 
+                 `${properties.LSOA11CD}, ${properties.LSOA11NM}` : 
+                 properties.Name || 'Unknown';
+  } else if (amenityType === 'Em5000') {
+    amenityTypeDisplay = 'Employment (5000+ employees)';
+    amenityName = properties.LSOA11CD && properties.LSOA11NM ? 
+                 `${properties.LSOA11CD}, ${properties.LSOA11NM}` : 
+                 properties.Name || 'Unknown';
+  } else if (amenityType === 'StrEmp') {
+    amenityTypeDisplay = 'Strategic Employment';
+    amenityName = properties.NAME || properties.Name || 'Unknown';
+  } else if (amenityType === 'CitCtr') {
+    amenityTypeDisplay = 'City Centre';
+    amenityName = properties.District || properties.Name || 'Unknown';
+  } else if (amenityType === 'MajCtr') {
+    amenityTypeDisplay = 'Major Centre';
+    amenityName = properties.Name || 'Unknown';
+  } else if (amenityType === 'DisCtr') {
+    amenityTypeDisplay = 'District Centre';
+    amenityName = properties.SITE_NAME || properties.Name || 'Unknown';
+  } else if (amenityType === 'GP') {
+    amenityTypeDisplay = 'General Practice';
+    amenityName = properties.WECAplu_14 || properties.Name || 'Unknown';
+  } else if (amenityType === 'Hos') {
+    amenityTypeDisplay = 'Hospital';
+    amenityName = properties.Name || 'Unknown';
+  }
+  
+  const showCatchmentButton = `<br><button class="show-catchment-btn" data-amenity-type="${amenityType}" data-amenity-id="${amenityId}">Show Journey Time Catchment</button>`;
+  
+  return `<strong>Amenity:</strong> ${amenityName} (${amenityTypeDisplay})${showCatchmentButton}`;
+}
+
+function findNearbyInfrastructure(latlng, maxDistance = 100) {
+  const results = {
+    busStops: [],
+    busLines: []
+  };
+  
+  // Check bus stops
+  if (busStopsLayer) {
+    busStopsLayer.eachLayer(layer => {
+      const distance = latlng.distanceTo(layer.getLatLng());
+      if (distance <= maxDistance) {
+        results.busStops.push({
+          layer: layer,
+          feature: layer.feature,
+          distance: distance
+        });
+      }
+    });
+  }
+  
+  // Check bus lines
+  if (busLinesLayer) {
+    busLinesLayer.eachLayer(layer => {
+      try {
+        // Need to handle different geometry types
+        const geojson = layer.toGeoJSON();
+        let minDistance = Infinity;
+        
+        if (geojson.geometry.type === 'LineString') {
+          const line = turf.lineString(geojson.geometry.coordinates);
+          const point = turf.point([latlng.lng, latlng.lat]);
+          const nearestPoint = turf.nearestPointOnLine(line, point);
+          minDistance = nearestPoint.properties.dist * 111000; // Convert degrees to approximate meters
+        } 
+        else if (geojson.geometry.type === 'MultiLineString') {
+          // Handle each line segment in the MultiLineString
+          geojson.geometry.coordinates.forEach(lineCoords => {
+            const line = turf.lineString(lineCoords);
+            const point = turf.point([latlng.lng, latlng.lat]);
+            const nearestPoint = turf.nearestPointOnLine(line, point);
+            const distance = nearestPoint.properties.dist * 111000;
+            if (distance < minDistance) {
+              minDistance = distance;
+            }
+          });
+        }
+        
+        if (minDistance <= maxDistance) {
+          results.busLines.push({
+            layer: layer,
+            feature: layer.feature,
+            distance: minDistance
+          });
+        }
+      } catch (error) {
+        console.error("Error finding distance to bus line:", error, layer.feature);
+      }
+    });
+  }
+  
+  // Sort by distance
+  results.busStops.sort((a, b) => a.distance - b.distance);
+  results.busLines.sort((a, b) => a.distance - b.distance);
+  
+  return results;
+}
+
+function formatFeatureProperties(feature, featureType) {
+  if (!feature || !feature.properties) return '<p>No data available</p>';
+  
+  let html = '<table class="popup-table">';
+  html += '<tr><th>Property</th><th>Value</th></tr>';
+  
+  // Only show selected attributes based on feature type
+  if (featureType === 'Bus Stop') {
+    const props = feature.properties;
+    const attributes = [
+      { key: 'atco_code', display: 'ATCO Code' },
+      { key: 'stop_name', display: 'Stop Name' },
+      { key: 'am_peak_combined_frequency', display: 'AM Peak Frequency' },
+      { key: 'mode', display: 'Mode' }
+    ];
+    
+    attributes.forEach(attr => {
+      const value = props[attr.key];
+      if (value !== null && value !== undefined && value !== '') {
+        html += `<tr><td>${attr.display}</td><td>${value}</td></tr>`;
+      }
+    });
+  } 
+  else if (featureType === 'Bus Line') {
+    const props = feature.properties;
+    const attributes = [
+      { key: 'lines_diva4', display: 'Line ID' },
+      { key: 'service_name', display: 'Service Name' },
+      { key: 'direction', display: 'Direction' },
+      { key: 'am_peak_service_frequency', display: 'AM Peak Frequency' },
+      { key: 'operator', display: 'Operator' }
+    ];
+    
+    attributes.forEach(attr => {
+      const value = props[attr.key];
+      if (value !== null && value !== undefined && value !== '') {
+        html += `<tr><td>${attr.display}</td><td>${value}</td></tr>`;
+      }
+    });
+  }
+  
+  html += '</table>';
+  return html;
+}
+
+// Updated popup function to fix the moving popup issue and show only requested attributes
+function showInfrastructurePopup(latlng, nearbyFeatures) {
+  // Combine all features into a single array
+  const allFeatures = [
+    ...nearbyFeatures.busStops, 
+    ...nearbyFeatures.busLines
+  ];
+  
+  if (allFeatures.length === 0) return;
+  
+  let currentIndex = 0;
+  const totalFeatures = allFeatures.length;
+  let popup = null;
+  
+  // Function to update popup content without changing location
+  function updatePopupContent() {
+    const currentFeature = allFeatures[currentIndex];
+    const featureType = nearbyFeatures.busStops.includes(currentFeature) ? 'Bus Stop' : 'Bus Line';
+    
+    let content = `
+      <div class="infrastructure-popup">
+        <div class="popup-header">
+          <strong>${featureType}</strong>
+          <div class="page-indicator">${currentIndex + 1} of ${totalFeatures}</div>
+        </div>
+        <div class="popup-content">
+          ${formatFeatureProperties(currentFeature.feature, featureType)}
+        </div>
+    `;
+    
+    // Add navigation buttons if there's more than one feature
+    if (totalFeatures > 1) {
+      content += `
+        <div class="popup-footer">
+          <button id="prev-feature" ${currentIndex === 0 ? 'disabled' : ''}>← Previous</button>
+          <button id="next-feature" ${currentIndex === totalFeatures - 1 ? 'disabled' : ''}>Next →</button>
+        </div>
+      `;
+    }
+    
+    content += '</div>';
+    
+    // Update the popup content without changing position
+    popup.setContent(content);
+    
+    // Add event listeners after popup content is set
+    setTimeout(() => {
+      const prevBtn = document.getElementById('prev-feature');
+      const nextBtn = document.getElementById('next-feature');
+      
+      if (prevBtn) {
+        prevBtn.addEventListener('click', (e) => {
+          // Prevent default button behavior and stop propagation
+          e.preventDefault();
+          e.stopPropagation();
+          
+          if (currentIndex > 0) {
+            currentIndex--;
+            updatePopupContent();
+          }
+        });
+      }
+      
+      if (nextBtn) {
+        nextBtn.addEventListener('click', (e) => {
+          // Prevent default button behavior and stop propagation
+          e.preventDefault();
+          e.stopPropagation();
+          
+          if (currentIndex < totalFeatures - 1) {
+            currentIndex++;
+            updatePopupContent();
+          }
+        });
+      }
+    }, 10);
+  }
+  
+  // Create and open the popup
+  popup = L.popup({
+    autoPan: true,
+    closeButton: true,
+    closeOnClick: false // Keep popup open when clicking on buttons
+  })
+    .setLatLng(latlng)
+    .setContent('Loading...')
+    .openOn(map);
+  
+  // Add CSS styles for the popup
+  if (!document.getElementById('infrastructure-popup-styles')) {
+    const style = document.createElement('style');
+    style.id = 'infrastructure-popup-styles';
+    style.textContent = `
+      .infrastructure-popup {
+        max-height: 300px;
+        overflow-y: auto;
+        min-width: 250px;
+      }
+      .popup-header {
+        margin-bottom: 8px;
+        padding-bottom: 5px;
+        border-bottom: 1px solid #ccc;
+        display: flex;
+        justify-content: space-between;
+      }
+      .popup-content {
+        margin-bottom: 10px;
+      }
+      .popup-table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      .popup-table th, .popup-table td {
+        padding: 4px;
+        border: 1px solid #ddd;
+        font-size: 12px;
+      }
+      .popup-table th {
+        background-color: #f2f2f2;
+        text-align: left;
+      }
+      .popup-footer {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 10px;
+      }
+      .popup-footer button {
+        padding: 4px 8px;
+        background-color: #f2f2f2;
+        border: 1px solid #ccc;
+        border-radius: 3px;
+        cursor: pointer;
+      }
+      .popup-footer button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .page-indicator {
+        font-size: 12px;
+        color: #666;
+      }
+      /* Fix for popup button issues */
+      .popup-footer button:focus {
+        outline: none;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+  
+  updatePopupContent();
+}
+
 function logAmenityIDs() {
   console.log("Logging amenity IDs for debugging:");
   Object.keys(amenityLayers).forEach(amenityType => {
@@ -1724,55 +2057,6 @@ function showAmenityCatchment(amenityType, amenityId) {
     
     updateAmenitiesCatchmentLayer();
   }
-}
-
-function getAmenityPopupContent(amenityType, properties) {
-  let amenityName = 'Unknown';
-  let amenityTypeDisplay = 'Unknown';ff
-  let amenityId = properties.fid || properties.id || '';
-  
-  if (amenityType === 'PriSch') {
-    amenityTypeDisplay = 'Primary School';
-    amenityName = properties.Establis_1 || properties.Name || 'Unknown';
-  } else if (amenityType === 'SecSch') {
-    amenityTypeDisplay = 'Secondary School';
-    amenityName = properties.Establis_1 || properties.Name || 'Unknown';
-  } else if (amenityType === 'FurEd') {
-    amenityTypeDisplay = 'Further Education';
-    amenityName = properties.Establis_1 || properties.Name || 'Unknown';
-  } else if (amenityType === 'Em500') {
-    amenityTypeDisplay = 'Employment (500+ employees)';
-    amenityName = properties.LSOA11CD && properties.LSOA11NM ? 
-                 `${properties.LSOA11CD}, ${properties.LSOA11NM}` : 
-                 properties.Name || 'Unknown';
-  } else if (amenityType === 'Em5000') {
-    amenityTypeDisplay = 'Employment (5000+ employees)';
-    amenityName = properties.LSOA11CD && properties.LSOA11NM ? 
-                 `${properties.LSOA11CD}, ${properties.LSOA11NM}` : 
-                 properties.Name || 'Unknown';
-  } else if (amenityType === 'StrEmp') {
-    amenityTypeDisplay = 'Strategic Employment';
-    amenityName = properties.NAME || properties.Name || 'Unknown';
-  } else if (amenityType === 'CitCtr') {
-    amenityTypeDisplay = 'City Centre';
-    amenityName = properties.District || properties.Name || 'Unknown';
-  } else if (amenityType === 'MajCtr') {
-    amenityTypeDisplay = 'Major Centre';
-    amenityName = properties.Name || 'Unknown';
-  } else if (amenityType === 'DisCtr') {
-    amenityTypeDisplay = 'District Centre';
-    amenityName = properties.SITE_NAME || properties.Name || 'Unknown';
-  } else if (amenityType === 'GP') {
-    amenityTypeDisplay = 'General Practice';
-    amenityName = properties.WECAplu_14 || properties.Name || 'Unknown';
-  } else if (amenityType === 'Hos') {
-    amenityTypeDisplay = 'Hospital';
-    amenityName = properties.Name || 'Unknown';
-  }
-  
-  const showCatchmentButton = `<br><button class="show-catchment-btn" data-amenity-type="${amenityType}" data-amenity-id="${amenityId}">Show Journey Time Catchment</button>`;
-  
-  return `<strong>Amenity:</strong> ${amenityName} (${amenityTypeDisplay})${showCatchmentButton}`;
 }
 
 function drawSelectedAmenities(amenities) {
