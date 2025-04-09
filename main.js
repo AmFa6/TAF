@@ -716,12 +716,6 @@ document.addEventListener('DOMContentLoaded', (event) => {
   document.head.appendChild(style);
 
   initialLoadComplete = true;
-
-  setTimeout(() => {
-    if (initialLoadComplete) {
-      logAmenityIDs();
-    }
-  }, 2000);
 });
 
 map.on('zoomend', () => {
@@ -1734,22 +1728,6 @@ function showInfrastructurePopup(latlng, nearbyFeatures) {
   updatePopupContent();
 }
 
-function logAmenityIDs() {
-  console.log("Logging amenity IDs for debugging:");
-  Object.keys(amenityLayers).forEach(amenityType => {
-    const layer = amenityLayers[amenityType];
-    if (layer && layer.features) {
-      console.log(`${amenityType} IDs:`, layer.features.slice(0, 3).map(f => {
-        return {
-          fid: f.properties.fid,
-          id: f.properties.id,
-          name: f.properties.Name || f.properties.Establis_1 || f.properties.SITE_NAME
-        };
-      }));
-    }
-  });
-}
-
 function getAmenityTypeDisplayName(amenityType) {
   switch (amenityType) {
     case 'PriSch': return 'Primary School';
@@ -2001,9 +1979,7 @@ function styleScoresFeature(feature, fieldToDisplay, opacityField, outlineField,
 
 function showAmenityCatchment(amenityType, amenityId) {
   const panelHeaders = document.querySelectorAll(".panel-header:not(.summary-header)");
-  
-  console.log(`Showing catchment for amenity type: ${amenityType}, ID: ${amenityId}`);
-  
+    
   panelHeaders.forEach(header => {
     header.classList.add("collapsed");
     header.nextElementSibling.style.display = "none";
@@ -2173,11 +2149,6 @@ function updateAmenitiesCatchmentLayer() {
 
   hexTimeMap = {};
 
-  if (selectingFromMap) {
-    console.log(`Filtering for specific amenity IDs: ${selectedAmenitiesFromMap}`);
-    console.log(`Selected amenity types: ${selectedAmenitiesAmenities}`);
-  }
-
   const cacheKeys = selectedAmenitiesAmenities.map(amenity => `${selectedYear}_${amenity}`);  
   const fetchPromises = cacheKeys.map(cacheKey => {  
     if (!csvDataCache[cacheKey]) {
@@ -2186,10 +2157,6 @@ function updateAmenitiesCatchmentLayer() {
         .then(response => response.text())
         .then(csvText => {
           const csvData = Papa.parse(csvText, { header: true }).data;
-          
-          if (csvData.length > 0) {
-            console.log(`Sample data for ${cacheKey}:`, csvData[0]);
-          }
           
           csvData.forEach(row => {
             if (row.Mode === selectedMode) {
@@ -2230,10 +2197,6 @@ function updateAmenitiesCatchmentLayer() {
   });
 
   Promise.all(fetchPromises).then(() => {
-    // Log how many hex IDs have times less than 120
-    const validTimes = Object.values(hexTimeMap).filter(time => time < 120).length;
-    console.log(`Found ${validTimes} hexes with valid journey times`);
-    
     hexes.features.forEach(feature => {
       const hexId = feature.properties.Hex_ID;
       if (hexTimeMap[hexId] === undefined) {
