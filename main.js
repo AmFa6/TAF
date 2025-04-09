@@ -249,28 +249,36 @@ fetch('https://AmFa6.github.io/TAF_test/lines.geojson')
   .then(data => {
     busLinesLayer = L.geoJSON(data, {
       style: function (feature) {
+        const frequency = parseFloat(feature.properties.am_peak_service_frequency) || 0;
+        const opacity = frequency === 0 ? 0.1 : Math.min(0.1 + (frequency / 6) * 0.4, 0.5);
+        
         return {
           color: 'green',
           weight: 2,
           fillOpacity: 0,
-          opacity: 0
+          opacity: 0,
+          _calculatedOpacity: opacity
         };
       },
     }).addTo(map);
   });
 
-fetch('https://AmFa6.github.io/TAF_test/stops.geojson')
+  fetch('https://AmFa6.github.io/TAF_test/stops.geojson')
   .then(response => response.json())
   .then(data => {
     busStopsLayer = L.geoJSON(data, {
       pointToLayer: function(feature, latlng) {
+        const frequency = parseFloat(feature.properties.am_peak_combined_frequency) || 0;
+        const fillOpacity = frequency === 0 ? 0 : Math.min(frequency / 12, 1);
+        
         return L.circleMarker(latlng, {
           radius: 3,
           fillColor: 'green',
           color: 'green',
-          weight: 1,
+          weight: 0.5,
           opacity: 0,
-          fillOpacity: 0
+          fillOpacity: 0,
+          _calculatedFillOpacity: fillOpacity
         });
       }
     }).addTo(map);
@@ -633,7 +641,6 @@ document.addEventListener('DOMContentLoaded', (event) => {
       }
     });
   
-    // Add Infrastructure section
     const infraHeaderDiv = document.createElement("div");
     infraHeaderDiv.innerHTML = "Infrastructure";
     infraHeaderDiv.style.fontSize = "1.1em";
@@ -648,7 +655,10 @@ document.addEventListener('DOMContentLoaded', (event) => {
     busStopsCheckbox.addEventListener('change', () => {
       if (busStopsCheckbox.checked) {
         busStopsLayer.eachLayer(layer => {
-          layer.setStyle({ opacity: 1, fillOpacity: 0.8 });
+          layer.setStyle({ 
+            opacity: 1, 
+            fillOpacity: layer.options._calculatedFillOpacity 
+          });
         });
       } else {
         busStopsLayer.eachLayer(layer => {
@@ -663,7 +673,9 @@ document.addEventListener('DOMContentLoaded', (event) => {
     const busLinesCheckbox = document.getElementById('busLinesCheckbox');
     busLinesCheckbox.addEventListener('change', () => {
       if (busLinesCheckbox.checked) {
-        busLinesLayer.setStyle({ opacity: 1 });
+        busLinesLayer.eachLayer(layer => {
+          layer.setStyle({ opacity: layer.options._calculatedOpacity });
+        });
       } else {
         busLinesLayer.setStyle({ opacity: 0 });
       }
@@ -1464,58 +1476,87 @@ function getAmenityPopupContent(amenityType, properties) {
   return `<strong>Amenity:</strong> ${amenityName} (${amenityTypeDisplay})${showCatchmentButton}`;
 }
 
-function findNearbyInfrastructure(latlng, maxDistance = 100) {
+function findNearbyInfrastructure(latlng, maxPixelDistance = 10) {
   const results = {
     busStops: [],
     busLines: []
   };
   
-  // Check bus stops
   if (busStopsLayer) {
     busStopsLayer.eachLayer(layer => {
-      const distance = latlng.distanceTo(layer.getLatLng());
-      if (distance <= maxDistance) {
+      const markerPoint = map.latLngToContainerPoint(layer.getLatLng());
+      const clickPoint = map.latLngToContainerPoint(latlng);
+      const pixelDistance = clickPoint.distanceTo(markerPoint);
+      
+      if (pixelDistance <= maxPixelDistance) {
         results.busStops.push({
           layer: layer,
           feature: layer.feature,
-          distance: distance
+          distance: pixelDistance
         });
       }
     });
   }
   
-  // Check bus lines
   if (busLinesLayer) {
     busLinesLayer.eachLayer(layer => {
       try {
-        // Need to handle different geometry types
         const geojson = layer.toGeoJSON();
-        let minDistance = Infinity;
+        let minPixelDistance = Infinity;
+        let nearestPoint = null;
         
         if (geojson.geometry.type === 'LineString') {
-          const line = turf.lineString(geojson.geometry.coordinates);
-          const point = turf.point([latlng.lng, latlng.lat]);
-          const nearestPoint = turf.nearestPointOnLine(line, point);
-          minDistance = nearestPoint.properties.dist * 111000; // Convert degrees to approximate meters
-        } 
-        else if (geojson.geometry.type === 'MultiLineString') {
-          // Handle each line segment in the MultiLineString
-          geojson.geometry.coordinates.forEach(lineCoords => {
-            const line = turf.lineString(lineCoords);
-            const point = turf.point([latlng.lng, latlng.lat]);
-            const nearestPoint = turf.nearestPointOnLine(line, point);
-            const distance = nearestPoint.properties.dist * 111000;
-            if (distance < minDistance) {
-              minDistance = distance;
+          for (let i = 0; i < geojson.geometry.coordinates.length - 1; i++) {
+            const p1 = L.latLng(
+              geojson.geometry.coordinates[i][1], 
+              geojson.geometry.coordinates[i][0]
+            );
+            const p2 = L.latLng(
+              geojson.geometry.coordinates[i+1][1], 
+              geojson.geometry.coordinates[i+1][0]
+            );
+            
+            const p1Screen = map.latLngToContainerPoint(p1);
+            const p2Screen = map.latLngToContainerPoint(p2);
+            
+            const distance = distanceToLineSegment(
+              map.latLngToContainerPoint(latlng), 
+              p1Screen, 
+              p2Screen
+            );
+            
+            if (distance < minPixelDistance) {
+              minPixelDistance = distance;
             }
-          });
+          }
+        }
+        else if (geojson.geometry.type === 'MultiLineString') {
+          for (const lineCoords of geojson.geometry.coordinates) {
+            for (let i = 0; i < lineCoords.length - 1; i++) {
+              const p1 = L.latLng(lineCoords[i][1], lineCoords[i][0]);
+              const p2 = L.latLng(lineCoords[i+1][1], lineCoords[i+1][0]);
+              
+              const p1Screen = map.latLngToContainerPoint(p1);
+              const p2Screen = map.latLngToContainerPoint(p2);
+              
+              const distance = distanceToLineSegment(
+                map.latLngToContainerPoint(latlng),
+                p1Screen,
+                p2Screen
+              );
+              
+              if (distance < minPixelDistance) {
+                minPixelDistance = distance;
+              }
+            }
+          }
         }
         
-        if (minDistance <= maxDistance) {
+        if (minPixelDistance <= maxPixelDistance) {
           results.busLines.push({
             layer: layer,
             feature: layer.feature,
-            distance: minDistance
+            distance: minPixelDistance
           });
         }
       } catch (error) {
@@ -1524,9 +1565,46 @@ function findNearbyInfrastructure(latlng, maxDistance = 100) {
     });
   }
   
-  // Sort by distance
-  results.busStops.sort((a, b) => a.distance - b.distance);
-  results.busLines.sort((a, b) => a.distance - b.distance);
+  function distanceToLineSegment(p, v, w) {
+    const l2 = distanceSquared(v, w);
+    
+    if (l2 === 0) return Math.sqrt(distanceSquared(p, v));
+    
+    const t = Math.max(0, Math.min(1, 
+      dotProduct(subtractPoints(p, v), subtractPoints(w, v)) / l2
+    ));
+    
+    const projection = {
+      x: v.x + t * (w.x - v.x),
+      y: v.y + t * (w.y - v.y)
+    };
+    
+    return Math.sqrt(distanceSquared(p, projection));
+  }
+  
+  function distanceSquared(p1, p2) {
+    return Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2);
+  }
+  
+  function dotProduct(v1, v2) {
+    return v1.x * v2.x + v1.y * v2.y;
+  }
+  
+  function subtractPoints(p1, p2) {
+    return { x: p1.x - p2.x, y: p1.y - p2.y };
+  }
+  
+  results.busStops.sort((a, b) => {
+    const nameA = a.feature.properties.stop_name || '';
+    const nameB = b.feature.properties.stop_name || '';
+    return nameA.localeCompare(nameB);
+  });
+  
+  results.busLines.sort((a, b) => {
+    const serviceA = a.feature.properties.service_name || '';
+    const serviceB = b.feature.properties.service_name || '';
+    return serviceA.localeCompare(serviceB);
+  });
   
   return results;
 }
@@ -1537,7 +1615,6 @@ function formatFeatureProperties(feature, featureType) {
   let html = '<table class="popup-table">';
   html += '<tr><th>Property</th><th>Value</th></tr>';
   
-  // Only show selected attributes based on feature type
   if (featureType === 'Bus Stop') {
     const props = feature.properties;
     const attributes = [
@@ -1576,12 +1653,21 @@ function formatFeatureProperties(feature, featureType) {
   return html;
 }
 
-// Updated popup function to fix the moving popup issue and show only requested attributes
 function showInfrastructurePopup(latlng, nearbyFeatures) {
-  // Combine all features into a single array
+  const busLineFeatures = nearbyFeatures.busLines;
+  const busStopFeatures = nearbyFeatures.busStops;
+  
+  let combinedBusFrequency = 0;
+  if (busLineFeatures.length > 0) {
+    combinedBusFrequency = busLineFeatures.reduce((total, current) => {
+      const frequency = current.feature.properties.am_peak_service_frequency;
+      return total + (parseFloat(frequency) || 0);
+    }, 0);
+  }
+  
   const allFeatures = [
-    ...nearbyFeatures.busStops, 
-    ...nearbyFeatures.busLines
+    ...busStopFeatures, 
+    ...busLineFeatures
   ];
   
   if (allFeatures.length === 0) return;
@@ -1589,24 +1675,66 @@ function showInfrastructurePopup(latlng, nearbyFeatures) {
   let currentIndex = 0;
   const totalFeatures = allFeatures.length;
   let popup = null;
+  let highlightedLayer = null;
   
-  // Function to update popup content without changing location
+  function highlightCurrentFeature() {
+    if (highlightedLayer) {
+      map.removeLayer(highlightedLayer);
+      highlightedLayer = null;
+    }
+    
+    const currentFeature = allFeatures[currentIndex];
+    const isStopFeature = busStopFeatures.includes(currentFeature);
+    
+    if (isStopFeature) {
+      highlightedLayer = L.circleMarker(
+        currentFeature.layer.getLatLng(), 
+        {
+          radius: 8,
+          color: '#FFFF00',
+          weight: 4,
+          opacity: 0.8,
+          fill: false
+        }
+      ).addTo(map);
+    } else {
+      const lineStyle = {
+        color: '#FFFF00',
+        weight: 6,
+        opacity: 0.8
+      };
+      
+      const featureGeoJSON = currentFeature.layer.toGeoJSON();
+      highlightedLayer = L.geoJSON(featureGeoJSON, {
+        style: lineStyle
+      }).addTo(map);
+    }
+  }
+  
   function updatePopupContent() {
     const currentFeature = allFeatures[currentIndex];
-    const featureType = nearbyFeatures.busStops.includes(currentFeature) ? 'Bus Stop' : 'Bus Line';
+    const featureType = busStopFeatures.includes(currentFeature) ? 'Bus Stop' : 'Bus Line';
     
     let content = `
       <div class="infrastructure-popup">
         <div class="popup-header">
           <strong>${featureType}</strong>
           <div class="page-indicator">${currentIndex + 1} of ${totalFeatures}</div>
-        </div>
+        </div>`;
+    
+    if (busLineFeatures.length > 0 && featureType === 'Bus Line') {
+      content += `
+        <div class="combined-frequency-header">
+          Combined AM Peak Frequency: ${Math.round(combinedBusFrequency)} vph
+        </div>`;
+    }
+    
+    content += `
         <div class="popup-content">
           ${formatFeatureProperties(currentFeature.feature, featureType)}
         </div>
     `;
     
-    // Add navigation buttons if there's more than one feature
     if (totalFeatures > 1) {
       content += `
         <div class="popup-footer">
@@ -1618,17 +1746,16 @@ function showInfrastructurePopup(latlng, nearbyFeatures) {
     
     content += '</div>';
     
-    // Update the popup content without changing position
     popup.setContent(content);
     
-    // Add event listeners after popup content is set
+    highlightCurrentFeature();
+    
     setTimeout(() => {
       const prevBtn = document.getElementById('prev-feature');
       const nextBtn = document.getElementById('next-feature');
       
       if (prevBtn) {
         prevBtn.addEventListener('click', (e) => {
-          // Prevent default button behavior and stop propagation
           e.preventDefault();
           e.stopPropagation();
           
@@ -1641,7 +1768,6 @@ function showInfrastructurePopup(latlng, nearbyFeatures) {
       
       if (nextBtn) {
         nextBtn.addEventListener('click', (e) => {
-          // Prevent default button behavior and stop propagation
           e.preventDefault();
           e.stopPropagation();
           
@@ -1654,17 +1780,22 @@ function showInfrastructurePopup(latlng, nearbyFeatures) {
     }, 10);
   }
   
-  // Create and open the popup
   popup = L.popup({
     autoPan: true,
     closeButton: true,
-    closeOnClick: false // Keep popup open when clicking on buttons
+    closeOnClick: false
   })
     .setLatLng(latlng)
     .setContent('Loading...')
     .openOn(map);
   
-  // Add CSS styles for the popup
+  popup.on('remove', function() {
+    if (highlightedLayer) {
+      map.removeLayer(highlightedLayer);
+      highlightedLayer = null;
+    }
+  });
+  
   if (!document.getElementById('infrastructure-popup-styles')) {
     const style = document.createElement('style');
     style.id = 'infrastructure-popup-styles';
@@ -1680,6 +1811,13 @@ function showInfrastructurePopup(latlng, nearbyFeatures) {
         border-bottom: 1px solid #ccc;
         display: flex;
         justify-content: space-between;
+      }
+      .combined-frequency-header {
+        margin-bottom: 8px;
+        padding: 5px;
+        background-color: #f2f2f2;
+        border-radius: 3px;
+        text-align: center;
       }
       .popup-content {
         margin-bottom: 10px;
@@ -2062,12 +2200,11 @@ function drawSelectedAmenities(amenities) {
           marker._amenityType = amenity;
           marker._amenityId = feature.properties.fid || feature.properties.id || '';
           
-          // Add hover effect
           marker.on('mouseover', function(e) {
             const element = e.target.getElement();
             if (element) {
               element.style.transform = element.style.transform.replace(/scale\([^)]*\)/, '') + ' scale(1.3)';
-              element.style.zIndex = 1000; // Bring to front
+              element.style.zIndex = 1000;
               element.style.transition = 'transform 0.2s ease';
               element.style.cursor = 'pointer';
             }
@@ -2081,7 +2218,6 @@ function drawSelectedAmenities(amenities) {
             }
           });
           
-          // Add click event to show popup
           marker.on('click', function() {
             const properties = feature.properties;
             const amenityContent = getAmenityPopupContent(marker._amenityType, properties);
@@ -2091,7 +2227,6 @@ function drawSelectedAmenities(amenities) {
               .setContent(`<div>${amenityContent}</div>`)
               .openOn(map);
               
-            // Add event listener to the button after popup is opened
             setTimeout(() => {
               const showCatchmentButton = document.querySelector('.show-catchment-btn');
               if (showCatchmentButton) {
@@ -2231,15 +2366,11 @@ function updateAmenitiesCatchmentLayer() {
 
     applyAmenitiesCatchmentLayerStyling();
 
-    // Add the selected amenities to the map
     if (selectingFromMap) {
-      // Only show the specific amenity that was clicked
       const selectedAmenityTypes = selectedAmenitiesAmenities;
       drawSelectedAmenities(selectedAmenityTypes);
     } else {
-      // Normal behavior - show all amenities of the selected types
       drawSelectedAmenities(selectedAmenitiesAmenities);
-      // Reset the amenities dropdown text
       updateAmenitiesDropdownLabel();
     }
 
