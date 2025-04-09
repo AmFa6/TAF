@@ -239,6 +239,43 @@ AmenitiesFiles.forEach(file => {
     });
 });
 
+const InfrastructureFiles = [
+  { type: 'BusLines', path: 'https://AmFa6.github.io/TAF_test/lines.geojson' },
+  { type: 'BusStops', path: 'https://AmFa6.github.io/TAF_test/stops.geojson' }
+];
+
+fetch('https://AmFa6.github.io/TAF_test/lines.geojson')
+  .then(response => response.json())
+  .then(data => {
+    busLinesLayer = L.geoJSON(data, {
+      style: function (feature) {
+        return {
+          color: 'green',
+          weight: 2,
+          fillOpacity: 0,
+          opacity: 0
+        };
+      },
+    }).addTo(map);
+  });
+
+fetch('https://AmFa6.github.io/TAF_test/stops.geojson')
+  .then(response => response.json())
+  .then(data => {
+    busStopsLayer = L.geoJSON(data, {
+      pointToLayer: function(feature, latlng) {
+        return L.circleMarker(latlng, {
+          radius: 3,
+          fillColor: 'green',
+          color: 'green',
+          weight: 1,
+          opacity: 0,
+          fillOpacity: 0
+        });
+      }
+    }).addTo(map);
+  });
+
 ScoresYear.value = "";
 ScoresOpacity.value = "None";
 ScoresOutline.value = "None";
@@ -276,6 +313,9 @@ let initialLoadComplete = false;
 let isUpdatingSliders = false;
 let CensusLayer = null;
 let wasAboveZoomThreshold = false;
+let hexLayer = null;
+let busLinesLayer;
+let busStopsLayer;
 
 initializeSliders(ScoresOpacityRange, updateScoresLayer);
 initializeSliders(ScoresOutlineRange, updateScoresLayer);
@@ -290,7 +330,30 @@ ScoresMode.addEventListener("change", () => updateScoresLayer());
 AmenitiesYear.addEventListener("change", () => updateAmenitiesCatchmentLayer());
 AmenitiesMode.addEventListener("change", () => updateAmenitiesCatchmentLayer());
 AmenitiesPurpose.forEach(checkbox => {
-  checkbox.addEventListener("change", () => updateAmenitiesCatchmentLayer());
+  checkbox.addEventListener("change", () => {
+    if (!checkbox.checked && selectingFromMap) {
+      const selectedAmenityType = checkbox.value;
+      if (selectedAmenitiesAmenities.includes(selectedAmenityType) && 
+          selectedAmenitiesAmenities.length === 1) {
+        selectingFromMap = false;
+        selectedAmenitiesFromMap = [];
+        const amenitiesDropdown = document.getElementById('amenitiesDropdown');
+        if (amenitiesDropdown) {
+          const amenitiesCheckboxes = document.getElementById('amenitiesCheckboxesContainer')
+            .querySelectorAll('input[type="checkbox"]');
+          const selectedCheckboxes = Array.from(amenitiesCheckboxes).filter(cb => cb.checked);
+          if (selectedCheckboxes.length === 0) {
+            amenitiesDropdown.textContent = '\u00A0';
+          } else if (selectedCheckboxes.length === 1) {
+            amenitiesDropdown.textContent = selectedCheckboxes[0].nextElementSibling.textContent;
+          } else {
+            amenitiesDropdown.textContent = 'Multiple Selection';
+          }
+        }
+      }
+    }
+    updateAmenitiesCatchmentLayer();
+  });
 });
 
 ScoresOpacity.addEventListener("change", () => {
@@ -476,19 +539,6 @@ document.addEventListener('DOMContentLoaded', (event) => {
     amenitiesCheckboxesContainer.classList.toggle('show');
   });
 
-  function updateAmenitiesDropdownLabel() {
-    const selectedCheckboxes = Array.from(amenitiesCheckboxes).filter(checkbox => checkbox.checked);
-    const selectedCount = selectedCheckboxes.length;
-  
-    if (selectedCount === 0) {
-      amenitiesDropdown.textContent = '\u00A0';
-    } else if (selectedCount === 1) {
-      amenitiesDropdown.textContent = selectedCheckboxes[0].nextElementSibling.textContent;
-    } else {
-      amenitiesDropdown.textContent = 'Multiple Selection';
-    }
-  }
-
   amenitiesCheckboxes.forEach(checkbox => {
     checkbox.addEventListener('change', updateAmenitiesDropdownLabel);
   });
@@ -582,6 +632,42 @@ document.addEventListener('DOMContentLoaded', (event) => {
         GrowthZonesLayer.setStyle({ opacity: 0 });
       }
     });
+  
+    // Add Infrastructure section
+    const infraHeaderDiv = document.createElement("div");
+    infraHeaderDiv.innerHTML = "Infrastructure";
+    infraHeaderDiv.style.fontSize = "1.1em";
+    infraHeaderDiv.style.marginTop = "15px";
+    infraHeaderDiv.style.marginBottom = "10px";
+    legendContainer.appendChild(infraHeaderDiv);
+
+    const busStopsCheckboxDiv = document.createElement("div");
+    busStopsCheckboxDiv.innerHTML = `<input type="checkbox" id="busStopsCheckbox"> <span style="font-size: 1em;">Bus Stops</span>`;
+    legendContainer.appendChild(busStopsCheckboxDiv);
+    const busStopsCheckbox = document.getElementById('busStopsCheckbox');
+    busStopsCheckbox.addEventListener('change', () => {
+      if (busStopsCheckbox.checked) {
+        busStopsLayer.eachLayer(layer => {
+          layer.setStyle({ opacity: 1, fillOpacity: 0.8 });
+        });
+      } else {
+        busStopsLayer.eachLayer(layer => {
+          layer.setStyle({ opacity: 0, fillOpacity: 0 });
+        });
+      }
+    });
+
+    const busLinesCheckboxDiv = document.createElement("div");
+    busLinesCheckboxDiv.innerHTML = `<input type="checkbox" id="busLinesCheckbox"> <span style="font-size: 1em;">Bus Lines</span>`;
+    legendContainer.appendChild(busLinesCheckboxDiv);
+    const busLinesCheckbox = document.getElementById('busLinesCheckbox');
+    busLinesCheckbox.addEventListener('change', () => {
+      if (busLinesCheckbox.checked) {
+        busLinesLayer.setStyle({ opacity: 1 });
+      } else {
+        busLinesLayer.setStyle({ opacity: 0 });
+      }
+    });
   }
   
   createStaticLegendControls();
@@ -611,7 +697,31 @@ document.addEventListener('DOMContentLoaded', (event) => {
   document.getElementById('min-growth-pop').textContent = '-';
   document.getElementById('max-growth-pop').textContent = '-';
 
+  const style = document.createElement('style');
+  style.textContent = `
+    .show-catchment-btn {
+      margin-top: 8px;
+      padding: 5px 10px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .show-catchment-btn:hover {
+      background-color: #45a049;
+    }
+  `;
+  document.head.appendChild(style);
+
   initialLoadComplete = true;
+
+  setTimeout(() => {
+    if (initialLoadComplete) {
+      logAmenityIDs();
+    }
+  }, 2000);
 });
 
 map.on('zoomend', () => {
@@ -636,7 +746,6 @@ map.on('click', function (e) {
   const clickedPoint = turf.point([clickedLatLng.lng, clickedLatLng.lat]);
   const popupContent = {
     Geographies: [],
-    Amenities: [],
     Hexagon: []
   };
 
@@ -681,18 +790,6 @@ map.on('click', function (e) {
       }
     });
   }
-
-  amenitiesLayerGroup.eachLayer(featureGroup => {
-    featureGroup.eachLayer(layer => {
-      if (layer.getLatLng && layer.getLatLng().distanceTo(clickedLatLng) < 100) {
-        if (layer.feature && layer.feature.properties) {
-          const properties = layer.feature.properties;
-          const amenityContent = getAmenityPopupContent(layer._amenityType, properties);
-          popupContent.Amenities.push(amenityContent);
-        }
-      }
-    });
-  });
 
   if (ScoresLayer || AmenitiesCatchmentLayer) {
     const hexLayer = ScoresLayer || AmenitiesCatchmentLayer;
@@ -773,8 +870,6 @@ map.on('click', function (e) {
     <div>
       <h4 style="text-decoration: underline;">Geographies</h4>
       ${popupContent.Geographies.length > 0 ? popupContent.Geographies.join('<br>') : '-'}
-      <h4 style="text-decoration: underline;">Amenities</h4>
-      ${popupContent.Amenities.length > 0 ? popupContent.Amenities.join('<br>') : '-'}
       <h4 style="text-decoration: underline;">Hexagon</h4>
       ${popupContent.Hexagon.length > 0 ? popupContent.Hexagon.join('<br>') : '-'}
     </div>
@@ -1306,82 +1401,60 @@ function updateLegend() {
   updateMasterCheckbox();
 }
 
-function getAmenityPopupContent(amenityType, properties) {
-  let amenityName = 'Unknown';
-  let amenityTypeDisplay = 'Unknown';
-  
-  if (amenityType === 'PriSch') {
-    amenityTypeDisplay = 'Primary School';
-    amenityName = properties.Establis_1 || properties.Name || 'Unknown';
-  } else if (amenityType === 'SecSch') {
-    amenityTypeDisplay = 'Secondary School';
-    amenityName = properties.Establis_1 || properties.Name || 'Unknown';
-  } else if (amenityType === 'FurEd') {
-    amenityTypeDisplay = 'Further Education';
-    amenityName = properties.Establis_1 || properties.Name || 'Unknown';
-  } else if (amenityType === 'Em500') {
-    amenityTypeDisplay = 'Employment (500+ employees)';
-    amenityName = properties.LSOA11CD && properties.LSOA11NM ? 
-                 `${properties.LSOA11CD}, ${properties.LSOA11NM}` : 
-                 properties.Name || 'Unknown';
-  } else if (amenityType === 'Em5000') {
-    amenityTypeDisplay = 'Employment (5000+ employees)';
-    amenityName = properties.LSOA11CD && properties.LSOA11NM ? 
-                 `${properties.LSOA11CD}, ${properties.LSOA11NM}` : 
-                 properties.Name || 'Unknown';
-  } else if (amenityType === 'StrEmp') {
-    amenityTypeDisplay = 'Strategic Employment';
-    amenityName = properties.NAME || properties.Name || 'Unknown';
-  } else if (amenityType === 'CitCtr') {
-    amenityTypeDisplay = 'City Centre';
-    amenityName = properties.District || properties.Name || 'Unknown';
-  } else if (amenityType === 'MajCtr') {
-    amenityTypeDisplay = 'Major Centre';
-    amenityName = properties.Name || 'Unknown';
-  } else if (amenityType === 'DisCtr') {
-    amenityTypeDisplay = 'District Centre';
-    amenityName = properties.SITE_NAME || properties.Name || 'Unknown';
-  } else if (amenityType === 'GP') {
-    amenityTypeDisplay = 'General Practice';
-    amenityName = properties.WECAplu_14 || properties.Name || 'Unknown';
-  } else if (amenityType === 'Hos') {
-    amenityTypeDisplay = 'Hospital';
-    amenityName = properties.Name || 'Unknown';
-  }
-  return `<strong>Amenity:</strong> ${amenityName} (${amenityTypeDisplay})`;
-}
-
-function drawSelectedAmenities(amenities) {
-  const amenitiesCheckbox = document.getElementById('amenitiesCheckbox');
-  amenitiesLayerGroup.clearLayers();
-
-  if (!amenitiesCheckbox) {
-    return;
-  }
-
-  if (amenities.length === 0) {
-    amenities = Object.keys(amenityLayers);
-  }
-
-  const currentZoom = map.getZoom();
-  const isAboveZoomThreshold = currentZoom >= 14;
-
-  amenities.forEach(amenity => {
-    const amenityLayer = amenityLayers[amenity];
-    if (amenityLayer) {
-      const layer = L.geoJSON(amenityLayer, {
-        pointToLayer: (feature, latlng) => {
-          const icon = isAboveZoomThreshold ? 
-            amenityIcons[amenity] : 
-            L.divIcon({ className: 'fa-icon', html: '<div class="dot"></div>', iconSize: [5, 5], iconAnchor: [5, 5] });
-          const marker = L.marker(latlng, { icon: icon });
-          marker._amenityType = amenity;
-          return marker;
-        },
-      });
-      amenitiesLayerGroup.addLayer(layer);
+function logAmenityIDs() {
+  console.log("Logging amenity IDs for debugging:");
+  Object.keys(amenityLayers).forEach(amenityType => {
+    const layer = amenityLayers[amenityType];
+    if (layer && layer.features) {
+      console.log(`${amenityType} IDs:`, layer.features.slice(0, 3).map(f => {
+        return {
+          fid: f.properties.fid,
+          id: f.properties.id,
+          name: f.properties.Name || f.properties.Establis_1 || f.properties.SITE_NAME
+        };
+      }));
     }
   });
+}
+
+function getAmenityTypeDisplayName(amenityType) {
+  switch (amenityType) {
+    case 'PriSch': return 'Primary School';
+    case 'SecSch': return 'Secondary School';
+    case 'FurEd': return 'Further Education';
+    case 'Em500': return 'Employment (500+)';
+    case 'Em5000': return 'Employment (5000+)';
+    case 'StrEmp': return 'Strategic Employment';
+    case 'CitCtr': return 'City Centre';
+    case 'MajCtr': return 'Major Centre';
+    case 'DisCtr': return 'District Centre';
+    case 'GP': return 'General Practice';
+    case 'Hos': return 'Hospital';
+    default: return amenityType;
+  }
+}
+
+function updateAmenitiesDropdownLabel() {
+  const amenitiesDropdown = document.getElementById('amenitiesDropdown');
+  if (!amenitiesDropdown) return;
+  
+  if (selectingFromMap) {
+    const amenityType = selectedAmenitiesAmenities[0];
+    const typeLabel = getAmenityTypeDisplayName(amenityType);
+    amenitiesDropdown.textContent = `${typeLabel} (ID: ${selectedAmenitiesFromMap.join(',')})`;
+  } else {
+    const amenitiesCheckboxes = document.getElementById('amenitiesCheckboxesContainer').querySelectorAll('input[type="checkbox"]');
+    const selectedCheckboxes = Array.from(amenitiesCheckboxes).filter(checkbox => checkbox.checked);
+    const selectedCount = selectedCheckboxes.length;
+  
+    if (selectedCount === 0) {
+      amenitiesDropdown.textContent = '\u00A0';
+    } else if (selectedCount === 1) {
+      amenitiesDropdown.textContent = selectedCheckboxes[0].nextElementSibling.textContent;
+    } else {
+      amenitiesDropdown.textContent = 'Multiple Selection';
+    }
+  }
 }
 
 function updateScoresLayer() {
@@ -1593,6 +1666,197 @@ function styleScoresFeature(feature, fieldToDisplay, opacityField, outlineField,
   };
 }
 
+function showAmenityCatchment(amenityType, amenityId) {
+  const panelHeaders = document.querySelectorAll(".panel-header:not(.summary-header)");
+  
+  console.log(`Showing catchment for amenity type: ${amenityType}, ID: ${amenityId}`);
+  
+  panelHeaders.forEach(header => {
+    header.classList.add("collapsed");
+    header.nextElementSibling.style.display = "none";
+    
+    if (header.textContent.includes("Connectivity Scores") && ScoresLayer) {
+      map.removeLayer(ScoresLayer);
+      ScoresLayer = null;
+    } else if (header.textContent.includes("Journey Time Catchments - Amenities") && AmenitiesCatchmentLayer) {
+      map.removeLayer(AmenitiesCatchmentLayer);
+      AmenitiesCatchmentLayer = null;
+    } else if (header.textContent.includes("Census / Local Plan Data") && CensusLayer) {
+      map.removeLayer(CensusLayer);
+      CensusLayer = null;
+    }
+  });
+  
+  selectingFromMap = true;
+  selectedAmenitiesFromMap = [amenityId];
+  
+  const amenitiesHeader = Array.from(panelHeaders).find(header => 
+    header.textContent.includes("Journey Time Catchments - Amenities"));
+  
+  if (amenitiesHeader) {
+    amenitiesHeader.classList.remove("collapsed");
+    amenitiesHeader.nextElementSibling.style.display = "block";
+    
+    if (!AmenitiesYear.value) {
+      AmenitiesYear.value = AmenitiesYear.options[0].value;
+    }
+    
+    if (!AmenitiesMode.value) {
+      AmenitiesMode.value = AmenitiesMode.options[0].value;
+    }
+    
+    AmenitiesPurpose.forEach(checkbox => {
+      checkbox.checked = false;
+    });
+    
+    const checkbox = Array.from(AmenitiesPurpose).find(checkbox => checkbox.value === amenityType);
+    if (checkbox) {
+      checkbox.checked = true;
+    } else {
+      console.error(`Could not find checkbox for amenity type: ${amenityType}`);
+    }
+    
+    const amenitiesDropdown = document.getElementById('amenitiesDropdown');
+    if (amenitiesDropdown) {
+      const typeLabel = getAmenityTypeDisplayName(amenityType);
+      amenitiesDropdown.textContent = `${typeLabel} (ID: ${amenityId})`;
+    }
+    
+    updateAmenitiesCatchmentLayer();
+  }
+}
+
+function getAmenityPopupContent(amenityType, properties) {
+  let amenityName = 'Unknown';
+  let amenityTypeDisplay = 'Unknown';ff
+  let amenityId = properties.fid || properties.id || '';
+  
+  if (amenityType === 'PriSch') {
+    amenityTypeDisplay = 'Primary School';
+    amenityName = properties.Establis_1 || properties.Name || 'Unknown';
+  } else if (amenityType === 'SecSch') {
+    amenityTypeDisplay = 'Secondary School';
+    amenityName = properties.Establis_1 || properties.Name || 'Unknown';
+  } else if (amenityType === 'FurEd') {
+    amenityTypeDisplay = 'Further Education';
+    amenityName = properties.Establis_1 || properties.Name || 'Unknown';
+  } else if (amenityType === 'Em500') {
+    amenityTypeDisplay = 'Employment (500+ employees)';
+    amenityName = properties.LSOA11CD && properties.LSOA11NM ? 
+                 `${properties.LSOA11CD}, ${properties.LSOA11NM}` : 
+                 properties.Name || 'Unknown';
+  } else if (amenityType === 'Em5000') {
+    amenityTypeDisplay = 'Employment (5000+ employees)';
+    amenityName = properties.LSOA11CD && properties.LSOA11NM ? 
+                 `${properties.LSOA11CD}, ${properties.LSOA11NM}` : 
+                 properties.Name || 'Unknown';
+  } else if (amenityType === 'StrEmp') {
+    amenityTypeDisplay = 'Strategic Employment';
+    amenityName = properties.NAME || properties.Name || 'Unknown';
+  } else if (amenityType === 'CitCtr') {
+    amenityTypeDisplay = 'City Centre';
+    amenityName = properties.District || properties.Name || 'Unknown';
+  } else if (amenityType === 'MajCtr') {
+    amenityTypeDisplay = 'Major Centre';
+    amenityName = properties.Name || 'Unknown';
+  } else if (amenityType === 'DisCtr') {
+    amenityTypeDisplay = 'District Centre';
+    amenityName = properties.SITE_NAME || properties.Name || 'Unknown';
+  } else if (amenityType === 'GP') {
+    amenityTypeDisplay = 'General Practice';
+    amenityName = properties.WECAplu_14 || properties.Name || 'Unknown';
+  } else if (amenityType === 'Hos') {
+    amenityTypeDisplay = 'Hospital';
+    amenityName = properties.Name || 'Unknown';
+  }
+  
+  const showCatchmentButton = `<br><button class="show-catchment-btn" data-amenity-type="${amenityType}" data-amenity-id="${amenityId}">Show Journey Time Catchment</button>`;
+  
+  return `<strong>Amenity:</strong> ${amenityName} (${amenityTypeDisplay})${showCatchmentButton}`;
+}
+
+function drawSelectedAmenities(amenities) {
+  const amenitiesCheckbox = document.getElementById('amenitiesCheckbox');
+  amenitiesLayerGroup.clearLayers();
+
+  if (!amenitiesCheckbox) {
+    return;
+  }
+
+  if (amenities.length === 0) {
+    amenities = Object.keys(amenityLayers);
+  }
+
+  const currentZoom = map.getZoom();
+  const isAboveZoomThreshold = currentZoom >= 14;
+
+  amenities.forEach(amenity => {
+    const amenityLayer = amenityLayers[amenity];
+    if (amenityLayer) {
+      const layer = L.geoJSON(amenityLayer, {
+        pointToLayer: (feature, latlng) => {
+          const icon = isAboveZoomThreshold ? 
+            amenityIcons[amenity] : 
+            L.divIcon({ className: 'fa-icon', html: '<div class="dot"></div>', iconSize: [5, 5], iconAnchor: [5, 5] });
+          const marker = L.marker(latlng, { icon: icon });
+          marker._amenityType = amenity;
+          marker._amenityId = feature.properties.fid || feature.properties.id || '';
+          
+          // Add hover effect
+          marker.on('mouseover', function(e) {
+            const element = e.target.getElement();
+            if (element) {
+              element.style.transform = element.style.transform.replace(/scale\([^)]*\)/, '') + ' scale(1.3)';
+              element.style.zIndex = 1000; // Bring to front
+              element.style.transition = 'transform 0.2s ease';
+              element.style.cursor = 'pointer';
+            }
+          });
+          
+          marker.on('mouseout', function(e) {
+            const element = e.target.getElement();
+            if (element) {
+              element.style.transform = element.style.transform.replace(/scale\([^)]*\)/, '');
+              element.style.zIndex = '';
+            }
+          });
+          
+          // Add click event to show popup
+          marker.on('click', function() {
+            const properties = feature.properties;
+            const amenityContent = getAmenityPopupContent(marker._amenityType, properties);
+            
+            const popup = L.popup()
+              .setLatLng(latlng)
+              .setContent(`<div>${amenityContent}</div>`)
+              .openOn(map);
+              
+            // Add event listener to the button after popup is opened
+            setTimeout(() => {
+              const showCatchmentButton = document.querySelector('.show-catchment-btn');
+              if (showCatchmentButton) {
+                showCatchmentButton.addEventListener('click', function() {
+                  const amenityType = this.getAttribute('data-amenity-type');
+                  const amenityId = this.getAttribute('data-amenity-id');
+                  showAmenityCatchment(amenityType, amenityId);
+                  popup.close();
+                });
+              }
+            }, 100);
+          });
+          
+          return marker;
+        },
+      });
+      amenitiesLayerGroup.addLayer(layer);
+    }
+  });
+
+  if (amenitiesCheckbox.checked) {
+    amenitiesLayerGroup.addTo(map);
+  }
+}
+
 function updateAmenitiesCatchmentLayer() {
   if (!initialLoadComplete || !isPanelOpen("Journey Time Catchments - Amenities")) {
     return;
@@ -1625,6 +1889,11 @@ function updateAmenitiesCatchmentLayer() {
 
   hexTimeMap = {};
 
+  if (selectingFromMap) {
+    console.log(`Filtering for specific amenity IDs: ${selectedAmenitiesFromMap}`);
+    console.log(`Selected amenity types: ${selectedAmenitiesAmenities}`);
+  }
+
   const cacheKeys = selectedAmenitiesAmenities.map(amenity => `${selectedYear}_${amenity}`);  
   const fetchPromises = cacheKeys.map(cacheKey => {  
     if (!csvDataCache[cacheKey]) {
@@ -1633,25 +1902,42 @@ function updateAmenitiesCatchmentLayer() {
         .then(response => response.text())
         .then(csvText => {
           const csvData = Papa.parse(csvText, { header: true }).data;
+          
+          if (csvData.length > 0) {
+            console.log(`Sample data for ${cacheKey}:`, csvData[0]);
+          }
+          
           csvData.forEach(row => {
-            if (row.Mode === selectedMode && (!selectingFromMap || selectedAmenitiesFromMap.includes(row.TRACC_ID))) {
-              const hexId = row.OriginName;
-              const time = parseFloat(row.Time);
-              if (!hexTimeMap[hexId] || time < hexTimeMap[hexId]) {
-                hexTimeMap[hexId] = time;
+            if (row.Mode === selectedMode) {
+              if (!selectingFromMap || 
+                  (selectedAmenitiesFromMap.includes(row.Tracc_ID) || 
+                  selectedAmenitiesFromMap.includes(String(row.Tracc_ID)))) {
+                const hexId = row.OriginName;
+                const time = parseFloat(row.Time);
+                if (!hexTimeMap[hexId] || time < hexTimeMap[hexId]) {
+                  hexTimeMap[hexId] = time;
+                }
               }
             }
           });
           csvDataCache[cacheKey] = csvData;
+        })
+        .catch(error => {
+          console.error(`Error fetching data for ${cacheKey}:`, error);
         });
     } else {
       const csvData = csvDataCache[cacheKey];
+      
       csvData.forEach(row => {
-        if (row.Mode === selectedMode && (!selectingFromMap || selectedAmenitiesFromMap.includes(row.TRACC_ID))) {
-          const hexId = row.OriginName;
-          const time = parseFloat(row.Time);
-          if (!hexTimeMap[hexId] || time < hexTimeMap[hexId]) {
-            hexTimeMap[hexId] = time;
+        if (row.Mode === selectedMode) {
+          if (!selectingFromMap || 
+              (selectedAmenitiesFromMap.includes(row.Tracc_ID) || 
+              selectedAmenitiesFromMap.includes(String(row.Tracc_ID)))) {
+            const hexId = row.OriginName;
+            const time = parseFloat(row.Time);
+            if (!hexTimeMap[hexId] || time < hexTimeMap[hexId]) {
+              hexTimeMap[hexId] = time;
+            }
           }
         }
       });
@@ -1660,6 +1946,10 @@ function updateAmenitiesCatchmentLayer() {
   });
 
   Promise.all(fetchPromises).then(() => {
+    // Log how many hex IDs have times less than 120
+    const validTimes = Object.values(hexTimeMap).filter(time => time < 120).length;
+    console.log(`Found ${validTimes} hexes with valid journey times`);
+    
     hexes.features.forEach(feature => {
       const hexId = feature.properties.Hex_ID;
       if (hexTimeMap[hexId] === undefined) {
@@ -1694,7 +1984,18 @@ function updateAmenitiesCatchmentLayer() {
 
     applyAmenitiesCatchmentLayerStyling();
 
-    drawSelectedAmenities(selectedAmenitiesAmenities);
+    // Add the selected amenities to the map
+    if (selectingFromMap) {
+      // Only show the specific amenity that was clicked
+      const selectedAmenityTypes = selectedAmenitiesAmenities;
+      drawSelectedAmenities(selectedAmenityTypes);
+    } else {
+      // Normal behavior - show all amenities of the selected types
+      drawSelectedAmenities(selectedAmenitiesAmenities);
+      // Reset the amenities dropdown text
+      updateAmenitiesDropdownLabel();
+    }
+
     updateLegend();
     updateFeatureVisibility();
     updateSummaryStatistics(filteredFeatures);
