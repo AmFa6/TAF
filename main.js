@@ -4,9 +4,7 @@ const baseLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/lig
   attribution: '&copy; OpenStreetMap contributors & CartoDB, © Crown copyright and database rights 2025 OS 0100059651, Contains OS data © Crown copyright [and database right] 2025.'
 }).addTo(map);
 
-const ladCodes = ['E06000022', 'E06000023', 'E06000024', 'E06000025'];
 let lsoaLookup = {};
-
 const ladCodesString = ladCodes.map(code => `'${code}'`).join(',');
 
 function convertMultiPolygonToPolygons(geoJson) {
@@ -128,32 +126,6 @@ fetch('https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/LSOA21
     }).addTo(map);
   })
 
-const ScoresFiles = [
-  { year: '2024', path: 'https://AmFa6.github.io/TAF_test/2024_connectscore.csv' },
-  { year: '2023', path: 'https://AmFa6.github.io/TAF_test/2023_connectscore.csv' },
-  { year: '2022', path: 'https://AmFa6.github.io/TAF_test/2022_connectscore.csv' },
-  { year: '2019', path: 'https://AmFa6.github.io/TAF_test/2019_connectscore.csv' },
-  { year: '2023-2024', path: 'https://AmFa6.github.io/TAF_test/2023-2024_connectscore.csv' },
-  { year: '2019-2024', path: 'https://AmFa6.github.io/TAF_test/2019-2024_connectscore.csv' },
-  { year: '2022-2023', path: 'https://AmFa6.github.io/TAF_test/2022-2023_connectscore.csv' },
-  { year: '2019-2023', path: 'https://AmFa6.github.io/TAF_test/2019-2023_connectscore.csv' }, 
-  { year: '2019-2022', path: 'https://AmFa6.github.io/TAF_test/2019-2022_connectscore.csv' }
-];
-
-const AmenitiesFiles = [
-  { type: 'PriSch', path: 'https://AmFa6.github.io/TAF_test/PriSch.geojson' },
-  { type: 'SecSch', path: 'https://AmFa6.github.io/TAF_test/SecSch.geojson' },
-  { type: 'FurEd', path: 'https://AmFa6.github.io/TAF_test/FurEd.geojson' },
-  { type: 'Em500', path: 'https://AmFa6.github.io/TAF_test/Em500.geojson' },
-  { type: 'Em5000', path: 'https://AmFa6.github.io/TAF_test/Em5000.geojson' },
-  { type: 'StrEmp', path: 'https://AmFa6.github.io/TAF_test/StrEmp.geojson' },
-  { type: 'CitCtr', path: 'https://AmFa6.github.io/TAF_test/CitCtr.geojson' },
-  { type: 'MajCtr', path: 'https://AmFa6.github.io/TAF_test/MajCtr.geojson' },
-  { type: 'DisCtr', path: 'https://AmFa6.github.io/TAF_test/DisCtr.geojson' },
-  { type: 'GP', path: 'https://AmFa6.github.io/TAF_test/GP.geojson' },
-  { type: 'Hos', path: 'https://AmFa6.github.io/TAF_test/Hos.geojson' }
-];
-
 const layers = {};
 const scoreLayers = {};
 const ScoresYear = document.getElementById("yearScoresDropdown");
@@ -183,13 +155,6 @@ const CensusInverseOpacity = document.getElementById("inverseOpacityScaleCensusB
 const CensusInverseOutline = document.getElementById("inverseOutlineScaleCensusButton");
 
 const amenityLayers = {};
-const purposeToAmenitiesMap = {
-  Edu: ['PriSch', 'SecSch', 'FurEd'],
-  Emp: ['Em500', 'Em5000', 'StrEmp'],
-  HSt: ['CitCtr', 'MajCtr', 'DisCtr'],
-  Hth: ['GP', 'Hos'],
-  All: ['PriSch', 'SecSch', 'FurEd', 'Em500', 'Em5000', 'StrEmp', 'CitCtr', 'MajCtr', 'DisCtr', 'GP', 'Hos']
-};
 const amenityIcons = {
   PriSch: L.divIcon({ className: 'fa-icon', html: '<div class="pin"><i class="fas fa-school" style="color: grey;"></i></div>', iconSize: [60, 60], iconAnchor: [15, 15] }),
   SecSch: L.divIcon({ className: 'fa-icon', html: '<div class="pin"><i class="fas fa-school" style="color: grey;"></i></div>', iconSize: [60, 60], iconAnchor: [15, 15] }),
@@ -238,11 +203,6 @@ AmenitiesFiles.forEach(file => {
       drawSelectedAmenities([]);
     });
 });
-
-const InfrastructureFiles = [
-  { type: 'BusLines', path: 'https://AmFa6.github.io/TAF_test/lines.geojson' },
-  { type: 'BusStops', path: 'https://AmFa6.github.io/TAF_test/stops.geojson' }
-];
 
 fetch('https://AmFa6.github.io/TAF_test/lines.geojson')
   .then(response => response.json())
@@ -486,7 +446,6 @@ document.addEventListener('DOMContentLoaded', (event) => {
           otherHeader.classList.add("collapsed");
           otherHeader.nextElementSibling.style.display = "none";
           
-          // Save state before closing Amenities panel
           if (otherHeader.textContent.includes("Journey Time Catchments - Amenities")) {
             if(AmenitiesCatchmentLayer) {
               lastAmenitiesState = {
@@ -1041,7 +1000,6 @@ function configureSlider(sliderElement, updateCallback, isInverse, order, deboun
     const formattedValue = formatValue(values[handle], step);
     handleElement.setAttribute('data-value', formattedValue);
     
-    let fieldName;
     if (sliderType === 'Scores') {
       fieldName = sliderFunction === 'Opacity' ? ScoresOpacity.value : ScoresOutline.value;
     } else if (sliderType === 'Amenities') {
@@ -1469,7 +1427,7 @@ function updateLegend() {
 function getAmenityPopupContent(amenityType, properties) {
   let amenityName = 'Unknown';
   let amenityTypeDisplay = 'Unknown';
-  let amenityId = properties.fid || properties.id || '';
+  let amenityId = properties.COREID || '';
   
   if (amenityType === 'PriSch') {
     amenityTypeDisplay = 'Primary School';
@@ -1539,28 +1497,46 @@ function findNearbyInfrastructure(latlng, maxPixelDistance = 10) {
   
   if (busLinesLayer) {
     busLinesLayer.eachLayer(layer => {
-      try {
-        const geojson = layer.toGeoJSON();
-        let minPixelDistance = Infinity;
-        let nearestPoint = null;
-        
-        if (geojson.geometry.type === 'LineString') {
-          for (let i = 0; i < geojson.geometry.coordinates.length - 1; i++) {
-            const p1 = L.latLng(
-              geojson.geometry.coordinates[i][1], 
-              geojson.geometry.coordinates[i][0]
-            );
-            const p2 = L.latLng(
-              geojson.geometry.coordinates[i+1][1], 
-              geojson.geometry.coordinates[i+1][0]
-            );
+      const geojson = layer.toGeoJSON();
+      let minPixelDistance = Infinity;
+      
+      if (geojson.geometry.type === 'LineString') {
+        for (let i = 0; i < geojson.geometry.coordinates.length - 1; i++) {
+          const p1 = L.latLng(
+            geojson.geometry.coordinates[i][1], 
+            geojson.geometry.coordinates[i][0]
+          );
+          const p2 = L.latLng(
+            geojson.geometry.coordinates[i+1][1], 
+            geojson.geometry.coordinates[i+1][0]
+          );
+          
+          const p1Screen = map.latLngToContainerPoint(p1);
+          const p2Screen = map.latLngToContainerPoint(p2);
+          
+          const distance = distanceToLineSegment(
+            map.latLngToContainerPoint(latlng), 
+            p1Screen, 
+            p2Screen
+          );
+          
+          if (distance < minPixelDistance) {
+            minPixelDistance = distance;
+          }
+        }
+      }
+      else if (geojson.geometry.type === 'MultiLineString') {
+        for (const lineCoords of geojson.geometry.coordinates) {
+          for (let i = 0; i < lineCoords.length - 1; i++) {
+            const p1 = L.latLng(lineCoords[i][1], lineCoords[i][0]);
+            const p2 = L.latLng(lineCoords[i+1][1], lineCoords[i+1][0]);
             
             const p1Screen = map.latLngToContainerPoint(p1);
             const p2Screen = map.latLngToContainerPoint(p2);
             
             const distance = distanceToLineSegment(
-              map.latLngToContainerPoint(latlng), 
-              p1Screen, 
+              map.latLngToContainerPoint(latlng),
+              p1Screen,
               p2Screen
             );
             
@@ -1569,37 +1545,14 @@ function findNearbyInfrastructure(latlng, maxPixelDistance = 10) {
             }
           }
         }
-        else if (geojson.geometry.type === 'MultiLineString') {
-          for (const lineCoords of geojson.geometry.coordinates) {
-            for (let i = 0; i < lineCoords.length - 1; i++) {
-              const p1 = L.latLng(lineCoords[i][1], lineCoords[i][0]);
-              const p2 = L.latLng(lineCoords[i+1][1], lineCoords[i+1][0]);
-              
-              const p1Screen = map.latLngToContainerPoint(p1);
-              const p2Screen = map.latLngToContainerPoint(p2);
-              
-              const distance = distanceToLineSegment(
-                map.latLngToContainerPoint(latlng),
-                p1Screen,
-                p2Screen
-              );
-              
-              if (distance < minPixelDistance) {
-                minPixelDistance = distance;
-              }
-            }
-          }
-        }
-        
-        if (minPixelDistance <= maxPixelDistance) {
-          results.busLines.push({
-            layer: layer,
-            feature: layer.feature,
-            distance: minPixelDistance
-          });
-        }
-      } catch (error) {
-        console.error("Error finding distance to bus line:", error, layer.feature);
+      }
+      
+      if (minPixelDistance <= maxPixelDistance) {
+        results.busLines.push({
+          layer: layer,
+          feature: layer.feature,
+          distance: minPixelDistance
+        });
       }
     });
   }
@@ -1835,73 +1788,6 @@ function showInfrastructurePopup(latlng, nearbyFeatures) {
     }
   });
   
-  if (!document.getElementById('infrastructure-popup-styles')) {
-    const style = document.createElement('style');
-    style.id = 'infrastructure-popup-styles';
-    style.textContent = `
-      .infrastructure-popup {
-        max-height: 300px;
-        overflow-y: auto;
-        min-width: 250px;
-      }
-      .popup-header {
-        margin-bottom: 8px;
-        padding-bottom: 5px;
-        border-bottom: 1px solid #ccc;
-        display: flex;
-        justify-content: space-between;
-      }
-      .combined-frequency-header {
-        margin-bottom: 8px;
-        padding: 5px;
-        background-color: #f2f2f2;
-        border-radius: 3px;
-        text-align: center;
-      }
-      .popup-content {
-        margin-bottom: 10px;
-      }
-      .popup-table {
-        width: 100%;
-        border-collapse: collapse;
-      }
-      .popup-table th, .popup-table td {
-        padding: 4px;
-        border: 1px solid #ddd;
-        font-size: 12px;
-      }
-      .popup-table th {
-        background-color: #f2f2f2;
-        text-align: left;
-      }
-      .popup-footer {
-        display: flex;
-        justify-content: space-between;
-        margin-top: 10px;
-      }
-      .popup-footer button {
-        padding: 4px 8px;
-        background-color: #f2f2f2;
-        border: 1px solid #ccc;
-        border-radius: 3px;
-        cursor: pointer;
-      }
-      .popup-footer button:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-      }
-      .page-indicator {
-        font-size: 12px;
-        color: #666;
-      }
-      /* Fix for popup button issues */
-      .popup-footer button:focus {
-        outline: none;
-      }
-    `;
-    document.head.appendChild(style);
-  }
-  
   updatePopupContent();
 }
 
@@ -1949,6 +1835,8 @@ function updateScoresLayer() {
   if (!initialLoadComplete || !isPanelOpen("Connectivity Scores")) {
     return;
   }
+  
+  console.log("Updating scores layer...");
 
   const selectedYear = ScoresYear.value;
   const selectedPurpose = ScoresPurpose.value;
@@ -2175,7 +2063,7 @@ function showAmenityCatchment(amenityType, amenityId) {
   
   selectingFromMap = true;
   selectedAmenitiesFromMap = [amenityId];
-  selectedAmenitiesAmenities = [amenityType]; // Explicitly set this to the current amenity type
+  selectedAmenitiesAmenities = [amenityType];
   
   const amenitiesHeader = Array.from(panelHeaders).find(header => 
     header.textContent.includes("Journey Time Catchments - Amenities"));
@@ -2199,8 +2087,6 @@ function showAmenityCatchment(amenityType, amenityId) {
     const checkbox = Array.from(AmenitiesPurpose).find(checkbox => checkbox.value === amenityType);
     if (checkbox) {
       checkbox.checked = true;
-    } else {
-      console.error(`Could not find checkbox for amenity type: ${amenityType}`);
     }
     
     const amenitiesDropdown = document.getElementById('amenitiesDropdown');
@@ -2221,14 +2107,11 @@ function drawSelectedAmenities(amenities) {
     return;
   }
 
-  // If amenities is empty (which happens when panel is closed), 
-  // we should reset the selectingFromMap flag
   if (amenities.length === 0) {
     selectingFromMap = false;
     selectedAmenitiesFromMap = [];
   }
 
-  // Get all amenity types if none are specified
   const amenitiesToDraw = amenities.length === 0 ? Object.keys(amenityLayers) : amenities;
 
   const currentZoom = map.getZoom();
@@ -2244,22 +2127,15 @@ function drawSelectedAmenities(amenities) {
             L.divIcon({ className: 'fa-icon', html: '<div class="dot"></div>', iconSize: [5, 5], iconAnchor: [5, 5] });
           const marker = L.marker(latlng, { icon: icon });
           marker._amenityType = amenity;
-          marker._amenityId = feature.properties.fid || feature.properties.id || '';
+          marker._amenityId = feature.properties.COREID || '';
           
-          // Adjust opacity based on whether this is a specifically selected amenity
-          // If we're not in selectingFromMap mode or if amenities list is empty, use full opacity
           const isSelectedSpecificAmenity = 
             selectingFromMap && 
             selectedAmenitiesAmenities.includes(amenity) && 
             selectedAmenitiesFromMap.includes(marker._amenityId.toString());
           
-          // Set opacity to 1 if:
-          // 1. This is specifically the selected amenity in selectingFromMap mode
-          // 2. We're not in selectingFromMap mode (normal selection or all amenities)
-          // 3. The amenities list provided is empty (which means show all with full opacity)
           const opacity = isSelectedSpecificAmenity || !selectingFromMap || amenities.length === 0 ? 1 : 0.2;
           
-          // Apply opacity after marker is added to the map
           marker.on('add', function() {
             const element = this.getElement();
             if (element) {
@@ -2274,7 +2150,7 @@ function drawSelectedAmenities(amenities) {
               element.style.zIndex = 1000;
               element.style.transition = 'transform 0.2s ease';
               element.style.cursor = 'pointer';
-              element.style.opacity = 1; // Always full opacity on hover
+              element.style.opacity = 1;
             }
           });
           
@@ -2283,7 +2159,6 @@ function drawSelectedAmenities(amenities) {
             if (element) {
               element.style.transform = element.style.transform.replace(/scale\([^)]*\)/, '');
               element.style.zIndex = '';
-              // Reset to original opacity on mouseout
               element.style.opacity = isSelectedSpecificAmenity || !selectingFromMap || amenities.length === 0 ? 1 : 0.2;
             }
           });
@@ -2363,11 +2238,40 @@ function updateAmenitiesCatchmentLayer() {
         .then(csvText => {
           const csvData = Papa.parse(csvText, { header: true }).data;
           
+          let matchCount = 0;
           csvData.forEach(row => {
             if (row.Mode === selectedMode) {
-              if (!selectingFromMap || 
-                  (selectedAmenitiesFromMap.includes(row.Tracc_ID) || 
-                  selectedAmenitiesFromMap.includes(String(row.Tracc_ID)))) {
+              if (selectingFromMap && selectedAmenitiesFromMap.length > 0) {
+                let isMatch = false;
+                
+                const selectedId = selectedAmenitiesFromMap[0];
+                
+                const rowId = selectedMode === 'PT' ? row.Tracc_ID : row.NA_ID;
+                
+                if (selectedId === rowId) {
+                  isMatch = true;
+                }
+                else if (!isNaN(parseFloat(rowId)) && !isNaN(parseFloat(selectedId))) {
+                  if (parseFloat(selectedId) === parseFloat(rowId)) {
+                    isMatch = true;
+                  }
+                }
+                else if (rowId && rowId.includes('.') && 
+                         rowId.substring(0, rowId.indexOf('.')) === selectedId) {
+                  isMatch = true;
+                }
+                
+                if (isMatch) {
+                  if (matchCount < 3) {
+                    matchCount++;
+                  }
+                  const hexId = row.OriginName;
+                  const time = parseFloat(row.Time);
+                  if (!hexTimeMap[hexId] || time < hexTimeMap[hexId]) {
+                    hexTimeMap[hexId] = time;
+                  }
+                }
+              } else {
                 const hexId = row.OriginName;
                 const time = parseFloat(row.Time);
                 if (!hexTimeMap[hexId] || time < hexTimeMap[hexId]) {
@@ -2376,19 +2280,46 @@ function updateAmenitiesCatchmentLayer() {
               }
             }
           });
+          
           csvDataCache[cacheKey] = csvData;
-        })
-        .catch(error => {
-          console.error(`Error fetching data for ${cacheKey}:`, error);
         });
     } else {
       const csvData = csvDataCache[cacheKey];
       
+      let matchCount = 0;
       csvData.forEach(row => {
         if (row.Mode === selectedMode) {
-          if (!selectingFromMap || 
-              (selectedAmenitiesFromMap.includes(row.Tracc_ID) || 
-              selectedAmenitiesFromMap.includes(String(row.Tracc_ID)))) {
+          if (selectingFromMap && selectedAmenitiesFromMap.length > 0) {
+            let isMatch = false;
+            
+            const selectedId = selectedAmenitiesFromMap[0];
+            
+            const rowId = selectedMode === 'PT' ? row.Tracc_ID : row.NA_ID;
+            
+            if (selectedId === rowId) {
+              isMatch = true;
+            }
+            else if (!isNaN(parseFloat(rowId)) && !isNaN(parseFloat(selectedId))) {
+              if (parseFloat(selectedId) === parseFloat(rowId)) {
+                isMatch = true;
+              }
+            }
+            else if (rowId && rowId.includes('.') && 
+                     rowId.substring(0, rowId.indexOf('.')) === selectedId) {
+              isMatch = true;
+            }
+            
+            if (isMatch) {
+              if (matchCount < 3) {
+                matchCount++;
+              }
+              const hexId = row.OriginName;
+              const time = parseFloat(row.Time);
+              if (!hexTimeMap[hexId] || time < hexTimeMap[hexId]) {
+                hexTimeMap[hexId] = time;
+              }
+            }
+          } else {
             const hexId = row.OriginName;
             const time = parseFloat(row.Time);
             if (!hexTimeMap[hexId] || time < hexTimeMap[hexId]) {
@@ -2397,11 +2328,12 @@ function updateAmenitiesCatchmentLayer() {
           }
         }
       });
+      
       return Promise.resolve();
     }
   });
 
-  Promise.all(fetchPromises).then(() => {
+  Promise.all(fetchPromises).then(() => {    
     hexes.features.forEach(feature => {
       const hexId = feature.properties.Hex_ID;
       if (hexTimeMap[hexId] === undefined) {
@@ -2567,7 +2499,7 @@ function updateCensusLayer() {
   }
 
   CensusLayer = L.geoJSON(hexes, {
-    style: feature => {
+    style: () => {
       return {
         fillColor: baseColorCensus.value,
         weight: 0.5,
