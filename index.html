@@ -375,6 +375,79 @@
       font-weight: normal;
     }
   </style>
+  <style id="infrastructure-popup-styles">
+    .infrastructure-popup {
+      max-height: 300px;
+      overflow-y: auto;
+      min-width: 250px;
+    }
+    .popup-header {
+      margin-bottom: 8px;
+      padding-bottom: 5px;
+      border-bottom: 1px solid #ccc;
+      display: flex;
+      justify-content: space-between;
+    }
+    .combined-frequency-header {
+      margin-bottom: 8px;
+      padding: 5px;
+      background-color: #f2f2f2;
+      border-radius: 3px;
+      text-align: center;
+    }
+    .popup-content {
+      margin-bottom: 10px;
+    }
+    .popup-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .popup-table th, .popup-table td {
+      padding: 4px;
+      border: 1px solid #ddd;
+      font-size: 12px;
+    }
+    .popup-table th {
+      background-color: #f2f2f2;
+      text-align: left;
+    }
+    .popup-footer {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 10px;
+    }
+    .popup-footer button {
+      padding: 4px 8px;
+      background-color: #f2f2f2;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+    .popup-footer button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .page-indicator {
+      font-size: 12px;
+      color: #666;
+    }
+    .popup-footer button:focus {
+      outline: none;
+    }
+    .show-catchment-btn {
+      margin-top: 8px;
+      padding: 5px 10px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .show-catchment-btn:hover {
+      background-color: #45a049;
+    }
+  </style>
 </head>
 <body>
   <div id="map"></div>
@@ -736,6 +809,49 @@
       </table>
     </div>
   </div>
+  <script>
+    // Data Files
+    const ScoresFiles = [
+      { year: '2024', path: 'https://AmFa6.github.io/TAF_test/2024_connectscore.csv' },
+      { year: '2023', path: 'https://AmFa6.github.io/TAF_test/2023_connectscore.csv' },
+      { year: '2022', path: 'https://AmFa6.github.io/TAF_test/2022_connectscore.csv' },
+      { year: '2019', path: 'https://AmFa6.github.io/TAF_test/2019_connectscore.csv' },
+      { year: '2023-2024', path: 'https://AmFa6.github.io/TAF_test/2023-2024_connectscore.csv' },
+      { year: '2019-2024', path: 'https://AmFa6.github.io/TAF_test/2019-2024_connectscore.csv' },
+      { year: '2022-2023', path: 'https://AmFa6.github.io/TAF_test/2022-2023_connectscore.csv' },
+      { year: '2019-2023', path: 'https://AmFa6.github.io/TAF_test/2019-2023_connectscore.csv' }, 
+      { year: '2019-2022', path: 'https://AmFa6.github.io/TAF_test/2019-2022_connectscore.csv' }
+    ];
+
+    const AmenitiesFiles = [
+      { type: 'PriSch', path: 'https://AmFa6.github.io/TAF_test/PriSch.geojson' },
+      { type: 'SecSch', path: 'https://AmFa6.github.io/TAF_test/SecSch.geojson' },
+      { type: 'FurEd', path: 'https://AmFa6.github.io/TAF_test/FurEd.geojson' },
+      { type: 'Em500', path: 'https://AmFa6.github.io/TAF_test/Em500.geojson' },
+      { type: 'Em5000', path: 'https://AmFa6.github.io/TAF_test/Em5000.geojson' },
+      { type: 'StrEmp', path: 'https://AmFa6.github.io/TAF_test/StrEmp.geojson' },
+      { type: 'CitCtr', path: 'https://AmFa6.github.io/TAF_test/CitCtr.geojson' },
+      { type: 'MajCtr', path: 'https://AmFa6.github.io/TAF_test/MajCtr.geojson' },
+      { type: 'DisCtr', path: 'https://AmFa6.github.io/TAF_test/DisCtr.geojson' },
+      { type: 'GP', path: 'https://AmFa6.github.io/TAF_test/GP.geojson' },
+      { type: 'Hos', path: 'https://AmFa6.github.io/TAF_test/Hos.geojson' }
+    ];
+
+    const InfrastructureFiles = [
+      { type: 'BusLines', path: 'https://AmFa6.github.io/TAF_test/lines.geojson' },
+      { type: 'BusStops', path: 'https://AmFa6.github.io/TAF_test/stops.geojson' }
+    ];
+
+    const purposeToAmenitiesMap = {
+      Edu: ['PriSch', 'SecSch', 'FurEd'],
+      Emp: ['Em500', 'Em5000', 'StrEmp'],
+      HSt: ['CitCtr', 'MajCtr', 'DisCtr'],
+      Hth: ['GP', 'Hos'],
+      All: ['PriSch', 'SecSch', 'FurEd', 'Em500', 'Em5000', 'StrEmp', 'CitCtr', 'MajCtr', 'DisCtr', 'GP', 'Hos']
+    };
+
+    const ladCodes = ['E06000022', 'E06000023', 'E06000024', 'E06000025'];
+  </script>
   <script src="main.js"></script>
 </body>
 </html>
