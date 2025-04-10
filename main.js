@@ -467,7 +467,13 @@ document.addEventListener('DOMContentLoaded', (event) => {
       this.classList.toggle("collapsed", content.style.display === "none");
     });
   });
-  
+    
+  let lastAmenitiesState = {
+    selectingFromMap: false,
+    selectedAmenitiesFromMap: [],
+    selectedAmenitiesAmenities: []
+  };
+    
   const panelHeaders = document.querySelectorAll(".panel-header:not(.summary-header)");
   panelHeaders.forEach(header => {
     const panelContent = header.nextElementSibling;
@@ -479,15 +485,22 @@ document.addEventListener('DOMContentLoaded', (event) => {
         if (otherHeader !== header) {
           otherHeader.classList.add("collapsed");
           otherHeader.nextElementSibling.style.display = "none";
-          if (otherHeader.textContent.includes("Connectivity Scores")) {
+          
+          // Save state before closing Amenities panel
+          if (otherHeader.textContent.includes("Journey Time Catchments - Amenities")) {
+            if(AmenitiesCatchmentLayer) {
+              lastAmenitiesState = {
+                selectingFromMap,
+                selectedAmenitiesFromMap,
+                selectedAmenitiesAmenities
+              };
+              map.removeLayer(AmenitiesCatchmentLayer);
+              AmenitiesCatchmentLayer = null;
+            }
+          } else if (otherHeader.textContent.includes("Connectivity Scores")) {
             if(ScoresLayer) {
               map.removeLayer(ScoresLayer);
               ScoresLayer = null;
-            }
-          } else if (otherHeader.textContent.includes("Journey Time Catchments - Amenities")) {
-            if(AmenitiesCatchmentLayer) {
-              map.removeLayer(AmenitiesCatchmentLayer);
-              AmenitiesCatchmentLayer = null;
             }
           } else if (otherHeader.textContent.includes("Census / Local Plan Data")) {
             if(CensusLayer) {
@@ -497,6 +510,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
           }
         }
       });
+      
       panelContent.style.display = panelContent.style.display === "block" ? "none" : "block";
       header.classList.toggle("collapsed", panelContent.style.display === "none");
 
@@ -504,6 +518,22 @@ document.addEventListener('DOMContentLoaded', (event) => {
         if (header.textContent.includes("Connectivity Scores")) {
           updateScoresLayer();
         } else if (header.textContent.includes("Journey Time Catchments - Amenities")) {
+          if (lastAmenitiesState.selectingFromMap) {
+            selectingFromMap = lastAmenitiesState.selectingFromMap;
+            selectedAmenitiesFromMap = [...lastAmenitiesState.selectedAmenitiesFromMap];
+            
+            AmenitiesPurpose.forEach(checkbox => {
+              checkbox.checked = lastAmenitiesState.selectedAmenitiesAmenities.includes(checkbox.value);
+            });
+            
+            const amenitiesDropdown = document.getElementById('amenitiesDropdown');
+            if (amenitiesDropdown && selectedAmenitiesFromMap.length > 0) {
+              const amenityType = lastAmenitiesState.selectedAmenitiesAmenities[0];
+              const typeLabel = getAmenityTypeDisplayName(amenityType);
+              amenitiesDropdown.textContent = `${typeLabel} (ID: ${selectedAmenitiesFromMap.join(',')})`;
+            }
+          }
+          
           updateAmenitiesCatchmentLayer();
         } else if (header.textContent.includes("Census / Local Plan Data")) {
           updateCensusLayer();
@@ -514,6 +544,13 @@ document.addEventListener('DOMContentLoaded', (event) => {
           ScoresLayer = null;
         }
         if(AmenitiesCatchmentLayer) {
+          if (header.textContent.includes("Journey Time Catchments - Amenities")) {
+            lastAmenitiesState = {
+              selectingFromMap,
+              selectedAmenitiesFromMap,
+              selectedAmenitiesAmenities
+            };
+          }
           map.removeLayer(AmenitiesCatchmentLayer);
           AmenitiesCatchmentLayer = null;
         } 
@@ -521,6 +558,8 @@ document.addEventListener('DOMContentLoaded', (event) => {
           map.removeLayer(CensusLayer);
           CensusLayer = null;
         }
+        selectingFromMap = false;
+        selectedAmenitiesFromMap = [];
         drawSelectedAmenities([]);
         updateLegend();
         updateFilterValues();
@@ -2136,6 +2175,7 @@ function showAmenityCatchment(amenityType, amenityId) {
   
   selectingFromMap = true;
   selectedAmenitiesFromMap = [amenityId];
+  selectedAmenitiesAmenities = [amenityType]; // Explicitly set this to the current amenity type
   
   const amenitiesHeader = Array.from(panelHeaders).find(header => 
     header.textContent.includes("Journey Time Catchments - Amenities"));
@@ -2181,14 +2221,20 @@ function drawSelectedAmenities(amenities) {
     return;
   }
 
+  // If amenities is empty (which happens when panel is closed), 
+  // we should reset the selectingFromMap flag
   if (amenities.length === 0) {
-    amenities = Object.keys(amenityLayers);
+    selectingFromMap = false;
+    selectedAmenitiesFromMap = [];
   }
+
+  // Get all amenity types if none are specified
+  const amenitiesToDraw = amenities.length === 0 ? Object.keys(amenityLayers) : amenities;
 
   const currentZoom = map.getZoom();
   const isAboveZoomThreshold = currentZoom >= 14;
 
-  amenities.forEach(amenity => {
+  amenitiesToDraw.forEach(amenity => {
     const amenityLayer = amenityLayers[amenity];
     if (amenityLayer) {
       const layer = L.geoJSON(amenityLayer, {
@@ -2200,6 +2246,27 @@ function drawSelectedAmenities(amenities) {
           marker._amenityType = amenity;
           marker._amenityId = feature.properties.fid || feature.properties.id || '';
           
+          // Adjust opacity based on whether this is a specifically selected amenity
+          // If we're not in selectingFromMap mode or if amenities list is empty, use full opacity
+          const isSelectedSpecificAmenity = 
+            selectingFromMap && 
+            selectedAmenitiesAmenities.includes(amenity) && 
+            selectedAmenitiesFromMap.includes(marker._amenityId.toString());
+          
+          // Set opacity to 1 if:
+          // 1. This is specifically the selected amenity in selectingFromMap mode
+          // 2. We're not in selectingFromMap mode (normal selection or all amenities)
+          // 3. The amenities list provided is empty (which means show all with full opacity)
+          const opacity = isSelectedSpecificAmenity || !selectingFromMap || amenities.length === 0 ? 1 : 0.2;
+          
+          // Apply opacity after marker is added to the map
+          marker.on('add', function() {
+            const element = this.getElement();
+            if (element) {
+              element.style.opacity = opacity;
+            }
+          });
+          
           marker.on('mouseover', function(e) {
             const element = e.target.getElement();
             if (element) {
@@ -2207,6 +2274,7 @@ function drawSelectedAmenities(amenities) {
               element.style.zIndex = 1000;
               element.style.transition = 'transform 0.2s ease';
               element.style.cursor = 'pointer';
+              element.style.opacity = 1; // Always full opacity on hover
             }
           });
           
@@ -2215,6 +2283,8 @@ function drawSelectedAmenities(amenities) {
             if (element) {
               element.style.transform = element.style.transform.replace(/scale\([^)]*\)/, '');
               element.style.zIndex = '';
+              // Reset to original opacity on mouseout
+              element.style.opacity = isSelectedSpecificAmenity || !selectingFromMap || amenities.length === 0 ? 1 : 0.2;
             }
           });
           
