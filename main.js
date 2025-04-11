@@ -295,8 +295,21 @@ initializeSliders(CensusOutlineRange, updateCensusLayer);
 ScoresYear.addEventListener("change", () => updateScoresLayer());
 ScoresPurpose.addEventListener("change", () => updateScoresLayer());
 ScoresMode.addEventListener("change", () => updateScoresLayer());
-AmenitiesYear.addEventListener("change", () => updateAmenitiesCatchmentLayer());
-AmenitiesMode.addEventListener("change", () => updateAmenitiesCatchmentLayer());
+AmenitiesYear.addEventListener("change", () => {
+  updateAmenitiesCatchmentLayer();
+  if (AmenitiesCatchmentLayer) {
+    filterTypeDropdown.value = 'Range';
+    updateFilterValues();
+  }
+});
+
+AmenitiesMode.addEventListener("change", () => {
+  updateAmenitiesCatchmentLayer();
+  if (AmenitiesCatchmentLayer) {
+    filterTypeDropdown.value = 'Range';
+    updateFilterValues();
+  }
+});
 AmenitiesPurpose.forEach(checkbox => {
   checkbox.addEventListener("change", () => {
     if (!checkbox.checked && selectingFromMap) {
@@ -321,6 +334,9 @@ AmenitiesPurpose.forEach(checkbox => {
       }
     }
     updateAmenitiesCatchmentLayer();
+    if (filterTypeDropdown.value === 'Range') {
+      updateFilterValues();
+    }
   });
 });
 
@@ -476,6 +492,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
       if (panelContent.style.display === "block") {
         if (header.textContent.includes("Connectivity Scores")) {
           updateScoresLayer();
+          filterTypeDropdown.value = 'LA';
         } else if (header.textContent.includes("Journey Time Catchments - Amenities")) {
           if (lastAmenitiesState.selectingFromMap) {
             selectingFromMap = lastAmenitiesState.selectingFromMap;
@@ -494,9 +511,11 @@ document.addEventListener('DOMContentLoaded', (event) => {
           }
           
           updateAmenitiesCatchmentLayer();
+          filterTypeDropdown.value = 'Range';
         } else if (header.textContent.includes("Census / Local Plan Data")) {
           updateCensusLayer();
         }
+        updateFilterValues();
       } else {
         if(ScoresLayer) {
           map.removeLayer(ScoresLayer);
@@ -2378,6 +2397,9 @@ function updateAmenitiesCatchmentLayer() {
 
     updateLegend();
     updateFeatureVisibility();
+    if (filterTypeDropdown.value === 'Range') {
+      updateFilterValues();
+    }
     updateSummaryStatistics(filteredFeatures);
     highlightSelectedArea();
   });
@@ -2573,6 +2595,13 @@ function applyCensusLayerStyling() {
 
 function updateFilterValues() {
   console.log('updateFilterValues');
+  
+  if (!filterTypeDropdown.value || 
+      (AmenitiesCatchmentLayer && filterTypeDropdown.value === 'LA') || 
+      (ScoresLayer && filterTypeDropdown.value === 'Range')) {
+    filterTypeDropdown.value = AmenitiesCatchmentLayer ? 'Range' : 'LA';
+  }
+  
   const currentFilterType = filterTypeDropdown.value;
   
   let filterValueButton = document.getElementById('filterValueButton');
