@@ -297,18 +297,10 @@ ScoresPurpose.addEventListener("change", () => updateScoresLayer());
 ScoresMode.addEventListener("change", () => updateScoresLayer());
 AmenitiesYear.addEventListener("change", () => {
   updateAmenitiesCatchmentLayer();
-  if (AmenitiesCatchmentLayer) {
-    filterTypeDropdown.value = 'Range';
-    updateFilterValues();
-  }
 });
 
 AmenitiesMode.addEventListener("change", () => {
   updateAmenitiesCatchmentLayer();
-  if (AmenitiesCatchmentLayer) {
-    filterTypeDropdown.value = 'Range';
-    updateFilterValues();
-  }
 });
 AmenitiesPurpose.forEach(checkbox => {
   checkbox.addEventListener("change", () => {
@@ -334,9 +326,6 @@ AmenitiesPurpose.forEach(checkbox => {
       }
     }
     updateAmenitiesCatchmentLayer();
-    if (filterTypeDropdown.value === 'Range') {
-      updateFilterValues();
-    }
   });
 });
 
@@ -2397,9 +2386,7 @@ function updateAmenitiesCatchmentLayer() {
 
     updateLegend();
     updateFeatureVisibility();
-    if (filterTypeDropdown.value === 'Range') {
-      updateFilterValues();
-    }
+    updateFilterValues();
     updateSummaryStatistics(filteredFeatures);
     highlightSelectedArea();
   });
@@ -2596,9 +2583,7 @@ function applyCensusLayerStyling() {
 function updateFilterValues() {
   console.log('updateFilterValues');
   
-  if (!filterTypeDropdown.value || 
-      (AmenitiesCatchmentLayer && filterTypeDropdown.value === 'LA') || 
-      (ScoresLayer && filterTypeDropdown.value === 'Range')) {
+  if (!filterTypeDropdown.value) {
     filterTypeDropdown.value = AmenitiesCatchmentLayer ? 'Range' : 'LA';
   }
   
