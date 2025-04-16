@@ -13,441 +13,779 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Turf.js/6.5.0/turf.min.js"></script>
+  <script src="https://unpkg.com/@mapbox/togeojson@0.16.0/togeojson.js"></script>
+  <script src="https://unpkg.com/shpjs@latest/dist/shp.js"></script>
   <style>
-    html, body {
-      height: 100%;
-      margin: 0;
-      padding: 0;
-      font-family: 'Trebuchet MS', sans-serif;
-      font-weight: normal;
-    }
-    #map {
-      height: 100%;
-      width: 100%;
-    }
-    #panel-container {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      z-index: 1000;
-      background: white;
-      padding: 10px;
-      border-radius: 5px;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-      width: 275px;
-      box-sizing: border-box;
-    }
-    .panel {
-      margin-bottom: 10px;
-    }
-    .panel label, .panel select, .panel input {
-      display: block;
-      margin-bottom: 5px;
-      font-family: 'Trebuchet MS', sans-serif;
-      font-size: 1.1em;
-      font-weight: normal;
-    }
-    .panel select, .panel input {
-      width: 100%;
-      padding: 5px;
-      border: 1px solid #ccc;
-      border-radius: 3px;
-      background-color: white;
-      color: black;
-      box-sizing: border-box;
-      font-size: 1em;
-    }
-    .panel select:focus, .panel input:focus {
-      outline: none;
-      border-color: #007bff;
-      box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
-    }
-    .panel input[type=""] {
-      width: 100%;
-    }
-    .field-container {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .field-container > div:first-child {
-      flex: 1.05;
-    }
-    .field-container > div:last-child {
-      flex: 0.95;
-      margin-left: 10px;
-    }
-    .button-container {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .button-container > button {
-      flex: 1;
-      cursor: pointer;
-      text-align: center;
-      border-radius: 5px;
-      font-family: 'Trebuchet MS', sans-serif;
-      font-weight: normal;
-    }
-    .large-button {
-      font-size: 1em;
-      padding: 8px;
-      border: 0.2px solid #767676;
-      margin: 10px;
-    }
-    .small-button {
-      font-size: 0.8em;
-      padding: 1 5px;
-      border: 0.1px solid #767676;
-    }
-    .collapsible {
-      cursor: pointer;
-      border: none;
-      text-align: left;
-      outline: none;
-      font-size: 1em;
-      background: #f0f0f0;
-      margin: 10px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 7px;
-      border-radius: 5px;
-      font-family: 'Trebuchet MS', sans-serif;
-      font-weight: normal;
-    }
-    .collapsible:after {
-      content: '\25BC';
-      font-size: 0.9em;
-      margin-left: 5px;
-    }
-    .collapsible.collapsed:after {
-      content: '\25B6';
-    }
-    .collapsible-content {
-      display: none;
-      overflow: hidden;
-      background-color: #f0f0f0;
-      padding: 10px;
-      border-radius: 5px;
-      font-size: 0.9em;
-    }
-    #legend {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      background: white;
-      padding: 5px;
-      border-radius: 5px;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-      z-index: 1000;
-      width: 250px;
-      word-wrap: break-word;
-    }
-    .noUi-target {
-      background: #f0f0f0;
-      border-radius: 5px;
-      box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.1);
-      height: 0.5em;
-    }
-    .noUi-connect {
-      background: rgba(255, 255, 255, 0.0);
-      height: 0.5em;
-    }
-    .noUi-connect-dark-grey {
-      background: rgba(118, 118, 118, 1) !important;
-    }
-    .noUi-connect-gradient-right {
-      background: linear-gradient(to right, rgba(118, 118, 118, 0) 0%, rgba(118, 118, 118, 0.5) 50%, rgba(118, 118, 118, 1) 100%)!important;
-    }
-    .noUi-connect-gradient-left {
-      background: linear-gradient(to right, rgba(118, 118, 118, 1) 0%, rgba(118, 118, 118, 0.5) 50%, rgba(118, 118, 118, 0) 100%)!important;
-    }
-    .noUi-handle {
-      background: rgba(118, 118, 118, 1) !important;
-      border: none !important;
-      border-radius: 50% !important;
-      box-shadow: none !important;
-      width: 14px !important;
-      height: 14px !important;
-      cursor: pointer !important;
-      top: 50%;
-      transform: translate(-50%, 5%) !important;
-    }
-    .noUi-handle-transparent {
-      background: rgba(255, 255, 255, 0.0) !important;
-      border: 0.5px solid #767676 !important;
-    }
-    .noUi-handle::after {
-      content: attr(data-value);
-      position: absolute;
-      background: #007bff00;
-      color: #000000;
-      padding: 2px 5px;
-      border: none;
-      font-size: 0.8em;
-      top: -18px;
-      left: 50%;
-      transform: translateX(-50%);
-      white-space: nowrap;
-    }
-    .noUi-handle-lower::after {
-      left: 0;
-      transform: translateX(0);
-    }
-    .noUi-handle-upper::after {
-      right: 0;
-      left: auto;
-      transform: translateX(-150%);
-    }
-    .slider-labels {
-      display: flex;
-      justify-content: space-between;
-      margin-top: 5px;
-    }
-    .slider-labels span {
-      font-size: 0.8em;
-    }
-    .collapsible-content label,
-    .collapsible-content select,
-    .collapsible-content input {
-      font-size: 0.8em;
-      font-family: 'Trebuchet MS', sans-serif;
-      font-weight: normal;
-    }
-    .panel-header {
-      cursor: pointer;
-      border: none;
-      text-align: left;
-      outline: none;
-      font-size: 1.2em;
-      background: white;
-      margin-bottom: 10px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px;
-      border-radius: 5px;
-      font-family: 'Trebuchet MS', sans-serif;
-      font-weight: normal;
-    }
-    .panel-header:after {
-      content: '\25BC';
-      font-size: 0.9em;
-      margin-left: 5px;
-    }
-    .panel-header.collapsed:after {
-      content: '\25B6';
-    }
-    .checkbox-label {
-      display: flex !important;
-      align-items: center !important;
-      font-size: 1em !important;
-    }
-    .checkbox-label input {
-      padding: 15px !important;
-      width: auto !important;
-    }
-    .checkbox-label span {
-      margin-left: 6px !important;
-    }
-    .checkbox-container {
-      display: flex;
-      align-items: center;
-      margin-bottom: 10px;
-    }
+  html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    font-family: 'Trebuchet MS', sans-serif;
+    font-weight: normal;
+  }
 
-    .checkbox-container label {
-      margin: 0;
-      display: inline-block;
-      margin-right: 10px;
-    }
-    .checkbox-container input[type="checkbox"] {
-      width: auto;
-      margin: 0;
-      padding: 0;
-      height: auto;
-    }
-    .dropdown {
-      position: relative;
-      display: inline-block;
-      width: 100%;
-    }
-    .dropdown-toggle {
-      width: 100%;
-      padding: 5px;
-      border: 1px solid #ccc;
-      border-radius: 3px;
-      background-color: white;
-      color: black;
-      font-size: 1em;
-      text-align: left;
-      cursor: pointer;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-    .dropdown-menu {
-      display: none;
-      position: absolute;
-      background-color: white;
-      min-width: 100%;
-      max-height: 300px;
-      overflow-y: auto;
-      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-      z-index: 1001;
-      padding: 10px;
-      border: 1px solid #ccc;
-      border-radius: 3px;
-    }
-    .dropdown-menu label {
-      display: block;
-      margin-bottom: 5px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .dropdown-menu input {
-      margin-right: 5px;
-    }
-    .dropdown-menu.show {
-      display: block;
-    }
-    .pin {
-      position: relative;
-      display: inline-block;
-      width: 30px;
-      height: 30px;
-      bottom: 36px;
-      background-color: white;
-      border: 3px solid grey;
-      border-radius: 50%;
-      text-align: center;
-      line-height: 30px;
-    }
-    .pin::after {
-      content: '';
-      position: absolute;
-      top: 18px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 0;
-      height: 0;
-      border-left: 17px solid transparent;
-      border-right: 17px solid transparent;
-      border-top: 35px solid grey;
-      z-index: -1;
-    }
-    .dot {
-      width: 5px;
-      height: 5px;
-      background-color: grey;
-      border-radius: 50%;
-    }
-    #summary-panel {
-      position: absolute;
-      bottom: 25px;
-      right: 10px;
-      background: white;
-      padding: 10px;
-      border-radius: 5px;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-      z-index: 1000;
-      width: 500px;
-      box-sizing: border-box;
-    }
-    #summary-panel h4 {
-      margin-top: 0;
-    }
+  #map {
+    height: 100%;
+    width: 100%;
+  }
 
-    #summary-table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-    #summary-table th, #summary-table td {
-      border: 1px solid #ccc;
-      padding: 5px;
-      text-align: center;
-    }
-    .leaflet-popup-content {
-      font-family: 'Trebuchet MS', sans-serif;
-      font-weight: normal;
-    }
+  #panel-container, #legend, #summary-panel {
+    position: absolute;
+    background: white;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    box-sizing: border-box;
+  }
+
+  #panel-container {
+    top: 10px;
+    left: 10px;
+    width: 275px;
+    padding: 10px;
+  }
+
+  #legend {
+    top: 10px;
+    right: 10px;
+    padding: 5px;
+    width: 250px;
+    word-wrap: break-word;
+  }
+
+  #summary-panel {
+    bottom: 25px;
+    right: 10px;
+    padding: 10px;
+    width: 500px;
+  }
+
+  .panel {
+    margin-bottom: 10px;
+  }
+
+  .panel label, .panel select, .panel input {
+    display: block;
+    margin-bottom: 5px;
+    font-family: 'Trebuchet MS', sans-serif;
+    font-size: 1.1em;
+    font-weight: normal;
+  }
+
+  .panel select, .panel input {
+    width: 100%;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    background-color: white;
+    color: black;
+    box-sizing: border-box;
+    font-size: 1em;
+  }
+
+  .panel select:focus, .panel input:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+  }
+
+  .collapsible, .panel-header, .legend-category-header {
+    cursor: pointer;
+    border: none;
+    text-align: left;
+    outline: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: 'Trebuchet MS', sans-serif;
+    font-weight: normal;
+  }
+
+  .collapsible {
+    font-size: 1em;
+    background: #f0f0f0;
+    margin: 10px;
+    padding: 7px;
+    border-radius: 5px;
+  }
+
+  .panel-header {
+    font-size: 1.2em;
+    background: white;
+    margin-bottom: 10px;
+    padding: 10px;
+    border-radius: 5px;
+  }
+
+  .legend-category-header {
+    font-size: 1.1em;
+    margin-bottom: 10px;
+    padding: 3px;
+    border-radius: 3px;
+  }
+
+  .collapsible:after,
+  .panel-header:after,
+  .legend-category-header:after {
+    content: '\25BC';
+    font-size: 0.9em;
+    margin-left: 5px;
+  }
+
+  .collapsible.collapsed:after,
+  .panel-header.collapsed:after,
+  .legend-category-collapsed .legend-category-header:after {
+    content: '\25B6';
+  }
+
+  .collapsible-content, .legend-category-collapsed .legend-category-content {
+    display: none;
+  }
+
+  .collapsible-content {
+    overflow: hidden;
+    background-color: #f0f0f0;
+    padding: 10px;
+    border-radius: 5px;
+    font-size: 0.9em;
+  }
+
+  .collapsible-content label,
+  .collapsible-content select,
+  .collapsible-content input {
+    font-size: 0.8em;
+  }
+
+  .legend-category {
+    margin-bottom: 10px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 5px;
+  }
+
+  .legend-category:last-child {
+    border-bottom: none;
+  }
+
+  .legend-category-header:hover {
+    background-color: #f0f0f0;
+  }
+
+  .legend-category-content {
+    padding-left: 5px;
+  }
+
+  .noUi-target {
+    background: #f0f0f0;
+    border-radius: 5px;
+    box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.1);
+    height: 0.5em;
+  }
+
+  .noUi-connect {
+    background: rgba(255, 255, 255, 0.0);
+    height: 0.5em;
+  }
+
+  .noUi-connect-dark-grey {
+    background: rgba(118, 118, 118, 1) !important;
+  }
+
+  .noUi-connect-gradient-right {
+    background: linear-gradient(to right, rgba(118, 118, 118, 0) 0%, rgba(118, 118, 118, 0.5) 50%, rgba(118, 118, 118, 1) 100%) !important;
+  }
+
+  .noUi-connect-gradient-left {
+    background: linear-gradient(to right, rgba(118, 118, 118, 1) 0%, rgba(118, 118, 118, 0.5) 50%, rgba(118, 118, 118, 0) 100%) !important;
+  }
+
+  .noUi-handle {
+    background: rgba(118, 118, 118, 1) !important;
+    border: none !important;
+    border-radius: 50% !important;
+    box-shadow: none !important;
+    width: 14px !important;
+    height: 14px !important;
+    cursor: pointer !important;
+    top: 50%;
+    transform: translate(-50%, 5%) !important;
+  }
+
+  .noUi-handle-transparent {
+    background: rgba(255, 255, 255, 0.0) !important;
+    border: 0.5px solid #767676 !important;
+  }
+
+  .noUi-handle::after {
+    content: attr(data-value);
+    position: absolute;
+    background: transparent;
+    color: #000000;
+    padding: 2px 5px;
+    border: none;
+    font-size: 0.8em;
+    top: -18px;
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+  }
+
+  .noUi-handle-lower::after {
+    left: 0;
+    transform: translateX(0);
+  }
+
+  .noUi-handle-upper::after {
+    right: 0;
+    left: auto;
+    transform: translateX(-150%);
+  }
+
+  .slider-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 5px;
+  }
+
+  .slider-labels span {
+    font-size: 0.8em;
+  }
+
+  .field-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .field-container > div:first-child {
+    flex: 1.05;
+  }
+
+  .field-container > div:last-child {
+    flex: 0.95;
+    margin-left: 10px;
+  }
+
+  .button-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .button-container > button {
+    flex: 1;
+    cursor: pointer;
+    text-align: center;
+    border-radius: 5px;
+    font-family: 'Trebuchet MS', sans-serif;
+    font-weight: normal;
+  }
+
+  .large-button {
+    font-size: 1em;
+    padding: 8px;
+    border: 0.2px solid #767676;
+    margin: 10px;
+  }
+
+  .small-button {
+    font-size: 0.8em;
+    padding: 1px 5px;
+    border: 0.1px solid #767676;
+  }
+
+  .btn {
+    padding: 6px 12px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+
+  .btn:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+  }
+
+  .checkbox-label {
+    display: flex !important;
+    align-items: center !important;
+    font-size: 1em !important;
+  }
+
+  .checkbox-label input {
+    padding: 15px !important;
+    width: auto !important;
+  }
+
+  .checkbox-label span {
+    margin-left: 6px !important;
+  }
+
+  .checkbox-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+
+  .checkbox-container label {
+    margin: 0;
+    display: inline-block;
+    margin-right: 10px;
+  }
+
+  .checkbox-container input[type="checkbox"] {
+    width: auto;
+    margin: 0;
+    padding: 0;
+    height: auto;
+  }
+
+  .dropdown {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+  }
+
+  .dropdown-toggle {
+    width: 100%;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    background-color: white;
+    color: black;
+    font-size: 1em;
+    text-align: left;
+    cursor: pointer;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .dropdown-menu {
+    display: none;
+    position: absolute;
+    background-color: white;
+    min-width: 100%;
+    max-height: 300px;
+    overflow-y: auto;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    z-index: 1001;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+  }
+
+  .dropdown-menu label {
+    display: block;
+    margin-bottom: 5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .dropdown-menu input {
+    margin-right: 5px;
+  }
+
+  .dropdown-menu.show {
+    display: block;
+  }
+
+  .pin {
+    position: relative;
+    display: inline-block;
+    width: 30px;
+    height: 30px;
+    bottom: 36px;
+    background-color: white;
+    border: 3px solid grey;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 30px;
+  }
+
+  .pin::after {
+    content: '';
+    position: absolute;
+    top: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 17px solid transparent;
+    border-right: 17px solid transparent;
+    border-top: 35px solid grey;
+    z-index: -1;
+  }
+
+  .dot {
+    width: 5px;
+    height: 5px;
+    background-color: grey;
+    border-radius: 50%;
+  }
+
+  #summary-panel h4 {
+    margin-top: 0;
+  }
+
+  #summary-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  #summary-table th, #summary-table td {
+    border: 1px solid #ccc;
+    padding: 5px;
+    text-align: center;
+  }
+
+  .leaflet-popup-content {
+    font-family: 'Trebuchet MS', sans-serif;
+    font-weight: normal;
+  }
+
+  .infrastructure-popup {
+    max-height: 300px;
+    overflow-y: auto;
+    min-width: 250px;
+  }
+
+  .popup-header {
+    margin-bottom: 8px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #ccc;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .combined-frequency-header {
+    margin-bottom: 8px;
+    padding: 5px;
+    background-color: #f2f2f2;
+    border-radius: 3px;
+    text-align: center;
+  }
+
+  .popup-content {
+    margin-bottom: 10px;
+  }
+
+  .popup-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .popup-table th, .popup-table td {
+    padding: 4px;
+    border: 1px solid #ddd;
+    font-size: 12px;
+  }
+
+  .popup-table th {
+    background-color: #f2f2f2;
+    text-align: left;
+  }
+
+  .popup-footer {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+  }
+
+  .popup-footer button {
+    padding: 4px 8px;
+    background-color: #f2f2f2;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    cursor: pointer;
+  }
+
+  .popup-footer button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .page-indicator {
+    font-size: 12px;
+    color: #666;
+  }
+
+  .file-upload-container {
+    margin-bottom: 15px;
+  }
+
+  .file-upload-label {
+    display: inline-block;
+    padding: 6px 12px;
+    cursor: pointer;
+    background-color: #f0f0f0;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+  }
+
+  .file-upload-label input[type="file"] {
+    display: none;
+  }
+
+  #fileNameDisplay {
+    margin-left: 10px;
+    font-size: 0.9em;
+  }
+
+  .user-layers-list {
+    margin-top: 10px;
+  }
+
+  .user-layer-item {
+    display: flex;
+    align-items: center;
+    padding: 5px;
+    border-bottom: 1px solid #eee;
+  }
+
+  .user-layer-item input {
+    margin-right: 8px;
+  }
+
+  .user-layer-item span {
+    flex-grow: 1;
+  }
+
+  .layer-controls {
+    display: flex;
+  }
+
+  .layer-zoom-btn, .layer-remove-btn, .layer-style-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 5px;
+  }
+
+  .layer-zoom-btn:hover, .layer-remove-btn:hover, .layer-style-btn:hover {
+    color: #4CAF50;
+  }
+
+  .style-section {
+    margin-bottom: 15px;
+    border: 1px solid #eee;
+    padding: 10px;
+    border-radius: 4px;
+  }
+
+  .style-section h4 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 14px;
+  }
+
+  .color-picker-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .color-picker-row label {
+    flex: 1;
+    margin-bottom: 0 !important;
+  }
+
+  .color-picker-row input[type="color"] {
+    width: 40px !important;
+    height: 25px;
+    padding: 0;
+    border: 1px solid #ddd;
+  }
+
+  .style-tabs {
+    display: flex;
+    border-bottom: 1px solid #ccc;
+    margin-bottom: 10px;
+  }
+
+  .style-tab {
+    padding: 5px 10px;
+    cursor: pointer;
+    background: #f5f5f5;
+    border: 1px solid #ccc;
+    border-bottom: none;
+    border-radius: 4px 4px 0 0;
+    margin-right: 5px;
+  }
+
+  .style-tab.active {
+    background: white;
+    border-bottom: 1px solid white;
+    margin-bottom: -1px;
+    font-weight: bold;
+  }
+
+  .tab-content {
+    display: none;
+  }
+
+  .tab-content.active {
+    display: block;
+  }
+
+  .show-catchment-btn {
+    margin-top: 8px;
+    padding: 5px 10px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+  }
+
+  .show-catchment-btn:hover {
+    background-color: #45a049;
+  }
+
+  .legend-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+
+  .legend-controls {
+    display: flex;
+    gap: 5px;
+  }
+
+  .legend-controls button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 3px;
+    border-radius: 3px;
+  }
+
+  .legend-controls button:hover {
+    background-color: #f0f0f0;
+  }
+  #toggle-legend {
+    display: inline-block;
+    width: auto;
+    height: auto;
+    margin-left: 5px;
+  }
+
+  #toggle-legend:after {
+    content: '\25BC';
+    font-size: 0.9em;
+    position: static;
+  }
+
+  #legend.collapsed #toggle-legend:after {
+    content: '\25B6';
+  }
   </style>
-  <style id="infrastructure-popup-styles">
-    .infrastructure-popup {
-      max-height: 300px;
-      overflow-y: auto;
-      min-width: 250px;
-    }
-    .popup-header {
-      margin-bottom: 8px;
-      padding-bottom: 5px;
-      border-bottom: 1px solid #ccc;
-      display: flex;
-      justify-content: space-between;
-    }
-    .combined-frequency-header {
-      margin-bottom: 8px;
-      padding: 5px;
-      background-color: #f2f2f2;
-      border-radius: 3px;
-      text-align: center;
-    }
-    .popup-content {
-      margin-bottom: 10px;
-    }
-    .popup-table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-    .popup-table th, .popup-table td {
-      padding: 4px;
-      border: 1px solid #ddd;
-      font-size: 12px;
-    }
-    .popup-table th {
-      background-color: #f2f2f2;
-      text-align: left;
-    }
-    .popup-footer {
-      display: flex;
-      justify-content: space-between;
-      margin-top: 10px;
-    }
-    .popup-footer button {
-      padding: 4px 8px;
-      background-color: #f2f2f2;
-      border: 1px solid #ccc;
-      border-radius: 3px;
-      cursor: pointer;
-    }
-    .popup-footer button:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-    .page-indicator {
-      font-size: 12px;
-      color: #666;
-    }
-    .popup-footer button:focus {
-      outline: none;
-    }
-    .show-catchment-btn {
-      margin-top: 8px;
-      padding: 5px 10px;
-      background-color: #4CAF50;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 12px;
-    }
-    .show-catchment-btn:hover {
-      background-color: #45a049;
-    }
-  </style>
+  <template id="style-dialog-template">
+    <div id="style-dialog" class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 id="style-dialog-title">Style: Layer Name</h3>
+          <span class="close-btn">&times;</span>
+        </div>
+        <div class="modal-body">
+          <div class="style-option">
+            <label>Style Mode:</label>
+            <select id="style-mode">
+              <option value="single">Single Color</option>
+              <option value="graduated">Graduated Colors</option>
+              <option value="categorized">Categorized</option>
+            </select>
+          </div>
+          
+          <div id="field-selector" class="style-option" style="display: none;">
+            <label>Field:</label>
+            <select id="style-field">
+              <option value="">Select Field</option>
+            </select>
+          </div>
+          
+          <div class="style-tabs">
+            <div class="style-tab active" data-tab="fill">Fill Style</div>
+            <div class="style-tab" data-tab="outline">Outline Style</div>
+          </div>
+          
+          <div id="fill-tab" class="tab-content active">
+            <div id="single-color-options" class="style-option">
+              <div class="color-picker-row">
+                <label>Fill Color:</label>
+                <input type="color" id="single-fill-color">
+              </div>
+            </div>
+            
+            <div id="graduated-options" class="style-option" style="display: none;">
+              <label>Fill Color Scale:</label>
+              <select id="fill-color-scale">
+                <option value="viridis">Viridis</option>
+                <option value="inferno">Inferno</option>
+                <option value="plasma">Plasma</option>
+                <option value="magma">Magma</option>
+                <option value="blues">Blues</option>
+                <option value="greens">Greens</option>
+                <option value="reds">Reds</option>
+              </select>
+            </div>
+            
+            <div class="style-option">
+              <label>Fill Opacity:</label>
+              <input type="range" id="fill-opacity" min="0" max="1" step="0.1" value="0.7" class="slider">
+              <span id="fill-opacity-value">0.7</span>
+            </div>
+          </div>
+          
+          <div id="outline-tab" class="tab-content">
+            <div class="style-option">
+              <div class="color-picker-row">
+                <label>Outline Color:</label>
+                <input type="color" id="outline-color" value="#000000">
+              </div>
+            </div>
+            
+            <div class="style-option">
+              <label>Outline Width:</label>
+              <input type="range" id="outline-width" min="0.5" max="5" step="0.5" value="2" class="slider">
+              <span id="outline-width-value">2</span>
+            </div>
+            
+            <div class="style-option">
+              <label>Outline Opacity:</label>
+              <input type="range" id="outline-opacity" min="0" max="1" step="0.1" value="1" class="slider">
+              <span id="outline-opacity-value">1</span>
+            </div>
+          </div>
+          
+          <div id="classes-option" class="style-option" style="display: none;">
+            <label>Number of Classes:</label>
+            <select id="class-count">
+              <option value="3">3</option>
+              <option value="5" selected>5</option>
+              <option value="7">7</option>
+              <option value="9">9</option>
+            </select>
+          </div>
+          
+          <div id="point-size-option" class="style-option" style="display: none;">
+            <label>Point Size:</label>
+            <input type="range" id="point-size" min="2" max="20" value="8" class="slider">
+            <span id="point-size-value">8</span>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="apply-style">Apply</button>
+          <button id="cancel-style">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </template>
 </head>
 <body>
   <div id="map"></div>
@@ -718,9 +1056,72 @@
     </div>
   </div>
   <div id="legend">
-    <h4 style="font-size: 1.2em; margin-top: 0;">Legend</h4>
-    <div id="legend-content"></div>
-    <div id="legend-extra"></div>
+    <div class="legend-header">
+      <h4 style="font-size: 1.2em; margin-top: 0; display: flex; align-items: center; justify-content: space-between;">
+        <span>Legend</span> <span id="toggle-legend"></span>
+      </h4>
+    </div>
+    <div id="legend-content-wrapper">
+      <div class="legend-category" id="data-layer-category">
+        <div class="legend-category-header">
+          <span>Data Layer</span>
+        </div>
+        <div class="legend-category-content">
+          <div id="legend-content"></div>
+        </div>
+      </div>
+      <div class="legend-category">
+        <div class="legend-category-header">
+          <span>Geographies</span>
+        </div>
+        <div class="legend-category-content">
+          <div>
+            <input type="checkbox" id="uaBoundariesCheckbox"> <span style="font-size: 1em;">UA Boundaries (2024)</span>
+          </div>
+          <div>
+            <input type="checkbox" id="wardBoundariesCheckbox"> <span style="font-size: 1em;">Ward Boundaries (2024)</span>
+          </div>
+          <div>
+            <input type="checkbox" id="lsoaCheckbox"> <span style="font-size: 1em;">Lower Layer Super Output Areas (LSOA 2021)</span>
+          </div>
+          <div>
+            <input type="checkbox" id="GrowthZonesCheckbox"> <span style="font-size: 1em;">Growth Zones</span>
+          </div>
+        </div>
+      </div>
+      <div class="legend-category">
+        <div class="legend-category-header">
+          <span>Infrastructure</span>
+        </div>
+        <div class="legend-category-content">
+          <div>
+            <input type="checkbox" id="amenitiesCheckbox"> <span style="font-size: 1em;">Amenities</span>
+          </div>
+          <div>
+            <input type="checkbox" id="busStopsCheckbox"> <span style="font-size: 1em;">Bus Stops</span>
+          </div>
+          <div>
+            <input type="checkbox" id="busLinesCheckbox"> <span style="font-size: 1em;">Bus Lines</span>
+          </div>
+        </div>
+      </div>
+      <div class="legend-category">
+        <div class="legend-category-header">
+          <span>User Layers</span>
+        </div>
+        <div class="legend-category-content">
+          <div class="file-upload-container" style="margin-bottom: 5px;">
+            <label for="fileUpload" class="file-upload-label">
+              <span>Choose a file</span>
+              <input type="file" id="fileUpload" accept=".geojson,.kml,.zip,.json" />
+            </label>
+            <span id="fileNameDisplay"></span>
+          </div>
+          <button id="uploadButton" class="btn" disabled style="margin-bottom: 8px;">Upload</button>
+          <div id="userLayersContainer" class="user-layers-list"></div>
+        </div>
+      </div>
+    </div>
   </div>
   <div id="summary-panel">
     <button id="toggle-summary-panel" class="panel-header summary-header">Statistics Summary</button>
@@ -809,8 +1210,24 @@
       </table>
     </div>
   </div>
+  <template id="user-layer-template">
+    <div class="user-layer-item">
+      <input type="checkbox" id="layer-check" checked>
+      <span title="Layer Name">Layer Name</span>
+      <div class="layer-controls">
+        <button class="layer-style-btn" data-id="" title="Style layer">
+          <i class="fas fa-palette"></i>
+        </button>
+        <button class="layer-zoom-btn" data-id="" title="Zoom to layer">
+          <i class="fas fa-search-plus"></i>
+        </button>
+        <button class="layer-remove-btn" data-id="" title="Remove layer">
+          <i class="fas fa-trash"></i>
+        </button>
+      </div>
+    </div>
+  </template>
   <script>
-    // Data Files
     const ScoresFiles = [
       { year: '2024', path: 'https://AmFa6.github.io/TAF_test/2024_connectscore.csv' },
       { year: '2023', path: 'https://AmFa6.github.io/TAF_test/2023_connectscore.csv' },
