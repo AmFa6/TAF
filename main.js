@@ -4631,4 +4631,3 @@ function highlightSelectedArea() {
       }
     }).addTo(map);
   }
-}
