@@ -553,32 +553,20 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 10px;
-  }
-  .legend-controls {
-    display: flex;
-    gap: 5px;
-  }
-  .legend-controls button {
-    background: none;
-    border: none;
     cursor: pointer;
-    padding: 3px;
-    border-radius: 3px;
   }
-  .legend-controls button:hover {
-    background-color: #f0f0f0;
+  h4.legend-title {
+    font-size: 1.2em; 
+    margin-top: 0;
+    margin-bottom: 0;
+    flex-grow: 1;
   }
   #toggle-legend {
     display: inline-block;
-    width: auto;
-    height: auto;
-    margin-left: 5px;
-    cursor: pointer;
   }
   #toggle-legend:after {
     content: '\25BC';
     font-size: 0.9em;
-    position: static;
   }
   #legend.collapsed #toggle-legend:after {
     content: '\25B6';
@@ -956,9 +944,9 @@
   </div>
   <div id="legend">
     <div class="legend-header">
-      <h4 style="font-size: 1.2em; margin-top: 0; display: flex; align-items: center; justify-content: space-between;">
-        <span>Legend</span> <span id="toggle-legend"></span>
-      </h4>
+      <h4 class="legend-title">Legend</h4>
+      <span id="toggle-legend"></span>
+    </div>
     </div>
     <div id="legend-content-wrapper">
       <div class="legend-category" id="data-layer-category">
