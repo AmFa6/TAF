@@ -691,10 +691,10 @@ document.addEventListener('DOMContentLoaded', (event) => {
       });
     });
     
-    const toggleButton = document.getElementById('toggle-legend');
+    const legendHeader = document.querySelector('.legend-header');
     let isLegendExpanded = true;
     
-    toggleButton.addEventListener('click', function() {
+    legendHeader.addEventListener('click', function() {
       isLegendExpanded = !isLegendExpanded;
       
       const legend = document.getElementById('legend');
