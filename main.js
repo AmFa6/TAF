@@ -969,6 +969,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
     }
   `;
   document.head.appendChild(styleDialogCss);
+
 });
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -1035,6 +1036,9 @@ map.on('zoomend', () => {
 });
 
 map.on('click', function (e) {
+  if (isDrawingActive) {
+    return;
+  }
   const clickedLatLng = e.latlng;
   const clickedPoint = turf.point([clickedLatLng.lng, clickedLatLng.lat]);
   
