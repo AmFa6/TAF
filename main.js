@@ -8,6 +8,7 @@ let lsoaLookup = {};
 const ladCodesString = ladCodes.map(code => `'${code}'`).join(',');
 
 function convertMultiPolygonToPolygons(geoJson) {
+  console.log('Converting MultiPolygon to Polygon...');
   const features = [];
   const featureCounts = {};
   
@@ -84,7 +85,7 @@ fetch('https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Wards_
     };
 
     wardBoundariesLayer = L.geoJSON(wardGeoJson, {
-      style: function (feature) {
+      style: function () {
         return {
           color: 'black',
           weight: 1,
@@ -115,7 +116,7 @@ fetch('https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/LSOA21
     };
 
     lsoaBoundariesLayer = L.geoJSON(lsoaGeoJson, {
-      style: function (feature) {
+      style: function () {
         return {
           color: 'black',
           weight: 0.6,
@@ -184,7 +185,7 @@ fetch('https://AmFa6.github.io/TAF_test/GrowthZones.geojson')
   .then(response => response.json())
   .then(data => {
     GrowthZonesLayer = L.geoJSON(data, {
-      style: function (feature) {
+      style: function () {
         return {
           color: 'black',
           weight: 2,
@@ -286,13 +287,23 @@ let busLinesLayer;
 let busStopsLayer;
 let userLayers = [];
 let userLayerCount = 0;
+let drawControl;
+let currentDrawingLayer = null;
+let isDrawingActive = false;
+let currentDrawType = null;
+let drawFeatureGroup = L.featureGroup().addTo(map);
+let isUpdatingStyles = false;
+let isCalculatingStats = false;
+let isUpdatingVisibility = false;
+let isUpdatingFilters = false;
+let isUpdatingFilterValues = false;
 
-initializeSliders(ScoresOpacityRange, updateScoresLayer);
-initializeSliders(ScoresOutlineRange, updateScoresLayer);
-initializeSliders(AmenitiesOpacityRange, updateAmenitiesCatchmentLayer);
-initializeSliders(AmenitiesOutlineRange, updateAmenitiesCatchmentLayer);
-initializeSliders(CensusOpacityRange, updateCensusLayer);
-initializeSliders(CensusOutlineRange, updateCensusLayer);
+initializeSliders(ScoresOpacityRange);
+initializeSliders(ScoresOutlineRange);
+initializeSliders(AmenitiesOpacityRange);
+initializeSliders(AmenitiesOutlineRange);
+initializeSliders(CensusOpacityRange);
+initializeSliders(CensusOutlineRange);
 
 ScoresYear.addEventListener("change", () => updateScoresLayer());
 ScoresPurpose.addEventListener("change", () => updateScoresLayer());
@@ -436,133 +447,142 @@ document.addEventListener('DOMContentLoaded', (event) => {
       });
     }
   });
-    
+
   let lastAmenitiesState = {
     selectingFromMap: false,
     selectedAmenitiesFromMap: [],
     selectedAmenitiesAmenities: []
   };
+
+  function handlePanelStateChange(header, isOpen) {
+    const dataPanelHeaders = document.querySelectorAll(".panel-header:not(.summary-header)");
     
-  const panelHeaders = document.querySelectorAll(".panel-header:not(.summary-header)");
+    if (isOpen) {
+      dataPanelHeaders.forEach(otherHeader => {
+        if (otherHeader !== header) {
+          otherHeader.classList.add("collapsed");
+          const otherContent = otherHeader.nextElementSibling;
+          if (otherContent) {
+            otherContent.style.display = "none";
+          }
+          
+          if (otherHeader.textContent.includes("Journey Time Catchments - Amenities") && AmenitiesCatchmentLayer) {
+            lastAmenitiesState = {
+              selectingFromMap,
+              selectedAmenitiesFromMap,
+              selectedAmenitiesAmenities
+            };
+            map.removeLayer(AmenitiesCatchmentLayer);
+            AmenitiesCatchmentLayer = null;
+          } 
+          else if (otherHeader.textContent.includes("Connectivity Scores") && ScoresLayer) {
+            map.removeLayer(ScoresLayer);
+            ScoresLayer = null;
+          } else if (otherHeader.textContent.includes("Census / Local Plan Data") && CensusLayer) {
+            map.removeLayer(CensusLayer);
+            CensusLayer = null;
+          }
+        }
+      });
+    }
+    
+    requestAnimationFrame(() => {
+      if (isOpen) {
+        if (header.textContent.includes("Connectivity Scores")) {
+          updateScoresLayer();
+        } else if (header.textContent.includes("Journey Time Catchments - Amenities")) {
+          if (lastAmenitiesState.selectingFromMap) {
+            selectingFromMap = lastAmenitiesState.selectingFromMap;
+            selectedAmenitiesFromMap = [...lastAmenitiesState.selectedAmenitiesFromMap];
+            
+            AmenitiesPurpose.forEach(checkbox => {
+              checkbox.checked = lastAmenitiesState.selectedAmenitiesAmenities.includes(checkbox.value);
+            });
+            
+            const amenitiesDropdown = document.getElementById('amenitiesDropdown');
+            if (amenitiesDropdown && selectedAmenitiesFromMap.length > 0) {
+              const amenityType = lastAmenitiesState.selectedAmenitiesAmenities[0];
+              const typeLabel = getAmenityTypeDisplayName(amenityType);
+              amenitiesDropdown.textContent = `${typeLabel} (ID: ${selectedAmenitiesFromMap.join(',')})`;
+            }
+          }
+          updateAmenitiesCatchmentLayer();
+        } else if (header.textContent.includes("Census / Local Plan Data")) {
+          updateCensusLayer();
+        }
+        
+        requestAnimationFrame(() => {
+          updateFilterDropdown();
+          updateFilterValues();
+        });
+      } else {
+        if (header.textContent.includes("Connectivity Scores") && ScoresLayer) {
+          map.removeLayer(ScoresLayer);
+          ScoresLayer = null;
+          drawSelectedAmenities([]); 
+        } else if (header.textContent.includes("Journey Time Catchments - Amenities") && AmenitiesCatchmentLayer) {
+          lastAmenitiesState = {
+            selectingFromMap,
+            selectedAmenitiesFromMap,
+            selectedAmenitiesAmenities
+          };
+          map.removeLayer(AmenitiesCatchmentLayer);
+          AmenitiesCatchmentLayer = null;
+          drawSelectedAmenities([]);
+        } else if (header.textContent.includes("Census / Local Plan Data") && CensusLayer) {
+          map.removeLayer(CensusLayer);
+          CensusLayer = null;
+        }
+        
+        requestAnimationFrame(() => {
+          updateFilterDropdown();
+          updateFilterValues();
+        });
+      }
+    });
+  }
+
+  const panelHeaders = document.querySelectorAll(".panel-header");
   panelHeaders.forEach(header => {
-    const panelContent = header.nextElementSibling;
-    if (panelContent) {
-      panelContent.style.display = "none";
+    const content = header.nextElementSibling;
+    if (content) {
+      content.style.display = "none";
       header.classList.add("collapsed");
 
       header.addEventListener("click", function() {
-        panelHeaders.forEach(otherHeader => {
-          if (otherHeader !== header) {
-            otherHeader.classList.add("collapsed");
-            const otherContent = otherHeader.nextElementSibling;
-            if (otherContent) {
-              otherContent.style.display = "none";
-              
-              if (otherHeader.textContent.includes("Journey Time Catchments - Amenities")) {
-                if(AmenitiesCatchmentLayer) {
-                  lastAmenitiesState = {
-                    selectingFromMap,
-                    selectedAmenitiesFromMap,
-                    selectedAmenitiesAmenities
-                  };
-                  map.removeLayer(AmenitiesCatchmentLayer);
-                  AmenitiesCatchmentLayer = null;
-                  updateFilterDropdown();
-                }
-              } else if (otherHeader.textContent.includes("Connectivity Scores")) {
-                if(ScoresLayer) {
-                  map.removeLayer(ScoresLayer);
-                  ScoresLayer = null;
-                  updateFilterDropdown();
-                }
-              } else if (otherHeader.textContent.includes("Census / Local Plan Data")) {
-                if(CensusLayer) {
-                  map.removeLayer(CensusLayer);
-                  CensusLayer = null;
-                }
-              }
-            }
-          }
-        });
+        const isCurrentlyOpen = !this.classList.contains('collapsed');
+        const willOpen = !isCurrentlyOpen;
         
-        if (panelContent) {
-          panelContent.style.display = panelContent.style.display === "block" ? "none" : "block";
-          header.classList.toggle("collapsed", panelContent.style.display === "none");
-
-          if (panelContent.style.display === "block") {
-            if (header.textContent.includes("Connectivity Scores")) {
-              updateScoresLayer();
-              filterTypeDropdown.value = 'LA';
-            } else if (header.textContent.includes("Journey Time Catchments - Amenities")) {
-              if (lastAmenitiesState.selectingFromMap) {
-                selectingFromMap = lastAmenitiesState.selectingFromMap;
-                selectedAmenitiesFromMap = [...lastAmenitiesState.selectedAmenitiesFromMap];
-                
-                AmenitiesPurpose.forEach(checkbox => {
-                  checkbox.checked = lastAmenitiesState.selectedAmenitiesAmenities.includes(checkbox.value);
-                });
-                
-                const amenitiesDropdown = document.getElementById('amenitiesDropdown');
-                if (amenitiesDropdown && selectedAmenitiesFromMap.length > 0) {
-                  const amenityType = lastAmenitiesState.selectedAmenitiesAmenities[0];
-                  const typeLabel = getAmenityTypeDisplayName(amenityType);
-                  amenitiesDropdown.textContent = `${typeLabel} (ID: ${selectedAmenitiesFromMap.join(',')})`;
-                }
-              }
-              
-              updateAmenitiesCatchmentLayer();
-              filterTypeDropdown.value = 'Range';
-            } else if (header.textContent.includes("Census / Local Plan Data")) {
-              updateCensusLayer();
-            }
-            updateFilterValues();
-          } else {
-            if(ScoresLayer) {
-              map.removeLayer(ScoresLayer);
-              ScoresLayer = null;
-            }
-            if(AmenitiesCatchmentLayer) {
-              if (header.textContent.includes("Journey Time Catchments - Amenities")) {
-                lastAmenitiesState = {
-                  selectingFromMap,
-                  selectedAmenitiesFromMap,
-                  selectedAmenitiesAmenities
-                };
-              }
-              map.removeLayer(AmenitiesCatchmentLayer);
-              AmenitiesCatchmentLayer = null;
-            } 
-            if(CensusLayer) {
-              map.removeLayer(CensusLayer);
-              CensusLayer = null;
-            }
-            selectingFromMap = false;
-            selectedAmenitiesFromMap = [];
-            drawSelectedAmenities([]);
-            updateLegend();
-            updateFilterDropdown();
-            updateFilterValues();
-            updateSummaryStatistics([]);
-          }
+        this.classList.toggle("collapsed");
+        content.style.display = willOpen ? "block" : "none";
+        
+        if (!this.classList.contains('summary-header')) {
+          handlePanelStateChange(this, willOpen);
         }
       });
     }
   });
 
-  const summaryHeader = document.querySelector(".summary-header");
-  if (summaryHeader) {
-    const summaryContent = summaryHeader.nextElementSibling;
-    if (summaryContent) {
-      summaryContent.style.display = "none";
-      summaryHeader.classList.add("collapsed");
-
-      summaryHeader.addEventListener("click", function() {
-        if (summaryContent) {
-          summaryContent.style.display = summaryContent.style.display === "block" ? "none" : "block";
-          summaryHeader.classList.toggle("collapsed", summaryContent.style.display === "none");
-        }
-      });
-    }
+  const summaryHeader = document.getElementById('toggle-summary-panel');
+  const summaryContent = document.getElementById('summary-content');
+  
+  if (summaryHeader && summaryContent) {
+    summaryContent.style.display = "none";
+    summaryHeader.classList.add("collapsed");
+    
+    summaryHeader.addEventListener("click", function() {
+      const isCollapsed = this.classList.contains("collapsed");
+      this.classList.toggle("collapsed");
+      summaryContent.style.display = isCollapsed ? "block" : "none";
+      console.log("Summary panel clicked, new display:", summaryContent.style.display);
+    });
+    
+    summaryHeader.addEventListener("click", function() {
+      this.classList.toggle("collapsed");
+      const isNowCollapsed = this.classList.contains("collapsed");
+      summaryContent.style.display = isNowCollapsed ? "none" : "block";
+      console.log("Summary panel clicked, new display:", summaryContent.style.display);
+    });
   }
 
   const amenitiesDropdown = document.getElementById('amenitiesDropdown');
@@ -683,6 +703,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
     }
   }
   createStaticLegendControls();
+
   function initializeLegendControls() {
     document.querySelectorAll('.legend-category-header').forEach(header => {
       header.addEventListener('click', function() {
@@ -708,6 +729,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
   }
   
   initializeLegendControls();
+
   const dataLayerCategory = document.getElementById('data-layer-category');
   if (dataLayerCategory) {
     dataLayerCategory.style.display = 'none';
@@ -716,30 +738,6 @@ document.addEventListener('DOMContentLoaded', (event) => {
   updateFilterDropdown();
   updateFilterValues();
   
-  document.getElementById('metric-row-1').textContent = '-';
-  document.getElementById('metric-row-2').textContent = '-';
-  document.getElementById('avg-score').textContent = '-';
-  document.getElementById('min-score').textContent = '-';
-  document.getElementById('max-score').textContent = '-';
-  document.getElementById('avg-percentile').textContent = '-';
-  document.getElementById('min-percentile').textContent = '-';
-  document.getElementById('max-percentile').textContent = '-';
-  document.getElementById('total-population').textContent = '-';
-  document.getElementById('min-population').textContent = '-';
-  document.getElementById('max-population').textContent = '-';
-  document.getElementById('avg-imd-score').textContent = '-';
-  document.getElementById('min-imd-score').textContent = '-';
-  document.getElementById('max-imd-score').textContent = '-';
-  document.getElementById('avg-imd-decile').textContent = '-';
-  document.getElementById('min-imd-decile').textContent = '-';
-  document.getElementById('max-imd-decile').textContent = '-';
-  document.getElementById('avg-car-availability').textContent = '-';
-  document.getElementById('min-car-availability').textContent = '-';
-  document.getElementById('max-car-availability').textContent = '-';
-  document.getElementById('total-growth-pop').textContent = '-';
-  document.getElementById('min-growth-pop').textContent = '-';
-  document.getElementById('max-growth-pop').textContent = '-';
-
   const style = document.createElement('style');
   style.textContent = `
     .show-catchment-btn {
@@ -973,6 +971,52 @@ document.addEventListener('DOMContentLoaded', (event) => {
   document.head.appendChild(styleDialogCss);
 });
 
+document.addEventListener('DOMContentLoaded', function() {
+  setupDrawingTools();
+  
+  const drawingToolsStyle = document.createElement('style');
+  drawingToolsStyle.textContent = `
+    .draw-buttons {
+      display: flex;
+      gap: 5px;
+      margin-bottom: 8px;
+    }
+
+    .draw-button {
+      flex: 1;
+      padding: 6px;
+      background-color: #f5f5f5;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .draw-button:hover {
+      background-color: #e8e8e8;
+    }
+
+    .draw-button.active {
+      background-color: #4CAF50;
+      color: white;
+    }
+
+    .leaflet-draw-tooltip {
+      background: rgba(0, 0, 0, 0.7);
+      border: 1px solid #000;
+      color: #fff;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .leaflet-draw-actions {
+      display: none;
+    }
+  `;
+  document.head.appendChild(drawingToolsStyle);
+});
+
 map.on('zoomend', () => {
   const currentZoom = map.getZoom();
   const isAboveZoomThreshold = currentZoom >= 14;
@@ -1151,6 +1195,7 @@ map.on('click', function (e) {
 });
 
 function initializeFileUpload() {
+  console.log('Initializing file upload...');
   const fileInput = document.getElementById('fileUpload');
   const fileNameDisplay = document.getElementById('fileNameDisplay');
   const uploadButton = document.getElementById('uploadButton');
@@ -1206,6 +1251,7 @@ function initializeFileUpload() {
 }
 
 function addUserLayer(data, fileName) {
+  console.log('Adding user layer...');
   try {
     const layerId = `userLayer_${userLayerCount++}`;
     const layerName = fileName.split('.')[0];
@@ -1359,7 +1405,216 @@ function addUserLayer(data, fileName) {
   }
 }
 
+function setupDrawingTools() {
+  console.log('Setting up drawing tools...');
+  const drawPointBtn = document.getElementById('drawPointBtn');
+  const drawLineBtn = document.getElementById('drawLineBtn');
+  const drawPolygonBtn = document.getElementById('drawPolygonBtn');
+  const editLayerBtn = document.getElementById('editLayerBtn');
+  const deleteLayerBtn = document.getElementById('deleteLayerBtn');
+  const saveDrawingBtn = document.getElementById('saveDrawingBtn');
+  const drawingNameInput = document.getElementById('drawingNameInput');
+  const drawingInstructions = document.getElementById('drawing-instructions');
+  const saveDrawingContainer = document.getElementById('save-drawing-container');
+  
+  const drawOptions = {
+    position: 'topleft',
+    draw: {
+      polyline: false,
+      polygon: false,
+      circle: false,
+      rectangle: false,
+      marker: false,
+      circlemarker: false
+    },
+    edit: {
+      featureGroup: drawFeatureGroup,
+      edit: true,
+      remove: true
+    }
+  };
+  
+  drawControl = new L.Control.Draw(drawOptions);
+  
+  function resetDrawButtons() {
+    drawPointBtn.classList.remove('active');
+    drawLineBtn.classList.remove('active');
+    drawPolygonBtn.classList.remove('active');
+    editLayerBtn.classList.remove('active');
+    deleteLayerBtn.classList.remove('active');
+    isDrawingActive = false;
+    currentDrawType = null;
+    drawingInstructions.style.display = 'none';
+    
+    if (map.drawHandler) {
+      map.off('click', map.drawHandler);
+      map.drawHandler = null;
+    }
+    
+    if (map.hasLayer(drawControl)) {
+      map.removeControl(drawControl);
+    }
+  }
+  
+  function activateDrawing(type, button) {
+    resetDrawButtons();
+    button.classList.add('active');
+    currentDrawType = type;
+    isDrawingActive = true;
+    
+    if (type === 'point') {
+      drawingInstructions.textContent = 'Click on map to place points. Press ESC to cancel.';
+    } else if (type === 'line') {
+      drawingInstructions.textContent = 'Click to start drawing, click for each point, double-click to finish. Press ESC to cancel.';
+    } else if (type === 'polygon') {
+      drawingInstructions.textContent = 'Click to start drawing, click for each point, click first point to close. Press ESC to cancel.';
+    }
+    drawingInstructions.style.display = 'block';
+    
+    const drawOptions = {
+      position: 'topleft',
+      draw: {
+        polyline: false,
+        polygon: false,
+        circle: false,
+        rectangle: false,
+        marker: false,
+        circlemarker: false
+      }
+    };
+    
+    if (type === 'point') {
+      drawOptions.draw.marker = true;
+    } else if (type === 'line') {
+      drawOptions.draw.polyline = true;
+    } else if (type === 'polygon') {
+      drawOptions.draw.polygon = true;
+    }
+    
+    drawControl = new L.Control.Draw(drawOptions);
+    map.addControl(drawControl);
+    
+    if (type === 'point') {
+      new L.Draw.Marker(map).enable();
+    } else if (type === 'line') {
+      new L.Draw.Polyline(map).enable();
+    } else if (type === 'polygon') {
+      new L.Draw.Polygon(map).enable();
+    }
+  }
+  
+  drawPointBtn.addEventListener('click', function() {
+    activateDrawing('point', this);
+  });
+  
+  drawLineBtn.addEventListener('click', function() {
+    activateDrawing('line', this);
+  });
+  
+  drawPolygonBtn.addEventListener('click', function() {
+    activateDrawing('polygon', this);
+  });
+  
+  editLayerBtn.addEventListener('click', function() {
+    resetDrawButtons();
+    this.classList.add('active');
+    
+    const editOptions = {
+      position: 'topleft',
+      edit: {
+        featureGroup: drawFeatureGroup,
+        edit: true,
+        remove: false
+      },
+      draw: false
+    };
+    
+    drawControl = new L.Control.Draw(editOptions);
+    map.addControl(drawControl);
+    new L.EditToolbar.Edit(map, editOptions).enable();
+  });
+  
+  deleteLayerBtn.addEventListener('click', function() {
+    resetDrawButtons();
+    this.classList.add('active');
+    
+    const deleteOptions = {
+      position: 'topleft',
+      edit: {
+        featureGroup: drawFeatureGroup,
+        remove: true
+      },
+      draw: false
+    };
+    
+    drawControl = new L.Control.Draw(deleteOptions);
+    map.addControl(drawControl);
+    new L.EditToolbar.Delete(map, deleteOptions).enable();
+  });
+  
+  saveDrawingBtn.addEventListener('click', function() {
+    const name = drawingNameInput.value.trim() || `Drawing ${userLayerCount + 1}`;
+    
+    if (currentDrawingLayer) {
+      const drawnItemsGeoJSON = drawFeatureGroup.toGeoJSON();
+      
+      if (drawnItemsGeoJSON.features.length === 0) {
+        alert('No features drawn. Please draw something first.');
+        return;
+      }
+      
+      const layer = addUserLayer(drawnItemsGeoJSON, name);
+      
+      drawFeatureGroup.clearLayers();
+      currentDrawingLayer = null;
+      
+      resetDrawButtons();
+      saveDrawingContainer.style.display = 'none';
+      drawingNameInput.value = '';
+      editLayerBtn.style.display = 'none';
+      deleteLayerBtn.style.display = 'none';
+    }
+  });
+  
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && isDrawingActive) {
+      resetDrawButtons();
+    }
+  });
+  
+  map.on('draw:created', function(e) {
+    const layer = e.layer;
+    drawFeatureGroup.addLayer(layer);
+    
+    if (!currentDrawingLayer) {
+      currentDrawingLayer = layer;
+    }
+    
+    saveDrawingContainer.style.display = 'flex';
+    editLayerBtn.style.display = 'inline-block';
+    deleteLayerBtn.style.display = 'inline-block';
+    
+    resetDrawButtons();
+  });
+  
+  map.on('draw:edited', function(e) {
+    saveDrawingContainer.style.display = 'flex';
+    resetDrawButtons();
+  });
+  
+  map.on('draw:deleted', function(e) {
+    if (drawFeatureGroup.getLayers().length === 0) {
+      saveDrawingContainer.style.display = 'none';
+      editLayerBtn.style.display = 'none';
+      deleteLayerBtn.style.display = 'none';
+      currentDrawingLayer = null;
+    }
+    resetDrawButtons();
+  });
+}
+
 function openStyleDialog(layerId) {
+  console.log('Opening style dialog...');
   const userLayer = userLayers.find(l => l.id === layerId);
   if (!userLayer) return;
   
@@ -1484,7 +1739,18 @@ function openStyleDialog(layerId) {
   });
 }
 
+function updateLayerStyles() {
+  if (ScoresLayer && isPanelOpen("Connectivity Scores")) {
+    applyScoresLayerStyling();
+  } else if (AmenitiesCatchmentLayer && isPanelOpen("Journey Time Catchments - Amenities")) {
+    applyAmenitiesCatchmentLayerStyling();
+  } else if (CensusLayer && isPanelOpen("Census / Local Plan Data")) {
+    applyCensusLayerStyling();
+  }
+}
+
 function applyLayerStyle(layerId) {
+  console.log('Applying layer style...');
   const userLayer = userLayers.find(l => l.id === layerId);
   if (!userLayer) return;
   
@@ -1521,6 +1787,7 @@ function applyLayerStyle(layerId) {
 }
 
 function applySingleColorStyle(userLayer, fillColor, outlineColor, pointSize, outlineWidth, fillOpacity, outlineOpacity) {
+  console.log('Applying single color style...');
   userLayer.layer.eachLayer(layer => {
     if (layer.setStyle) {
       layer.setStyle({
@@ -1547,6 +1814,7 @@ function applySingleColorStyle(userLayer, fillColor, outlineColor, pointSize, ou
 }
 
 function applyGraduatedStyle(userLayer, field, colorScaleName, classCount, pointSize, outlineWidth, fillOpacity, outlineOpacity, outlineColor) {
+  console.log('Applying graduated style...');
   const values = [];
   userLayer.layer.eachLayer(layer => {
     if (layer.feature && layer.feature.properties && 
@@ -1611,6 +1879,7 @@ function applyGraduatedStyle(userLayer, field, colorScaleName, classCount, point
 }
 
 function applyCategorizedStyle(userLayer, field, pointSize, outlineWidth, fillOpacity, outlineOpacity, outlineColor) {
+  console.log('Applying categorized style...');
   const categories = new Set();
   userLayer.layer.eachLayer(layer => {
     if (layer.feature && layer.feature.properties && 
@@ -1665,6 +1934,7 @@ function applyCategorizedStyle(userLayer, field, pointSize, outlineWidth, fillOp
 }
 
 function calculateQuantileBreaks(values, numClasses) {
+  console.log('Calculating quantile breaks...');
   if (values.length === 0) return [];
   
   const sortedValues = [...values].sort((a, b) => a - b);
@@ -1688,6 +1958,7 @@ function calculateQuantileBreaks(values, numClasses) {
 }
 
 function getColorScale(name, count) {
+  console.log('Getting color scale...');
   const scales = {
     viridis: ['#440154', '#3b528b', '#21918c', '#5ec962', '#fde725'],
     inferno: ['#000004', '#781c6d', '#ed6925', '#fcfea4'],
@@ -1728,6 +1999,7 @@ function getColorScale(name, count) {
 }
 
 function getCategoricalColorScale(count) {
+  console.log('Getting categorical color scale...');
   const colors = [
     '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
     '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf',
@@ -1748,6 +2020,7 @@ function getCategoricalColorScale(count) {
 }
 
 function hexToRgb(hex) {
+  console.log('Converting hex to RGB...');
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   return result ? {
     r: parseInt(result[1], 16),
@@ -1757,10 +2030,12 @@ function hexToRgb(hex) {
 }
 
 function rgbToHex(r, g, b) {
+  console.log('Converting RGB to hex...');
   return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
 }
 
 function darkenColor(color, factor) {
+  console.log('Darkening color...');
   const rgb = hexToRgb(color);
   if (!rgb) return color;
   
@@ -1772,6 +2047,7 @@ function darkenColor(color, factor) {
 }
 
 function detectAndFixProjection(data) {
+  console.log('Detecting and fixing projection...');
   if (!data || !data.features || !data.features.length) return data;
   
   const result = JSON.parse(JSON.stringify(data));
@@ -1835,6 +2111,7 @@ function detectAndFixProjection(data) {
 }
 
 function mercatorToWgs84(coord) {
+  console.log('Converting Mercator to WGS84...');
   const x = coord[0];
   const y = coord[1];
   
@@ -1855,6 +2132,7 @@ function mercatorToWgs84(coord) {
 }
 
 function removeUserLayer(layerId) {
+  console.log('Removing user layer...');
   const layerIndex = userLayers.findIndex(l => l.id === layerId);
   if (layerIndex > -1) {
     const layer = userLayers[layerIndex];
@@ -1876,6 +2154,7 @@ function removeUserLayer(layerId) {
 }
 
 function handleShapefile(file) {
+  console.log('Handling shapefile...');
   const loadingIndicator = document.createElement('div');
   loadingIndicator.id = 'shp-loading';
   loadingIndicator.style.position = 'fixed';
@@ -1899,8 +2178,6 @@ function handleShapefile(file) {
         if (!geojson || !geojson.features || geojson.features.length === 0) {
           throw new Error('No valid features found in shapefile');
         }
-        
-        console.log('Shapefile processed successfully:', geojson.features.length, 'features found');
         addUserLayer(geojson, file.name);
       })
       .catch(function(error) {
@@ -1919,15 +2196,8 @@ function handleShapefile(file) {
   }
 }
 
-function debounce(func, wait) {
-  let timeout;
-  return function (...args) {
-      clearTimeout(timeout);
-      timeout = setTimeout(() => func.apply(this, args), wait);
-  };
-}
-
 function isPanelOpen(panelName) {
+  console.log('Checking if panel is open...');
   const panelHeaders = document.querySelectorAll(".panel-header:not(.summary-header)");
   for (const header of panelHeaders) {
     if (header.textContent.includes(panelName) && !header.classList.contains("collapsed")) {
@@ -1937,28 +2207,13 @@ function isPanelOpen(panelName) {
   return false;
 }
 
-function configureSlider(sliderElement, updateCallback, isInverse, order, debounceDelay = 250) {
+function configureSlider(sliderElement, isInverse) {
   if (sliderElement.noUiSlider) {
     sliderElement.noUiSlider.off('update');
   }
   
-  const updateStylesCallback = () => {
-    if (ScoresLayer && isPanelOpen("Connectivity Scores")) {
-      applyScoresLayerStyling();
-    } else if (AmenitiesCatchmentLayer && isPanelOpen("Journey Time Catchments - Amenities")) {
-      applyAmenitiesCatchmentLayerStyling();
-    } else if (CensusLayer && isPanelOpen("Census / Local Plan Data")) {
-      applyCensusLayerStyling();
-    }
-  };
+  updateLayerStyles()
 
-  const debouncedUpdateCallback = debounce(updateStylesCallback, debounceDelay);
-  
-  const sliderId = sliderElement.id;
-  const sliderType = sliderId.includes('Scores') ? 'Scores' : 
-                     sliderId.includes('Amenities') ? 'Amenities' : 'Census';
-  const sliderFunction = sliderId.includes('Opacity') ? 'Opacity' : 'Outline';
-    
   const handles = sliderElement.querySelectorAll('.noUi-handle');
   const connectElements = sliderElement.querySelectorAll('.noUi-connect');
 
@@ -2014,19 +2269,18 @@ function configureSlider(sliderElement, updateCallback, isInverse, order, deboun
     const formattedValue = formatValue(values[handle], step);
     handleElement.setAttribute('data-value', formattedValue);
     
-    if (sliderType === 'Scores') {
-      fieldName = sliderFunction === 'Opacity' ? ScoresOpacity.value : ScoresOutline.value;
-    } else if (sliderType === 'Amenities') {
-      fieldName = sliderFunction === 'Opacity' ? AmenitiesOpacity.value : AmenitiesOutline.value;
-    } else {
-      fieldName = sliderFunction === 'Opacity' ? CensusOpacity.value : CensusOutline.value;
+    if (!isUpdatingStyles) {
+      isUpdatingStyles = true;
+      requestAnimationFrame(() => {
+        updateLayerStyles();
+        isUpdatingStyles = false;
+      });
     }
-    
-    debouncedUpdateCallback();
   });
 }
 
 function updateSliderRanges(type, scaleType) {
+  console.log('Updating slider ranges...');
   if (isUpdatingSliders) return;
   isUpdatingSliders = true;
 
@@ -2150,7 +2404,7 @@ function updateSliderRanges(type, scaleType) {
   }
 }
 
-function initializeSliders(sliderElement, updateCallback) {
+function initializeSliders(sliderElement) {
   if (sliderElement.noUiSlider) {
     sliderElement.noUiSlider.destroy();
   }
@@ -2181,10 +2435,11 @@ function initializeSliders(sliderElement, updateCallback) {
     connectElements[2].classList.add('noUi-connect-dark-grey');
   }
 
-  configureSlider(sliderElement, null, false, 'low-to-high');
+  configureSlider(sliderElement, false);
 }
 
 function toggleInverseScale(type, scaleType) {
+  console.log('Toggling inverse scale...');
   isUpdatingSliders = true;
 
   let isInverse, rangeElement, order;
@@ -2304,6 +2559,9 @@ function isClassVisible(value, selectedYear) {
 }
 
 function updateFeatureVisibility() {
+  if (isUpdatingVisibility) return;
+  isUpdatingVisibility = true;
+
   const updateLayerVisibility = (layer, getValue, selectedYear, attribute) => {
     layer.eachLayer(layer => {
       const feature = layer.feature;
@@ -2337,9 +2595,12 @@ function updateFeatureVisibility() {
       : `${ScoresPurpose.value}_${ScoresMode.value}_100`;
     updateLayerVisibility(ScoresLayer, feature => feature.properties[fieldToDisplay], selectedYear, fieldToDisplay);
   }
+  
+  isUpdatingVisibility = false;
 }
 
 function updateLegend() {
+  console.log('Updating legend...');
   const selectedYear = AmenitiesCatchmentLayer ? AmenitiesYear.value : ScoresYear.value;
   const legendContent = document.getElementById("legend-content");
   
@@ -2454,6 +2715,7 @@ function updateLegend() {
 }
 
 function getAmenityPopupContent(amenityType, properties) {
+  console.log('Getting amenity popup content...');
   let amenityName = 'Unknown';
   let amenityTypeDisplay = 'Unknown';
   let amenityId = properties.COREID || '';
@@ -2503,6 +2765,7 @@ function getAmenityPopupContent(amenityType, properties) {
 }
 
 function findNearbyInfrastructure(latlng, maxPixelDistance = 10) {
+  console.log('Finding nearby infrastructure...');
   const results = {
     busStops: [],
     busLines: []
@@ -2631,6 +2894,7 @@ function findNearbyInfrastructure(latlng, maxPixelDistance = 10) {
 }
 
 function formatFeatureProperties(feature, featureType) {
+  console.log('Formatting feature properties...');
   if (!feature || !feature.properties) return '<p>No data available</p>';
   
   let html = '<table class="popup-table">';
@@ -2675,6 +2939,7 @@ function formatFeatureProperties(feature, featureType) {
 }
 
 function showInfrastructurePopup(latlng, nearbyFeatures) {
+  console.log('Showing infrastructure popup...');
   const busLineFeatures = nearbyFeatures.busLines;
   const busStopFeatures = nearbyFeatures.busStops;
   
@@ -2821,6 +3086,7 @@ function showInfrastructurePopup(latlng, nearbyFeatures) {
 }
 
 function getAmenityTypeDisplayName(amenityType) {
+  console.log('Getting amenity type display name...');
   switch (amenityType) {
     case 'PriSch': return 'Primary School';
     case 'SecSch': return 'Secondary School';
@@ -2838,6 +3104,7 @@ function getAmenityTypeDisplayName(amenityType) {
 }
 
 function updateAmenitiesDropdownLabel() {
+  console.log('Updating amenities dropdown label...');
   const amenitiesDropdown = document.getElementById('amenitiesDropdown');
   if (!amenitiesDropdown) return;
   
@@ -2865,12 +3132,11 @@ function updateAmenitiesDropdownLabel() {
 }
 
 function updateScoresLayer() {
+  console.log('Updating scores layer...');
   if (!initialLoadComplete || !isPanelOpen("Connectivity Scores")) {
     return;
   }
   
-  console.log("Updating scores layer...");
-
   const selectedYear = ScoresYear.value;
   const selectedPurpose = ScoresPurpose.value;
   const selectedMode = ScoresMode.value;
@@ -2960,6 +3226,7 @@ function updateScoresLayer() {
 }
 
 function applyScoresLayerStyling() {
+  console.log('applyScoresLayerStyling called');
   if (!ScoresLayer) return;
   
   const selectedYear = ScoresYear.value;
@@ -3002,7 +3269,7 @@ function applyScoresLayerStyling() {
     layer.setStyle(style);
   });
   
-  updateFeatureVisibility();
+  requestAnimationFrame(() => updateFeatureVisibility());
 }
 
 function styleScoresFeature(feature, fieldToDisplay, opacityField, outlineField, minOpacityValue, maxOpacityValue, minOutlineValue, maxOutlineValue, selectedYear) {
@@ -3077,6 +3344,7 @@ function styleScoresFeature(feature, fieldToDisplay, opacityField, outlineField,
 }
 
 function showAmenityCatchment(amenityType, amenityId) {
+  console.log('showAmenityCatchment called');
   const panelHeaders = document.querySelectorAll(".panel-header:not(.summary-header)");
     
   panelHeaders.forEach(header => {
@@ -3134,6 +3402,7 @@ function showAmenityCatchment(amenityType, amenityId) {
 }
 
 function drawSelectedAmenities(amenities) {
+  console.log('drawSelectedAmenities called');
   const amenitiesCheckbox = document.getElementById('amenitiesCheckbox');
   amenitiesLayerGroup.clearLayers();
 
@@ -3168,7 +3437,7 @@ function drawSelectedAmenities(amenities) {
             selectedAmenitiesAmenities.includes(amenity) && 
             selectedAmenitiesFromMap.includes(marker._amenityId.toString());
           
-          const opacity = isSelectedSpecificAmenity || !selectingFromMap || amenities.length === 0 ? 1 : 0.2;
+          const opacity = isSelectedSpecificAmenity || !selectingFromMap || amenities.length === 0 ? 1 : 0.4;
           
           marker.on('add', function() {
             const element = this.getElement();
@@ -3193,7 +3462,7 @@ function drawSelectedAmenities(amenities) {
             if (element) {
               element.style.transform = element.style.transform.replace(/scale\([^)]*\)/, '');
               element.style.zIndex = '';
-              element.style.opacity = isSelectedSpecificAmenity || !selectingFromMap || amenities.length === 0 ? 1 : 0.2;
+              element.style.opacity = isSelectedSpecificAmenity || !selectingFromMap || amenities.length === 0 ? 1 : 0.4;
             }
           });
           
@@ -3232,11 +3501,10 @@ function drawSelectedAmenities(amenities) {
 }
 
 function updateAmenitiesCatchmentLayer() {
+  console.log('updateAmenitiesCatchmentLayer called');
   if (!initialLoadComplete || !isPanelOpen("Journey Time Catchments - Amenities")) {
     return;
   }
-
-  console.log('Updating Amenities Catchment Layer');
 
   const selectedYear = AmenitiesYear.value;
   const selectedMode = AmenitiesMode.value;
@@ -3421,6 +3689,7 @@ function updateAmenitiesCatchmentLayer() {
 }
 
 function applyAmenitiesCatchmentLayerStyling() {
+  console.log('applyAmenitiesCatchmentLayerStyling called from:');
   if (!AmenitiesCatchmentLayer) return;
 
   const minOpacityValue = AmenitiesOpacityRange && AmenitiesOpacityRange.noUiSlider ? 
@@ -3490,11 +3759,10 @@ function applyAmenitiesCatchmentLayerStyling() {
 }
 
 function updateCensusLayer() {
+  console.log('updateCensusLayer called from:');
   if (!initialLoadComplete || !isPanelOpen("Census / Local Plan Data")) {
     return;
   }
-
-  console.log('Updating Census Layer');
 
   if (ScoresLayer) {
     map.removeLayer(ScoresLayer);
@@ -3532,6 +3800,7 @@ function updateCensusLayer() {
 }
 
 function applyCensusLayerStyling() {
+  console.log('applyCensusLayerStyling called from:');
   if (!CensusLayer) return;
 
   const baseColor = baseColorCensus.value;
@@ -3585,6 +3854,7 @@ function applyCensusLayerStyling() {
 }
 
 function populateUserLayerFilterValues(userLayer, fieldName) {
+  console.log('populateUserLayerFilterValues called from:');
   const filterValueContainer = document.getElementById('filterValueContainer');
   const filterCheckboxesSection = document.createElement('div');
   filterCheckboxesSection.className = 'filter-checkboxes-section';
@@ -3720,8 +3990,14 @@ function populateUserLayerFilterValues(userLayer, fieldName) {
 }
 
 function updateFilterDropdown() {
+  if (isUpdatingFilters) return;
+  console.log('updateFilterDropdown called from:');
+  isUpdatingFilters = true;
   const filterTypeDropdown = document.getElementById('filterTypeDropdown');
-  if (!filterTypeDropdown) return;
+  if (!filterTypeDropdown) {
+    isUpdatingFilters = false;
+    return;
+  }
   
   const currentValue = filterTypeDropdown.value;
   
@@ -3756,15 +4032,18 @@ function updateFilterDropdown() {
   if ((currentValue === 'Range' && !(ScoresLayer || AmenitiesCatchmentLayer)) ||
       !Array.from(filterTypeDropdown.options).some(opt => opt.value === currentValue)) {
     filterTypeDropdown.value = 'LA';
-    updateFilterValues();
   } else {
     filterTypeDropdown.value = currentValue;
   }
+  
+  isUpdatingFilters = false;
 }
 
 function updateFilterValues() {
-  console.log('updateFilterValues');
-  
+  if (isUpdatingFilterValues) return;
+  console.log('updateFilterValues called from:');
+  isUpdatingFilterValues = true;
+
   if (!filterTypeDropdown.value) {
     filterTypeDropdown.value = AmenitiesCatchmentLayer ? 'Range' : 'LA';
   }
@@ -3772,14 +4051,21 @@ function updateFilterValues() {
   const currentFilterType = filterTypeDropdown.value;
   
   let filterValueButton = document.getElementById('filterValueButton');
+  const filterValueContainer = document.getElementById('filterValueContainer');
+  
+  if (filterValueContainer) {
+    filterValueContainer.innerHTML = '';
+  }
+  
   if (!filterValueButton) {
-    if (filterValueDropdown.parentNode) {
+    if (filterValueDropdown && filterValueDropdown.parentNode) {
       const dropdownButton = document.createElement('button');
       dropdownButton.type = 'button';
       dropdownButton.className = 'dropdown-toggle';
       dropdownButton.id = 'filterValueButton';
       dropdownButton.textContent = '';
       dropdownButton.style.minHeight = '28px';
+      
       const dropdownContainer = document.createElement('div');
       dropdownContainer.className = 'dropdown';
       dropdownContainer.style.width = '100%';
@@ -3793,7 +4079,9 @@ function updateFilterValues() {
       dropdownContainer.appendChild(dropdownButton);
       dropdownContainer.appendChild(dropdownMenu);
       
-      filterValueDropdown.parentNode.replaceChild(dropdownContainer, filterValueDropdown);
+      if (filterValueDropdown.parentNode) {
+        filterValueDropdown.parentNode.replaceChild(dropdownContainer, filterValueDropdown);
+      }
       
       dropdownButton.addEventListener('click', () => {
         dropdownMenu.classList.toggle('show');
@@ -3806,10 +4094,15 @@ function updateFilterValues() {
       });
     }
   }
-  
-  const filterValueContainer = document.getElementById('filterValueContainer');
-  filterValueContainer.innerHTML = '';
+
   filterValueButton = document.getElementById('filterValueButton');
+
+  if (!filterValueContainer) {
+    isUpdatingFilterValues = false;
+    return;
+  }
+  
+  filterValueContainer.innerHTML = '';
 
   let options = [];
   let filterFieldSelector = null;
@@ -3857,6 +4150,7 @@ function updateFilterValues() {
       });
       
       populateUserLayerFilterValues(userLayer, '');
+      isUpdatingFilterValues = false;
       return;
     }
   } else if (currentFilterType === 'Range') {
@@ -3878,22 +4172,25 @@ function updateFilterValues() {
     }
   } else if (currentFilterType === 'Ward') {
     const wardNames = new Set();
-    options = wardBoundariesLayer
-      ? wardBoundariesLayer.getLayers().map(layer => {
-          const wardName = layer.feature.properties.WD24NM;
-          wardNames.add(wardName);
-          return wardName;
-        })
-      : [];
-    options = Array.from(wardNames).sort();
+    if (wardBoundariesLayer) {
+      wardBoundariesLayer.getLayers().forEach(layer => {
+        const wardName = layer.feature.properties.WD24NM;
+        wardNames.add(wardName);
+      });
+      options = Array.from(wardNames).sort();
+    }
   } else if (currentFilterType === 'GrowthZone') {
-    options = GrowthZonesLayer ? GrowthZonesLayer.getLayers().map(layer => layer.feature.properties.Name) : [];
-    options.sort();
+    if (GrowthZonesLayer) {
+      options = GrowthZonesLayer.getLayers().map(layer => layer.feature.properties.Name).sort();
+    }
   } else if (currentFilterType === 'LA') {
     options = ['MCA', 'LEP'];
-    const uaOptions = uaBoundariesLayer ? uaBoundariesLayer.getLayers().map(layer => layer.feature.properties.LAD24NM) : [];
-    uaOptions.sort();
-    options = options.concat(uaOptions);
+    if (uaBoundariesLayer) {
+      const uaOptions = uaBoundariesLayer.getLayers()
+        .map(layer => layer.feature.properties.LAD24NM)
+        .sort();
+      options = options.concat(uaOptions);
+    }
   }
 
   const selectAllLabel = document.createElement('label');
@@ -3962,63 +4259,77 @@ function updateFilterValues() {
       filterValueButton.textContent = selectedValues.join(', ');
     }
   }
+  
   updateFilterButtonText();
+  requestAnimationFrame(() => {
+    updateSummaryStatistics(getCurrentFeatures());
+    isUpdatingFilterValues = false;
+  });
 }
 
 function updateSummaryStatistics(features) {
-  console.log('updateSummaryStatistics');
+  if (isCalculatingStats) return;
+  console.log('updateSummaryStatistics called from:');
+  isCalculatingStats = true;
   
-  const filterValueContainer = document.getElementById('filterValueContainer');
-  if (filterValueContainer) {
-    const selectedValues = Array.from(filterValueContainer.querySelectorAll('.filter-value-checkbox:checked'))
-      .map(checkbox => checkbox.value);
-    
-    if (selectedValues.length === 0) {
+  requestAnimationFrame(() => {
+    if (!hexes && (!features || features.length === 0)) {
       displayEmptyStatistics();
+      isCalculatingStats = false;
       return;
     }
-  }
-  
-  const filteredFeatures = applyFilters(features);
-  
-  if (!filteredFeatures || filteredFeatures.length === 0) {
-    displayEmptyStatistics();
-    return;
-  }
-  const stats = calculateStatistics(filteredFeatures);
-  updateStatisticsUI(stats);
+    
+    const filterValueContainer = document.getElementById('filterValueContainer');
+    if (filterValueContainer) {
+      const selectedValues = Array.from(filterValueContainer.querySelectorAll('.filter-value-checkbox:checked'))
+        .map(checkbox => checkbox.value);
+      
+      if (selectedValues.length === 0) {
+        displayEmptyStatistics();
+        isCalculatingStats = false;
+        return;
+      }
+    }
+    
+    const filteredFeatures = applyFilters(features);
+    
+    if (!filteredFeatures || filteredFeatures.length === 0) {
+      displayEmptyStatistics();
+      isCalculatingStats = false;
+      return;
+    }
+    
+    const stats = calculateStatistics(filteredFeatures);
+    updateStatisticsUI(stats);
+    isCalculatingStats = false;
+  });
 }
 
 function displayEmptyStatistics() {
-  document.getElementById('total-population').textContent = '-';
-  document.getElementById('min-population').textContent = '-';
-  document.getElementById('max-population').textContent = '-';
-  document.getElementById('avg-imd-score').textContent = '-';
-  document.getElementById('min-imd-score').textContent = '-';
-  document.getElementById('max-imd-score').textContent = '-';
-  document.getElementById('avg-imd-decile').textContent = '-';
-  document.getElementById('min-imd-decile').textContent = '-';
-  document.getElementById('max-imd-decile').textContent = '-';
-  document.getElementById('avg-car-availability').textContent = '-';
-  document.getElementById('min-car-availability').textContent = '-';
-  document.getElementById('max-car-availability').textContent = '-';
-  document.getElementById('total-growth-pop').textContent = '-';
-  document.getElementById('min-growth-pop').textContent = '-';
-  document.getElementById('max-growth-pop').textContent = '-';
-  document.getElementById('avg-score').textContent = '-';
-  document.getElementById('min-score').textContent = '-';
-  document.getElementById('max-score').textContent = '-';
-  document.getElementById('avg-percentile').textContent = '-';
-  document.getElementById('min-percentile').textContent = '-';
-  document.getElementById('max-percentile').textContent = '-';
+  console.log('displayEmptyStatistics called from:');
+  const statisticIds = [
+    'total-population', 'min-population', 'max-population',
+    'avg-imd-score', 'min-imd-score', 'max-imd-score',
+    'avg-imd-decile', 'min-imd-decile', 'max-imd-decile',
+    'avg-car-availability', 'min-car-availability', 'max-car-availability',
+    'total-growth-pop', 'min-growth-pop', 'max-growth-pop',
+    'avg-score', 'min-score', 'max-score',
+    'avg-percentile', 'min-percentile', 'max-percentile',
+    'metric-row-1', 'metric-row-2'
+  ];
+  
+  statisticIds.forEach(id => {
+    document.getElementById(id).textContent = '-';
+  });
 }
 
 function applyFilters(features) {
+  console.log('applyFilters called from:');
   const filterType = filterTypeDropdown.value;
   
-  let filteredFeatures = features.length ? features : hexes.features;
+  let filteredFeatures = features && features.length ? features : (hexes ? hexes.features : []);
   
-  if ((ScoresLayer || AmenitiesCatchmentLayer) && features.length === 0) {
+  if ((ScoresLayer || AmenitiesCatchmentLayer) && (!features || features.length === 0)) {
     if (ScoresLayer) {
       filteredFeatures = ScoresLayer.toGeoJSON().features;
     } else if (AmenitiesCatchmentLayer) {
@@ -4151,6 +4462,7 @@ function applyFilters(features) {
 }
 
 function applyRangeFilter(features, filterValue) {
+  console.log('applyRangeFilter called from:');
   if (ScoresLayer) {
     const selectedYear = ScoresYear.value;
     const fieldToDisplay = selectedYear.includes('-') ? 
@@ -4171,6 +4483,7 @@ function applyRangeFilter(features, filterValue) {
 }
 
 function applyGeographicFilter(features, filterType, filterValue) {
+  console.log('applyGeographicFilter called from:');
   const getPolygonForFilter = () => {
     let polygon = null;
 
@@ -4262,6 +4575,7 @@ function applyGeographicFilter(features, filterType, filterValue) {
 }
 
 function calculateStatistics(features) {
+  console.log('calculateStatistics called from:');
   const baseStats = calculateBaseStatistics(features);
   
   let layerStats = {};
@@ -4276,6 +4590,7 @@ function calculateStatistics(features) {
 }
 
 function calculateBaseStatistics(features) {
+  console.log('calculateBaseStatistics called from:');
   const metrics = {
     population: [],
     imd_score: [],
@@ -4313,6 +4628,7 @@ function calculateBaseStatistics(features) {
 }
 
 function calculateScoreStatistics(features) {
+  console.log('calculateScoreStatistics called from:');
   const selectedYear = ScoresYear.value;
   const selectedPurpose = ScoresPurpose.value;
   const selectedMode = ScoresMode.value;
@@ -4347,6 +4663,7 @@ function calculateScoreStatistics(features) {
 }
 
 function calculateTimeStatistics(features) {
+  console.log('calculateTimeStatistics called from:');
   const metrics = {
     time: [],
     population: []
@@ -4371,6 +4688,7 @@ function calculateTimeStatistics(features) {
 }
 
 function updateStatisticsUI(stats) {
+  console.log('updateStatisticsUI called from:');
   document.getElementById('total-population').textContent = formatValue(stats.totalPopulation, 10);
   document.getElementById('min-population').textContent = formatValue(stats.minPopulation, 10);
   document.getElementById('max-population').textContent = formatValue(stats.maxPopulation, 10);
@@ -4418,6 +4736,7 @@ function updateStatisticsUI(stats) {
 }
 
 function filterByScoreDifference(features, fieldToDisplay, filterValue) {
+  console.log('filterByScoreDifference called from:');
   if (filterValue === '= 0') {
     return features.filter(feature => {
       const value = feature.properties[fieldToDisplay];
@@ -4466,6 +4785,7 @@ function filterByScoreDifference(features, fieldToDisplay, filterValue) {
 }
 
 function filterByPercentileRange(features, fieldToDisplay, filterValue) {
+  console.log('filterByPercentileRange called from:');
   const [minRange, maxRange] = filterValue.split('-').map(parseFloat);
   return features.filter(feature => {
     const value = feature.properties[fieldToDisplay];
@@ -4474,6 +4794,7 @@ function filterByPercentileRange(features, fieldToDisplay, filterValue) {
 }
 
 function filterByJourneyTime(features, filterValue) {
+  console.log('filterByJourneyTime called from:');
   if (filterValue === '>30') {
     return features.filter(feature => {
       const hexId = feature.properties.Hex_ID;
@@ -4497,6 +4818,7 @@ function calculateWeightedAverage(values, weights) {
 }
 
 function getCurrentFeatures() {
+  console.log('getCurrentFeatures called from:');
   const filterType = filterTypeDropdown.value;
   
   let sourceFeatures = [];
@@ -4521,6 +4843,7 @@ function getCurrentFeatures() {
 }
 
 function highlightSelectedArea() {
+  console.log('highlightSelectedArea called from:');
   const highlightAreaCheckbox = document.getElementById('highlightAreaCheckbox');
   if (!highlightAreaCheckbox.checked) {
     if (highlightLayer) {
