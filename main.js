@@ -8,7 +8,7 @@ let lsoaLookup = {};
 const ladCodesString = ladCodes.map(code => `'${code}'`).join(',');
 
 function convertMultiPolygonToPolygons(geoJson) {
-  console.log('Converting MultiPolygon to Polygon...');
+  // console.log('Converting MultiPolygon to Polygon...');
   const features = [];
   const featureCounts = {};
   
@@ -583,14 +583,14 @@ document.addEventListener('DOMContentLoaded', (event) => {
       const isCollapsed = this.classList.contains("collapsed");
       this.classList.toggle("collapsed");
       summaryContent.style.display = isCollapsed ? "block" : "none";
-      console.log("Summary panel clicked, new display:", summaryContent.style.display);
+      // console.log("Summary panel clicked, new display:", summaryContent.style.display);
     });
     
     summaryHeader.addEventListener("click", function() {
       this.classList.toggle("collapsed");
       const isNowCollapsed = this.classList.contains("collapsed");
       summaryContent.style.display = isNowCollapsed ? "none" : "block";
-      console.log("Summary panel clicked, new display:", summaryContent.style.display);
+      // console.log("Summary panel clicked, new display:", summaryContent.style.display);
     });
   }
 
@@ -1223,7 +1223,7 @@ map.on('click', function (e) {
 });
 
 function initializeFileUpload() {
-  console.log('Initializing file upload...');
+  // console.log('Initializing file upload...');
   const fileInput = document.getElementById('fileUpload');
   const fileNameDisplay = document.getElementById('fileNameDisplay');
   const uploadButton = document.getElementById('uploadButton');
@@ -1279,7 +1279,7 @@ function initializeFileUpload() {
 }
 
 function addUserLayer(data, fileName) {
-  console.log('Adding user layer...');
+  // // console.log('Adding user layer...');
   try {
     const layerId = `userLayer_${userLayerCount++}`;
     const layerName = fileName.split('.')[0];
@@ -1441,7 +1441,7 @@ function addUserLayer(data, fileName) {
 }
 
 function setupDrawingTools() {
-  console.log('Setting up drawing tools...');
+  // console.log('Setting up drawing tools...');
   
   const drawPointBtn = document.getElementById('drawPointBtn');
   const drawLineBtn = document.getElementById('drawLineBtn');
@@ -2518,7 +2518,7 @@ function continueDrawing() {
 }
 
 function openStyleDialog(layerId) {
-  console.log('Opening style dialog...');
+  // console.log('Opening style dialog...');
   const userLayer = userLayers.find(l => l.id === layerId);
   if (!userLayer) return;
   
@@ -2654,7 +2654,7 @@ function updateLayerStyles() {
 }
 
 function applyLayerStyle(layerId) {
-  console.log('Applying layer style...');
+  // console.log('Applying layer style...');
   const userLayer = userLayers.find(l => l.id === layerId);
   if (!userLayer) return;
   
@@ -2691,7 +2691,7 @@ function applyLayerStyle(layerId) {
 }
 
 function applySingleColorStyle(userLayer, fillColor, outlineColor, pointSize, outlineWidth, fillOpacity, outlineOpacity) {
-  console.log('Applying single color style...');
+  // console.log('Applying single color style...');
   userLayer.layer.eachLayer(layer => {
     if (layer.setStyle) {
       layer.setStyle({
@@ -2718,7 +2718,7 @@ function applySingleColorStyle(userLayer, fillColor, outlineColor, pointSize, ou
 }
 
 function applyGraduatedStyle(userLayer, field, colorScaleName, classCount, pointSize, outlineWidth, fillOpacity, outlineOpacity, outlineColor) {
-  console.log('Applying graduated style...');
+  // console.log('Applying graduated style...');
   const values = [];
   userLayer.layer.eachLayer(layer => {
     if (layer.feature && layer.feature.properties && 
@@ -2783,7 +2783,7 @@ function applyGraduatedStyle(userLayer, field, colorScaleName, classCount, point
 }
 
 function applyCategorizedStyle(userLayer, field, pointSize, outlineWidth, fillOpacity, outlineOpacity, outlineColor) {
-  console.log('Applying categorized style...');
+  // console.log('Applying categorized style...');
   const categories = new Set();
   userLayer.layer.eachLayer(layer => {
     if (layer.feature && layer.feature.properties && 
@@ -2838,7 +2838,7 @@ function applyCategorizedStyle(userLayer, field, pointSize, outlineWidth, fillOp
 }
 
 function calculateQuantileBreaks(values, numClasses) {
-  console.log('Calculating quantile breaks...');
+  // console.log('Calculating quantile breaks...');
   if (values.length === 0) return [];
   
   const sortedValues = [...values].sort((a, b) => a - b);
@@ -2862,7 +2862,7 @@ function calculateQuantileBreaks(values, numClasses) {
 }
 
 function getColorScale(name, count) {
-  console.log('Getting color scale...');
+  // console.log('Getting color scale...');
   const scales = {
     viridis: ['#440154', '#3b528b', '#21918c', '#5ec962', '#fde725'],
     inferno: ['#000004', '#781c6d', '#ed6925', '#fcfea4'],
@@ -2903,7 +2903,7 @@ function getColorScale(name, count) {
 }
 
 function getCategoricalColorScale(count) {
-  console.log('Getting categorical color scale...');
+  // console.log('Getting categorical color scale...');
   const colors = [
     '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
     '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf',
@@ -2924,7 +2924,7 @@ function getCategoricalColorScale(count) {
 }
 
 function hexToRgb(hex) {
-  console.log('Converting hex to RGB...');
+  // console.log('Converting hex to RGB...');
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   return result ? {
     r: parseInt(result[1], 16),
@@ -2934,12 +2934,12 @@ function hexToRgb(hex) {
 }
 
 function rgbToHex(r, g, b) {
-  console.log('Converting RGB to hex...');
+  // console.log('Converting RGB to hex...');
   return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
 }
 
 function darkenColor(color, factor) {
-  console.log('Darkening color...');
+  // console.log('Darkening color...');
   const rgb = hexToRgb(color);
   if (!rgb) return color;
   
@@ -2951,7 +2951,7 @@ function darkenColor(color, factor) {
 }
 
 function detectAndFixProjection(data) {
-  console.log('Detecting and fixing projection...');
+  // console.log('Detecting and fixing projection...');
   if (!data || !data.features || !data.features.length) return data;
   
   const result = JSON.parse(JSON.stringify(data));
@@ -2975,7 +2975,7 @@ function detectAndFixProjection(data) {
       
       if (coord) {
         if (Math.abs(coord[0]) > 180 || Math.abs(coord[1]) > 90) {
-          console.log("Detected likely Web Mercator coordinates:", coord);
+          // console.log("Detected likely Web Mercator coordinates:", coord);
           return true;
         }
       }
@@ -2986,7 +2986,7 @@ function detectAndFixProjection(data) {
   needsReprojection = checkSampleCoordinates();
   
   if (needsReprojection) {
-    console.log("Attempting to reproject from EPSG:3857 to EPSG:4326");
+    // console.log("Attempting to reproject from EPSG:3857 to EPSG:4326");
     
     for (let i = 0; i < result.features.length; i++) {
       const feature = result.features[i];
@@ -3015,7 +3015,7 @@ function detectAndFixProjection(data) {
 }
 
 function mercatorToWgs84(coord) {
-  console.log('Converting Mercator to WGS84...');
+  // console.log('Converting Mercator to WGS84...');
   const x = coord[0];
   const y = coord[1];
   
@@ -3036,7 +3036,7 @@ function mercatorToWgs84(coord) {
 }
 
 function removeUserLayer(layerId) {
-  console.log('Removing user layer...');
+  // console.log('Removing user layer...');
   const layerIndex = userLayers.findIndex(l => l.id === layerId);
   if (layerIndex > -1) {
     const layer = userLayers[layerIndex];
@@ -3058,7 +3058,7 @@ function removeUserLayer(layerId) {
 }
 
 function handleShapefile(file) {
-  console.log('Handling shapefile...');
+  // console.log('Handling shapefile...');
   const loadingIndicator = document.createElement('div');
   loadingIndicator.id = 'shp-loading';
   loadingIndicator.style.position = 'fixed';
@@ -3101,7 +3101,7 @@ function handleShapefile(file) {
 }
 
 function isPanelOpen(panelName) {
-  console.log('Checking if panel is open...');
+  // console.log('Checking if panel is open...');
   const panelHeaders = document.querySelectorAll(".panel-header:not(.summary-header)");
   for (const header of panelHeaders) {
     if (header.textContent.includes(panelName) && !header.classList.contains("collapsed")) {
@@ -3184,7 +3184,7 @@ function configureSlider(sliderElement, isInverse) {
 }
 
 function updateSliderRanges(type, scaleType) {
-  console.log('Updating slider ranges...');
+  // console.log('Updating slider ranges...');
   if (isUpdatingSliders) return;
   isUpdatingSliders = true;
 
@@ -3343,7 +3343,7 @@ function initializeSliders(sliderElement) {
 }
 
 function toggleInverseScale(type, scaleType) {
-  console.log('Toggling inverse scale...');
+  // console.log('Toggling inverse scale...');
   isUpdatingSliders = true;
 
   let isInverse, rangeElement, order;
@@ -3504,7 +3504,7 @@ function updateFeatureVisibility() {
 }
 
 function updateLegend() {
-  console.log('Updating legend...');
+  // console.log('Updating legend...');
   const selectedYear = AmenitiesCatchmentLayer ? AmenitiesYear.value : ScoresYear.value;
   const legendContent = document.getElementById("legend-content");
   
@@ -3619,7 +3619,7 @@ function updateLegend() {
 }
 
 function getAmenityPopupContent(amenityType, properties) {
-  console.log('Getting amenity popup content...');
+  // console.log('Getting amenity popup content...');
   let amenityName = 'Unknown';
   let amenityTypeDisplay = 'Unknown';
   let amenityId = properties.COREID || '';
@@ -3669,7 +3669,7 @@ function getAmenityPopupContent(amenityType, properties) {
 }
 
 function findNearbyInfrastructure(latlng, maxPixelDistance = 10) {
-  console.log('Finding nearby infrastructure...');
+  // console.log('Finding nearby infrastructure...');
   const results = {
     busStops: [],
     busLines: []
@@ -3798,7 +3798,7 @@ function findNearbyInfrastructure(latlng, maxPixelDistance = 10) {
 }
 
 function formatFeatureProperties(feature, featureType) {
-  console.log('Formatting feature properties...');
+  // console.log('Formatting feature properties...');
   if (!feature || !feature.properties) return '<p>No data available</p>';
   
   let html = '<table class="popup-table">';
@@ -3843,7 +3843,7 @@ function formatFeatureProperties(feature, featureType) {
 }
 
 function showInfrastructurePopup(latlng, nearbyFeatures) {
-  console.log('Showing infrastructure popup...');
+  // console.log('Showing infrastructure popup...');
   const busLineFeatures = nearbyFeatures.busLines;
   const busStopFeatures = nearbyFeatures.busStops;
   
@@ -3990,7 +3990,7 @@ function showInfrastructurePopup(latlng, nearbyFeatures) {
 }
 
 function getAmenityTypeDisplayName(amenityType) {
-  console.log('Getting amenity type display name...');
+  // console.log('Getting amenity type display name...');
   switch (amenityType) {
     case 'PriSch': return 'Primary School';
     case 'SecSch': return 'Secondary School';
@@ -4008,7 +4008,7 @@ function getAmenityTypeDisplayName(amenityType) {
 }
 
 function updateAmenitiesDropdownLabel() {
-  console.log('Updating amenities dropdown label...');
+  // console.log('Updating amenities dropdown label...');
   const amenitiesDropdown = document.getElementById('amenitiesDropdown');
   if (!amenitiesDropdown) return;
   
@@ -4036,7 +4036,7 @@ function updateAmenitiesDropdownLabel() {
 }
 
 function updateScoresLayer() {
-  console.log('Updating scores layer...');
+  // console.log('Updating scores layer...');
   if (!initialLoadComplete || !isPanelOpen("Connectivity Scores")) {
     return;
   }
@@ -4130,7 +4130,7 @@ function updateScoresLayer() {
 }
 
 function applyScoresLayerStyling() {
-  console.log('applyScoresLayerStyling called');
+  // console.log('applyScoresLayerStyling called');
   if (!ScoresLayer) return;
   
   const selectedYear = ScoresYear.value;
@@ -4248,7 +4248,7 @@ function styleScoresFeature(feature, fieldToDisplay, opacityField, outlineField,
 }
 
 function showAmenityCatchment(amenityType, amenityId) {
-  console.log('showAmenityCatchment called');
+  // console.log('showAmenityCatchment called');
   const panelHeaders = document.querySelectorAll(".panel-header:not(.summary-header)");
     
   panelHeaders.forEach(header => {
@@ -4306,7 +4306,7 @@ function showAmenityCatchment(amenityType, amenityId) {
 }
 
 function drawSelectedAmenities(amenities) {
-  console.log('drawSelectedAmenities called');
+  // console.log('drawSelectedAmenities called');
   const amenitiesCheckbox = document.getElementById('amenitiesCheckbox');
   amenitiesLayerGroup.clearLayers();
 
@@ -4405,7 +4405,7 @@ function drawSelectedAmenities(amenities) {
 }
 
 function updateAmenitiesCatchmentLayer() {
-  console.log('updateAmenitiesCatchmentLayer called');
+  // console.log('updateAmenitiesCatchmentLayer called');
   if (!initialLoadComplete || !isPanelOpen("Journey Time Catchments - Amenities")) {
     return;
   }
@@ -4593,7 +4593,7 @@ function updateAmenitiesCatchmentLayer() {
 }
 
 function applyAmenitiesCatchmentLayerStyling() {
-  console.log('applyAmenitiesCatchmentLayerStyling called from:');
+  // console.log('applyAmenitiesCatchmentLayerStyling called from:');
   if (!AmenitiesCatchmentLayer) return;
 
   const minOpacityValue = AmenitiesOpacityRange && AmenitiesOpacityRange.noUiSlider ? 
@@ -4663,7 +4663,7 @@ function applyAmenitiesCatchmentLayerStyling() {
 }
 
 function updateCensusLayer() {
-  console.log('updateCensusLayer called from:');
+  // console.log('updateCensusLayer called from:');
   if (!initialLoadComplete || !isPanelOpen("Census / Local Plan Data")) {
     return;
   }
@@ -4704,7 +4704,7 @@ function updateCensusLayer() {
 }
 
 function applyCensusLayerStyling() {
-  console.log('applyCensusLayerStyling called from:');
+  // console.log('applyCensusLayerStyling called from:');
   if (!CensusLayer) return;
 
   const baseColor = baseColorCensus.value;
@@ -4758,7 +4758,7 @@ function applyCensusLayerStyling() {
 }
 
 function populateUserLayerFilterValues(userLayer, fieldName) {
-  console.log('populateUserLayerFilterValues called from:');
+  // console.log('populateUserLayerFilterValues called from:');
   const filterValueContainer = document.getElementById('filterValueContainer');
   const filterCheckboxesSection = document.createElement('div');
   filterCheckboxesSection.className = 'filter-checkboxes-section';
@@ -4895,7 +4895,7 @@ function populateUserLayerFilterValues(userLayer, fieldName) {
 
 function updateFilterDropdown() {
   if (isUpdatingFilters) return;
-  console.log('updateFilterDropdown called from:');
+  // console.log('updateFilterDropdown called from:');
   isUpdatingFilters = true;
   const filterTypeDropdown = document.getElementById('filterTypeDropdown');
   if (!filterTypeDropdown) {
@@ -4945,7 +4945,7 @@ function updateFilterDropdown() {
 
 function updateFilterValues() {
   if (isUpdatingFilterValues) return;
-  console.log('updateFilterValues called from:');
+  // console.log('updateFilterValues called from:');
   isUpdatingFilterValues = true;
 
   if (!filterTypeDropdown.value) {
@@ -5173,7 +5173,7 @@ function updateFilterValues() {
 
 function updateSummaryStatistics(features) {
   if (isCalculatingStats) return;
-  console.log('updateSummaryStatistics called from:');
+  // console.log('updateSummaryStatistics called from:');
   isCalculatingStats = true;
   
   requestAnimationFrame(() => {
@@ -5210,7 +5210,7 @@ function updateSummaryStatistics(features) {
 }
 
 function displayEmptyStatistics() {
-  console.log('displayEmptyStatistics called from:');
+  // console.log('displayEmptyStatistics called from:');
   const statisticIds = [
     'total-population', 'min-population', 'max-population',
     'avg-imd-score', 'min-imd-score', 'max-imd-score',
@@ -5228,7 +5228,7 @@ function displayEmptyStatistics() {
 }
 
 function applyFilters(features) {
-  console.log('applyFilters called from:');
+  // console.log('applyFilters called from:');
   const filterType = filterTypeDropdown.value;
   
   let filteredFeatures = features && features.length ? features : (hexes ? hexes.features : []);
@@ -5366,7 +5366,7 @@ function applyFilters(features) {
 }
 
 function applyRangeFilter(features, filterValue) {
-  console.log('applyRangeFilter called from:');
+  // console.log('applyRangeFilter called from:');
   if (ScoresLayer) {
     const selectedYear = ScoresYear.value;
     const fieldToDisplay = selectedYear.includes('-') ? 
@@ -5387,7 +5387,7 @@ function applyRangeFilter(features, filterValue) {
 }
 
 function applyGeographicFilter(features, filterType, filterValue) {
-  console.log('applyGeographicFilter called from:');
+  // console.log('applyGeographicFilter called from:');
   const getPolygonForFilter = () => {
     let polygon = null;
 
@@ -5479,7 +5479,7 @@ function applyGeographicFilter(features, filterType, filterValue) {
 }
 
 function calculateStatistics(features) {
-  console.log('calculateStatistics called from:');
+  // console.log('calculateStatistics called from:');
   const baseStats = calculateBaseStatistics(features);
   
   let layerStats = {};
@@ -5494,7 +5494,7 @@ function calculateStatistics(features) {
 }
 
 function calculateBaseStatistics(features) {
-  console.log('calculateBaseStatistics called from:');
+  // console.log('calculateBaseStatistics called from:');
   const metrics = {
     population: [],
     imd_score: [],
@@ -5532,7 +5532,7 @@ function calculateBaseStatistics(features) {
 }
 
 function calculateScoreStatistics(features) {
-  console.log('calculateScoreStatistics called from:');
+  // console.log('calculateScoreStatistics called from:');
   const selectedYear = ScoresYear.value;
   const selectedPurpose = ScoresPurpose.value;
   const selectedMode = ScoresMode.value;
@@ -5567,7 +5567,7 @@ function calculateScoreStatistics(features) {
 }
 
 function calculateTimeStatistics(features) {
-  console.log('calculateTimeStatistics called from:');
+  // console.log('calculateTimeStatistics called from:');
   const metrics = {
     time: [],
     population: []
@@ -5592,7 +5592,7 @@ function calculateTimeStatistics(features) {
 }
 
 function updateStatisticsUI(stats) {
-  console.log('updateStatisticsUI called from:');
+  // console.log('updateStatisticsUI called from:');
   document.getElementById('total-population').textContent = formatValue(stats.totalPopulation, 10);
   document.getElementById('min-population').textContent = formatValue(stats.minPopulation, 10);
   document.getElementById('max-population').textContent = formatValue(stats.maxPopulation, 10);
@@ -5640,7 +5640,7 @@ function updateStatisticsUI(stats) {
 }
 
 function filterByScoreDifference(features, fieldToDisplay, filterValue) {
-  console.log('filterByScoreDifference called from:');
+  // console.log('filterByScoreDifference called from:');
   if (filterValue === '= 0') {
     return features.filter(feature => {
       const value = feature.properties[fieldToDisplay];
@@ -5689,7 +5689,7 @@ function filterByScoreDifference(features, fieldToDisplay, filterValue) {
 }
 
 function filterByPercentileRange(features, fieldToDisplay, filterValue) {
-  console.log('filterByPercentileRange called from:');
+  // console.log('filterByPercentileRange called from:');
   const [minRange, maxRange] = filterValue.split('-').map(parseFloat);
   return features.filter(feature => {
     const value = feature.properties[fieldToDisplay];
@@ -5698,7 +5698,7 @@ function filterByPercentileRange(features, fieldToDisplay, filterValue) {
 }
 
 function filterByJourneyTime(features, filterValue) {
-  console.log('filterByJourneyTime called from:');
+  // console.log('filterByJourneyTime called from:');
   if (filterValue === '>30') {
     return features.filter(feature => {
       const hexId = feature.properties.Hex_ID;
@@ -5722,7 +5722,7 @@ function calculateWeightedAverage(values, weights) {
 }
 
 function getCurrentFeatures() {
-  console.log('getCurrentFeatures called from:');
+  // console.log('getCurrentFeatures called from:');
   const filterType = filterTypeDropdown.value;
   
   let sourceFeatures = [];
@@ -5747,7 +5747,7 @@ function getCurrentFeatures() {
 }
 
 function highlightSelectedArea() {
-  console.log('highlightSelectedArea called from:');
+  // console.log('highlightSelectedArea called from:');
   const highlightAreaCheckbox = document.getElementById('highlightAreaCheckbox');
   if (!highlightAreaCheckbox.checked) {
     if (highlightLayer) {
