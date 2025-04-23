@@ -5258,18 +5258,19 @@ function applyFilters(features) {
         
         filteredFeatures.forEach(feature => {
           const hexPolygon = turf.polygon(feature.geometry.coordinates);
-          const hexCenter = turf.center(hexPolygon);
           
           for (const userFeature of userLayer.originalData.features) {
             if (selectedValues.includes(String(userFeature.properties[selectedField]))) {
               if (userFeature.geometry.type === 'Polygon') {
                 const poly = turf.polygon(userFeature.geometry.coordinates);
+                const hexCenter = turf.center(hexPolygon);
                 if (turf.booleanPointInPolygon(hexCenter, poly)) {
                   combinedFeatures.push(feature);
                   break;
                 }
               } 
               else if (userFeature.geometry.type === 'MultiPolygon') {
+                const hexCenter = turf.center(hexPolygon);
                 const isInside = userFeature.geometry.coordinates.some(coords => {
                   const poly = turf.polygon(coords);
                   return turf.booleanPointInPolygon(hexCenter, poly);
@@ -5280,41 +5281,86 @@ function applyFilters(features) {
                   break;
                 }
               }
+              else if (userFeature.geometry.type === 'Point') {
+                const point = turf.point(userFeature.geometry.coordinates);
+                if (turf.booleanPointInPolygon(point, hexPolygon)) {
+                  combinedFeatures.push(feature);
+                  break;
+                }
+              }
+              else if (userFeature.geometry.type === 'LineString') {
+                const line = turf.lineString(userFeature.geometry.coordinates);
+                if (turf.booleanIntersects(line, hexPolygon)) {
+                  combinedFeatures.push(feature);
+                  break;
+                }
+              }
+              else if (userFeature.geometry.type === 'MultiLineString') {
+                const isIntersecting = userFeature.geometry.coordinates.some(coords => {
+                  const line = turf.lineString(coords);
+                  return turf.booleanIntersects(line, hexPolygon);
+                });
+                if (isIntersecting) {
+                  combinedFeatures.push(feature);
+                  break;
+                }
+              }
             }
           }
         });
-        
         return combinedFeatures;
       } else {
         const userLayerFeatures = userLayer.originalData.features;
         const combinedFeatures = [];
-        
         for (const feature of filteredFeatures) {
           const hexPolygon = turf.polygon(feature.geometry.coordinates);
-          const hexCenter = turf.center(hexPolygon);
-          
           for (const userFeature of userLayerFeatures) {
             if (userFeature.geometry.type === 'Polygon') {
               const poly = turf.polygon(userFeature.geometry.coordinates);
+              const hexCenter = turf.center(hexPolygon);
               if (turf.booleanPointInPolygon(hexCenter, poly)) {
                 combinedFeatures.push(feature);
                 break;
               }
             } 
             else if (userFeature.geometry.type === 'MultiPolygon') {
+              const hexCenter = turf.center(hexPolygon);
               const isInside = userFeature.geometry.coordinates.some(coords => {
                 const poly = turf.polygon(coords);
                 return turf.booleanPointInPolygon(hexCenter, poly);
               });
-              
               if (isInside) {
+                combinedFeatures.push(feature);
+                break;
+              }
+            }
+            else if (userFeature.geometry.type === 'Point') {
+              const point = turf.point(userFeature.geometry.coordinates);
+              if (turf.booleanPointInPolygon(point, hexPolygon)) {
+                combinedFeatures.push(feature);
+                break;
+              }
+            }
+            else if (userFeature.geometry.type === 'LineString') {
+              const line = turf.lineString(userFeature.geometry.coordinates);
+              if (turf.booleanIntersects(line, hexPolygon)) {
+                combinedFeatures.push(feature);
+                break;
+              }
+            }
+            else if (userFeature.geometry.type === 'MultiLineString') {
+              const isIntersecting = userFeature.geometry.coordinates.some(coords => {
+                const line = turf.lineString(coords);
+                return turf.booleanIntersects(line, hexPolygon);
+              });
+              
+              if (isIntersecting) {
                 combinedFeatures.push(feature);
                 break;
               }
             }
           }
         }
-        
         return combinedFeatures;
       }
     }
