@@ -407,7 +407,18 @@ CensusInverseOutline.addEventListener("click", () => {
 filterTypeDropdown.addEventListener('change', () => {
   updateFilterValues();
   updateSummaryStatistics(getCurrentFeatures());
-  updateHighlightCheckboxState();
+  
+  const highlightCheckbox = document.getElementById('highlightAreaCheckbox');
+  if (filterTypeDropdown.value === 'Range') {
+    highlightCheckbox.disabled = true;
+    highlightCheckbox.checked = false;
+    if (highlightLayer) {
+      map.removeLayer(highlightLayer);
+      highlightLayer = null;
+    }
+  } else {
+    highlightCheckbox.disabled = false;
+  }
   
   if (document.getElementById('highlightAreaCheckbox').checked) {
     highlightSelectedArea();
@@ -1268,7 +1279,7 @@ function initializeFileUpload() {
 }
 
 function addUserLayer(data, fileName) {
-  // console.log('Adding user layer...');
+  // // console.log('Adding user layer...');
   try {
     const layerId = `userLayer_${userLayerCount++}`;
     const layerName = fileName.split('.')[0];
@@ -2504,20 +2515,6 @@ function continueDrawing() {
     map.activeDrawingTool = new L.Draw.Polygon(map, polygonOptions);
     map.activeDrawingTool.enable();
   }
-}
-
-function getLayerGeometryTypes(userLayer) {
-  const types = new Set();
-  
-  if (userLayer && userLayer.originalData && userLayer.originalData.features) {
-    userLayer.originalData.features.forEach(feature => {
-      if (feature.geometry && feature.geometry.type) {
-        types.add(feature.geometry.type);
-      }
-    });
-  }
-  
-  return Array.from(types);
 }
 
 function openStyleDialog(layerId) {
@@ -4932,11 +4929,6 @@ function updateFilterDropdown() {
       const option = document.createElement('option');
       option.value = `UserLayer_${userLayer.id}`;
       option.textContent = `User Layer - ${userLayer.name}`;
-      
-      // Add data attribute to indicate geometry type
-      const geometryTypes = getLayerGeometryTypes(userLayer);
-      option.setAttribute('data-geometry-types', geometryTypes.join(','));
-      
       filterTypeDropdown.appendChild(option);
     });
   }
@@ -4947,8 +4939,6 @@ function updateFilterDropdown() {
   } else {
     filterTypeDropdown.value = currentValue;
   }
-
-  updateHighlightCheckboxState();
   
   isUpdatingFilters = false;
 }
@@ -5914,44 +5904,4 @@ function highlightSelectedArea() {
       }
     }).addTo(map);
   }
-}
-
-function updateHighlightCheckboxState() {
-  const filterTypeDropdown = document.getElementById('filterTypeDropdown');
-  const highlightCheckbox = document.getElementById('highlightAreaCheckbox');
-  
-  if (!filterTypeDropdown || !highlightCheckbox) return;
-  
-  if (filterTypeDropdown.value === 'Range') {
-    highlightCheckbox.disabled = true;
-    highlightCheckbox.checked = false;
-    if (highlightLayer) {
-      map.removeLayer(highlightLayer);
-      highlightLayer = null;
-    }
-    return;
-  }
-  
-  if (filterTypeDropdown.value.startsWith('UserLayer_')) {
-    const selectedOption = filterTypeDropdown.options[filterTypeDropdown.selectedIndex];
-    
-    if (selectedOption) {
-      const geometryTypes = (selectedOption.getAttribute('data-geometry-types') || '').split(',');
-      const hasOnlyPointsOrLines = geometryTypes.length > 0 && 
-                                   geometryTypes.every(type => 
-                                     ['Point', 'LineString', 'MultiPoint', 'MultiLineString'].includes(type));
-      
-      if (hasOnlyPointsOrLines) {
-        highlightCheckbox.disabled = true;
-        highlightCheckbox.checked = false;
-        if (highlightLayer) {
-          map.removeLayer(highlightLayer);
-          highlightLayer = null;
-        }
-        return;
-      }
-    }
-  }
-  
-  highlightCheckbox.disabled = false;
 }
