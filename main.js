@@ -261,9 +261,9 @@ fetch('https://AmFa6.github.io/TAF_test/westlink.geojson')
         );
         const colorIndex = featureIndex % colors.length;
         return {
-          color: 'black',
-          weight: 0,
-          fillColor: colors[colorIndex],
+          color: colors[colorIndex],
+          weight: 3,
+          fillColor: 'black',
           fillOpacity: 0,
           opacity: 0
         };
@@ -743,11 +743,11 @@ document.addEventListener('DOMContentLoaded', (event) => {
       WestLinkZonesCheckbox.addEventListener('change', () => {
         if (WestLinkZonesCheckbox.checked) {
           WestLinkZonesLayer.setStyle({
-            fillOpacity: 0.5,
+            opacity: 1,
           });
         } else {
           WestLinkZonesLayer.setStyle({
-            fillOpacity: 0,
+            opacity: 0,
           });
         }
       });
