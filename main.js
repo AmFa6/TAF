@@ -224,7 +224,7 @@ fetch('https://AmFa6.github.io/TAF_test/lines.geojson')
     }).addTo(map);
   });
 
-  fetch('https://AmFa6.github.io/TAF_test/stops.geojson')
+fetch('https://AmFa6.github.io/TAF_test/stops.geojson')
   .then(response => response.json())
   .then(data => {
     busStopsLayer = L.geoJSON(data, {
@@ -244,6 +244,32 @@ fetch('https://AmFa6.github.io/TAF_test/lines.geojson')
       }
     }).addTo(map);
   });
+
+fetch('https://AmFa6.github.io/TAF_test/westlink.geojson')
+  .then(response => response.json())
+  .then(data => {
+    const colors = [
+      '#e41a1c', '#377eb8', '#4daf4a', '#984ea3', '#ff7f00', 
+      '#ffff33', '#a65628', '#f781bf', '#999999', '#66c2a5',
+      '#fc8d62', '#8da0cb', '#e78ac3', '#a6d854', '#ffd92f'
+    ];
+    const convertedData = convertMultiPolygonToPolygons(data);
+    WestLinkZonesLayer = L.geoJSON(convertedData, {
+      style: function (feature, layer) {
+        const featureIndex = convertedData.features.findIndex(f => 
+          f.properties.name === feature.properties.name
+        );
+        const colorIndex = featureIndex % colors.length;
+        return {
+          color: 'black',
+          weight: 0,
+          fillColor: colors[colorIndex],
+          fillOpacity: 0,
+          opacity: 0
+        };
+      },
+    }).addTo(map);
+  })
 
 ScoresYear.value = "";
 ScoresOpacity.value = "None";
@@ -285,6 +311,7 @@ let wasAboveZoomThreshold = false;
 let hexLayer = null;
 let busLinesLayer;
 let busStopsLayer;
+let WestLinkZonesLayer;
 let userLayers = [];
 let userLayerCount = 0;
 let drawControl;
@@ -710,6 +737,21 @@ document.addEventListener('DOMContentLoaded', (event) => {
         }
       });
     }
+
+    const WestLinkZonesCheckbox = document.getElementById('WestLinkZonesCheckbox');
+    if (WestLinkZonesCheckbox) {
+      WestLinkZonesCheckbox.addEventListener('change', () => {
+        if (WestLinkZonesCheckbox.checked) {
+          WestLinkZonesLayer.setStyle({
+            fillOpacity: 0.5,
+          });
+        } else {
+          WestLinkZonesLayer.setStyle({
+            fillOpacity: 0,
+          });
+        }
+      });
+    }
   }
   createStaticLegendControls();
 
@@ -903,6 +945,15 @@ map.on('click', function (e) {
       const polygon = turf.polygon(layer.feature.geometry.coordinates);
       if (turf.booleanPointInPolygon(clickedPoint, polygon)) {
         popupContent.Geographies.push(`<strong>Growth Zone:</strong> ${layer.feature.properties.Name}`);
+      }
+    });
+  }
+
+  if (WestLinkZonesLayer) {
+    WestLinkZonesLayer.eachLayer(layer => {
+      const polygon = turf.polygon(layer.feature.geometry.coordinates);
+      if (turf.booleanPointInPolygon(clickedPoint, polygon)) {
+        popupContent.Geographies.push(`<strong>WESTlink Zone:</strong> ${layer.feature.properties.name}`);
       }
     });
   }
@@ -2313,6 +2364,12 @@ function openStyleDialog(layerId) {
     (layer.feature.geometry.type === 'LineString' || layer.feature.geometry.type === 'MultiLineString')
   );
   
+  const hasOnlyPoints = userLayer.layer && userLayer.layer.getLayers().every(layer => 
+    layer.feature && 
+    layer.feature.geometry && 
+    layer.feature.geometry.type === 'Point'
+  );
+  
   const styleMode = dialogClone.querySelector('#style-mode');
   styleMode.value = userLayer.styleMode || 'single';
   
@@ -2329,147 +2386,130 @@ function openStyleDialog(layerId) {
     styleField.appendChild(option);
   });
   
-  if (hasOnlyLines) {
-    const fillTab = dialogClone.querySelector('[data-tab="fill"]');
-    if (fillTab) {
-      fillTab.textContent = "Line Style";
-    }
+  const styleColor = dialogClone.querySelector('#style-color');
+  const styleOpacity = dialogClone.querySelector('#style-opacity');
+  const styleWidth = dialogClone.querySelector('#style-width');
+  const pointSizeOption = dialogClone.querySelector('#point-size-option');
+  const widthOption = dialogClone.querySelector('#width-option');
+  const opacityOption = dialogClone.querySelector('#opacity-option');
+  
+  styleColor.value = userLayer.fillColor || userLayer.defaultColor || '#3388ff';
+  styleOpacity.value = userLayer.fillOpacity || 0.7;
+  styleWidth.value = hasOnlyLines ? (userLayer.lineWidth || 2) : (userLayer.outlineWidth || 2);
+  
+  dialogClone.querySelector('#opacity-value').textContent = styleOpacity.value;
+  dialogClone.querySelector('#width-value').textContent = styleWidth.value;
+  
+  if (hasOnlyPoints) {
+    widthOption.style.display = 'none';
+    pointSizeOption.style.display = 'block';
+    const pointSize = dialogClone.querySelector('#point-size');
+    pointSize.value = userLayer.pointSize || 8;
+    dialogClone.querySelector('#point-size-value').textContent = pointSize.value;
     
-    const outlineTab = dialogClone.querySelector('[data-tab="outline"]');
-    if (outlineTab) {
-      outlineTab.style.display = 'none';
-    }
-    
-    const fillTabContent = dialogClone.querySelector('#fill-tab');
-    const widthControl = document.createElement('div');
-    widthControl.className = 'style-option';
-    widthControl.innerHTML = `
-      <label for="line-width">Width:</label>
-      <div class="slider-container">
-        <input type="range" id="line-width" class="slider" min="0.5" max="10" step="0.5" value="${userLayer.lineWidth || userLayer.outlineWidth || 2}">
-        <span id="line-width-value">${userLayer.lineWidth || userLayer.outlineWidth || 2}</span>
-      </div>
-    `;
-    
-    const opacityControl = fillTabContent.querySelector('.style-option:nth-child(2)');
-    if (opacityControl && opacityControl.nextSibling) {
-      fillTabContent.insertBefore(widthControl, opacityControl.nextSibling);
-    } else {
-      fillTabContent.appendChild(widthControl);
-    }
-    
-    const outlineTabContent = dialogClone.querySelector('#outline-tab');
-    if (outlineTabContent) {
-      outlineTabContent.style.display = 'none';
-    }
+    opacityOption.querySelector('label').textContent = 'Fill Opacity: ' + styleOpacity.value;
+  } else if (hasOnlyLines) {
+    pointSizeOption.style.display = 'none';
+    widthOption.querySelector('label').textContent = 'Line Width: ' + styleWidth.value;
+    opacityOption.querySelector('label').textContent = 'Line Opacity: ' + styleOpacity.value;
+  } else {
+    pointSizeOption.style.display = 'none';
+    widthOption.querySelector('label').textContent = 'Outline Width: ' + styleWidth.value;
+    opacityOption.querySelector('label').textContent = 'Fill Opacity: ' + styleOpacity.value;
   }
   
-  const singleFillColor = dialogClone.querySelector('#single-fill-color');
-  singleFillColor.value = userLayer.fillColor || userLayer.defaultColor;
-  
-  const outlineColor = dialogClone.querySelector('#outline-color');
-  outlineColor.value = userLayer.outlineColor || '#000000';
-  
-  const fillOpacity = dialogClone.querySelector('#fill-opacity');
-  fillOpacity.value = userLayer.fillOpacity || 0.7;
-  dialogClone.querySelector('#fill-opacity-value').textContent = fillOpacity.value;
-  
-  const outlineOpacity = dialogClone.querySelector('#outline-opacity');
-  outlineOpacity.value = userLayer.outlineOpacity || 1;
-  dialogClone.querySelector('#outline-opacity-value').textContent = outlineOpacity.value;
-  
-  const outlineWidth = dialogClone.querySelector('#outline-width');
-  outlineWidth.value = userLayer.outlineWidth || 2;
-  dialogClone.querySelector('#outline-width-value').textContent = outlineWidth.value;
-  
-  const colorScale = dialogClone.querySelector('#fill-color-scale');
-  if (colorScale) colorScale.value = userLayer.colorScale || 'viridis';
-  
   const graduatedOptions = dialogClone.querySelector('#graduated-options');
-  graduatedOptions.style.display = userLayer.styleMode === 'graduated' ? 'block' : 'none';
+  graduatedOptions.style.display = userLayer.styleMode === 'graduated' || 
+                                   userLayer.styleMode === 'categorized' ? 'block' : 'none';
   
-  const classesOption = dialogClone.querySelector('#classes-option');
-  classesOption.style.display = userLayer.styleMode === 'graduated' ? 'block' : 'none';
+  const colorScale = dialogClone.querySelector('#color-scale');
+  colorScale.value = userLayer.colorScale || 'viridis';
   
-  const isPoint = userLayer.layer.getLayers().some(l => 
-    l.feature && l.feature.geometry && l.feature.geometry.type === 'Point'
-  );
+  const classCount = dialogClone.querySelector('#class-count');
+  classCount.value = userLayer.classCount || '5';
   
-  const pointSizeOption = dialogClone.querySelector('#point-size-option');
-  if (pointSizeOption) {
-    pointSizeOption.style.display = isPoint ? 'block' : 'none';
-    
-    if (isPoint) {
-      const pointSize = dialogClone.querySelector('#point-size');
-      pointSize.value = userLayer.pointSize || 8;
-      dialogClone.querySelector('#point-size-value').textContent = pointSize.value;
-    }
+  const graduatedOpacity = dialogClone.querySelector('#graduated-opacity');
+  graduatedOpacity.value = userLayer.fillOpacity || 0.7;
+  dialogClone.querySelector('#graduated-opacity-value').textContent = graduatedOpacity.value;
+  
+  const graduatedWidth = dialogClone.querySelector('#graduated-width');
+  graduatedWidth.value = hasOnlyLines ? (userLayer.lineWidth || 2) : 
+                          hasOnlyPoints ? (userLayer.pointSize || 8) : (userLayer.outlineWidth || 2);
+  dialogClone.querySelector('#graduated-width-value').textContent = graduatedWidth.value;
+  
+  if (hasOnlyPoints) {
+    dialogClone.querySelector('#graduated-width-option label').textContent = 
+      'Point Size: ' + graduatedWidth.value;
+  } else if (hasOnlyLines) {
+    dialogClone.querySelector('#graduated-width-option label').textContent = 
+      'Line Width: ' + graduatedWidth.value;
+  } else {
+    dialogClone.querySelector('#graduated-width-option label').textContent = 
+      'Outline Width: ' + graduatedWidth.value;
   }
   
   document.body.appendChild(dialogClone);
   
-  document.getElementById('style-mode').addEventListener('change', function() {
-    const mode = this.value;
-    document.getElementById('field-selector').style.display = mode === 'single' ? 'none' : 'block';
-    document.getElementById('single-color-options').style.display = mode === 'single' ? 'block' : 'none';
-    document.getElementById('graduated-options').style.display = mode === 'graduated' ? 'block' : 'none';
-    document.getElementById('classes-option').style.display = mode === 'graduated' ? 'block' : 'none';
-  });
+  const styledDialog = document.getElementById('style-dialog');
   
-  document.querySelectorAll('.style-tab').forEach(tab => {
-    tab.addEventListener('click', function() {
-      if (hasOnlyLines && tab.getAttribute('data-tab') === 'outline' ||
-          tab.style.display === 'none') {
-        return;
-      }
-      
-      const tabName = this.getAttribute('data-tab');
-      
-      document.querySelectorAll('.style-tab').forEach(t => t.classList.remove('active'));
-      this.classList.add('active');
-      
-      document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-      document.getElementById(`${tabName}-tab`).classList.add('active');
-    });
-  });
-  
-  const sliders = {
-    'fill-opacity': 'fill-opacity-value',
-    'outline-width': 'outline-width-value',
-    'outline-opacity': 'outline-opacity-value',
-    'point-size': 'point-size-value'
-  };
-  
-  if (hasOnlyLines) {
-    sliders['line-width'] = 'line-width-value';
-  }
-  
-  Object.entries(sliders).forEach(([sliderId, valueId]) => {
-    const slider = document.getElementById(sliderId);
-    if (slider) {
-      slider.addEventListener('input', function() {
-        document.getElementById(valueId).textContent = this.value;
+  if (styledDialog) {
+    const styleModeElement = styledDialog.querySelector('#style-mode');
+    if (styleModeElement) {
+      styleModeElement.addEventListener('change', function() {
+        const mode = this.value;
+        const fieldSelectorElement = styledDialog.querySelector('#field-selector');
+        if (fieldSelectorElement) {
+          fieldSelectorElement.style.display = mode === 'single' ? 'none' : 'block';
+        }
+        const singleStyleOptions = styledDialog.querySelector('#single-style-options');
+        if (singleStyleOptions) {
+          singleStyleOptions.style.display = mode === 'single' ? 'block' : 'none';
+        }
+        const gradOptions = styledDialog.querySelector('#graduated-options');
+        if (gradOptions) {
+          gradOptions.style.display = mode === 'single' ? 'none' : 'block';
+        }
       });
     }
-  });
-  
-  document.getElementById('cancel-style').addEventListener('click', function() {
-    document.body.removeChild(document.getElementById('style-dialog'));
-  });
-  
-  document.getElementById('apply-style').addEventListener('click', function() {
-    applyUserLayerStyle(layerId);
-    document.body.removeChild(document.getElementById('style-dialog'));
-  });
-}
-
-function updateLayerStyles() {
-  if (ScoresLayer && isPanelOpen("Connectivity Scores")) {
-    applyScoresLayerStyling();
-  } else if (AmenitiesCatchmentLayer && isPanelOpen("Journey Time Catchments - Amenities")) {
-    applyAmenitiesCatchmentLayerStyling();
-  } else if (CensusLayer && isPanelOpen("Census / Local Plan Data")) {
-    applyCensusLayerStyling();
+    
+    const sliders = [
+      { slider: 'style-opacity', display: 'opacity-value' },
+      { slider: 'style-width', display: 'width-value' },
+      { slider: 'point-size', display: 'point-size-value' },
+      { slider: 'graduated-opacity', display: 'graduated-opacity-value' },
+      { slider: 'graduated-width', display: 'graduated-width-value' }
+    ];
+    
+    sliders.forEach(({ slider, display }) => {
+      const sliderElement = styledDialog.querySelector(`#${slider}`);
+      const displayElement = styledDialog.querySelector(`#${display}`);
+      if (sliderElement && displayElement) {
+        sliderElement.addEventListener('input', function() {
+          displayElement.textContent = this.value;
+        });
+      }
+    });
+    
+    const cancelButton = styledDialog.querySelector('#cancel-style');
+    if (cancelButton) {
+      cancelButton.addEventListener('click', function() {
+        const dialogElement = document.getElementById('style-dialog');
+        if (dialogElement) {
+          document.body.removeChild(dialogElement);
+        }
+      });
+    }
+    
+    const applyButton = styledDialog.querySelector('#apply-style');
+    if (applyButton) {
+      applyButton.addEventListener('click', function() {
+        applyUserLayerStyle(layerId);
+        const dialogElement = document.getElementById('style-dialog');
+        if (dialogElement) {
+          document.body.removeChild(dialogElement);
+        }
+      });
+    }
   }
 }
 
@@ -2477,13 +2517,11 @@ function applyUserLayerStyle(layerId) {
   const userLayer = userLayers.find(l => l.id === layerId);
   if (!userLayer) return;
   
+  const styleDialog = document.getElementById('style-dialog');
+  if (!styleDialog) return;
+  
   const styleMode = document.getElementById('style-mode').value;
   const styleField = document.getElementById('style-field')?.value || '';
-  const fillColor = document.getElementById('single-fill-color')?.value || userLayer.defaultColor;
-  const outlineColor = document.getElementById('outline-color')?.value || '#000000';
-  const colorScale = document.getElementById('fill-color-scale')?.value || 'viridis';
-  const classCount = parseInt(document.getElementById('class-count')?.value || '5');
-  const pointSize = parseInt(document.getElementById('point-size')?.value || '8');
   
   const hasOnlyLines = userLayer.layer && userLayer.layer.getLayers().every(layer => 
     layer.feature && 
@@ -2491,85 +2529,81 @@ function applyUserLayerStyle(layerId) {
     (layer.feature.geometry.type === 'LineString' || layer.feature.geometry.type === 'MultiLineString')
   );
   
-  const outlineWidth = parseFloat(document.getElementById('outline-width')?.value || '2');
-  const lineWidth = hasOnlyLines ? 
-    parseFloat(document.getElementById('line-width')?.value || '2') : 
-    outlineWidth;
+  const hasOnlyPoints = userLayer.layer && userLayer.layer.getLayers().every(layer => 
+    layer.feature && 
+    layer.feature.geometry && 
+    layer.feature.geometry.type === 'Point'
+  );
   
-  const fillOpacity = parseFloat(document.getElementById('fill-opacity')?.value || '0.7');
-  const outlineOpacity = parseFloat(document.getElementById('outline-opacity')?.value || '1.0');
+  let color, opacity, width, size;
+  let classCount = 5;
+  
+  if (styleMode === 'single') {
+    color = document.getElementById('style-color').value;
+    opacity = parseFloat(document.getElementById('style-opacity').value);
+    width = parseFloat(document.getElementById('style-width').value);
+    size = hasOnlyPoints ? parseFloat(document.getElementById('point-size').value) : width;
+  } else {
+    color = document.getElementById('color-scale').value;
+    opacity = parseFloat(document.getElementById('graduated-opacity').value);
+    width = parseFloat(document.getElementById('graduated-width').value);
+    size = hasOnlyPoints ? width : width;
+    classCount = parseInt(document.getElementById('class-count').value);
+  }
   
   userLayer.styleMode = styleMode;
   userLayer.styleField = styleField;
-  userLayer.colorScale = colorScale;
-  userLayer.fillColor = fillColor;
-  userLayer.outlineColor = outlineColor;
-  userLayer.fillOpacity = fillOpacity;
-  userLayer.outlineOpacity = outlineOpacity;
-  userLayer.outlineWidth = outlineWidth;
-  userLayer.pointSize = pointSize;
-  
-  if (hasOnlyLines) {
-    userLayer.lineWidth = lineWidth;
-  }
+  userLayer.colorScale = color;
+  userLayer.fillColor = color;
+  userLayer.fillOpacity = opacity;
+  userLayer.outlineWidth = hasOnlyLines ? 0 : width;
+  userLayer.pointSize = hasOnlyPoints ? size : 8;
+  userLayer.lineWidth = hasOnlyLines ? width : 2;
+  userLayer.classCount = classCount;
   
   if (styleMode === 'single') {
-    applySingleColorStyle(userLayer, fillColor, outlineColor, pointSize, lineWidth, outlineWidth, fillOpacity, outlineOpacity);
+    applySingleStyle(userLayer, color, width, opacity, size, hasOnlyLines, hasOnlyPoints);
   }
   else if (styleMode === 'graduated' && styleField) {
-    applyGraduatedStyle(userLayer, styleField, colorScale, classCount, pointSize, lineWidth, outlineWidth, fillOpacity, outlineOpacity, outlineColor);
+    applyGraduatedStyle(userLayer, styleField, color, classCount, width, opacity, size, hasOnlyLines, hasOnlyPoints);
   }
   else if (styleMode === 'categorized' && styleField) {
-    applyCategorizedStyle(userLayer, styleField, pointSize, lineWidth, outlineWidth, fillOpacity, outlineOpacity, outlineColor);
+    applyCategorizedStyle(userLayer, styleField, width, opacity, size, hasOnlyLines, hasOnlyPoints);
   }
 }
 
-function applySingleColorStyle(userLayer, fillColor, outlineColor, pointSize, lineWidth, outlineWidth, fillOpacity, outlineOpacity) {
-  const hasOnlyLines = userLayer.layer && userLayer.layer.getLayers().every(layer => 
-    layer.feature && 
-    layer.feature.geometry && 
-    (layer.feature.geometry.type === 'LineString' || layer.feature.geometry.type === 'MultiLineString')
-  );
-  
+function applySingleStyle(userLayer, color, width, opacity, size, hasOnlyLines, hasOnlyPoints) {
   userLayer.layer.eachLayer(layer => {
     if (layer.setStyle) {
-      if (layer.feature && layer.feature.geometry && 
-          (layer.feature.geometry.type === 'LineString' || 
-           layer.feature.geometry.type === 'MultiLineString')) {
+      if (hasOnlyLines) {
         layer.setStyle({
-          color: fillColor,
-          weight: lineWidth,
-          opacity: fillOpacity
+          color: color,
+          weight: width,
+          opacity: opacity
+        });
+      } else if (hasOnlyPoints && layer.setRadius) {
+        layer.setStyle({
+          radius: size,
+          fillColor: color,
+          color: color,
+          weight: 1,
+          opacity: opacity,
+          fillOpacity: opacity
         });
       } else {
         layer.setStyle({
-          color: outlineColor,
-          weight: outlineWidth,
-          opacity: outlineOpacity,
-          fillColor: fillColor,
-          fillOpacity: fillOpacity
+          fillColor: color,
+          color: color,
+          weight: width,
+          opacity: opacity,
+          fillOpacity: opacity
         });
       }
     }
-    
-    if (layer.feature && layer.feature.geometry && 
-        layer.feature.geometry.type === 'Point' && layer.setRadius) {
-      layer.setStyle({
-        radius: pointSize,
-        fillColor: fillColor,
-        color: outlineColor,
-        weight: outlineWidth,
-        opacity: outlineOpacity,
-        fillOpacity: fillOpacity
-      });
-    }
   });
-  
-  userLayer.isLineOnlyLayer = hasOnlyLines;
 }
 
-function applyGraduatedStyle(userLayer, field, colorScaleName, classCount, pointSize, outlineWidth, fillOpacity, outlineOpacity, outlineColor) {
-  // console.log('Applying graduated style...');
+function applyGraduatedStyle(userLayer, field, colorScaleName, classCount, width, opacity, size, hasOnlyLines, hasOnlyPoints) {
   const values = [];
   userLayer.layer.eachLayer(layer => {
     if (layer.feature && layer.feature.properties && 
@@ -2602,33 +2636,30 @@ function applyGraduatedStyle(userLayer, field, colorScaleName, classCount, point
         const fillColorValue = colorScale[colorIndex];
         
         if (layer.setStyle) {
-          if (layer.feature.geometry.type === 'LineString' || 
-              layer.feature.geometry.type === 'MultiLineString') {
+          if (hasOnlyLines) {
             layer.setStyle({
               color: fillColorValue,
-              weight: outlineWidth,
-              opacity: fillOpacity
+              weight: width,
+              opacity: opacity
+            });
+          } else if (hasOnlyPoints && layer.setRadius) {
+            layer.setStyle({
+              radius: size,
+              fillColor: fillColorValue,
+              color: fillColorValue,
+              weight: 1,
+              opacity: opacity,
+              fillOpacity: opacity
             });
           } else {
             layer.setStyle({
-              color: outlineColor,
-              weight: outlineWidth,
-              opacity: outlineOpacity,
               fillColor: fillColorValue,
-              fillOpacity: fillOpacity
+              color: fillColorValue,
+              weight: width,
+              opacity: opacity,
+              fillOpacity: opacity
             });
           }
-        }
-        
-        if (layer.feature.geometry.type === 'Point' && layer.setRadius) {
-          layer.setStyle({
-            radius: pointSize,
-            fillColor: fillColorValue,
-            color: outlineColor,
-            weight: outlineWidth,
-            opacity: outlineOpacity,
-            fillOpacity: fillOpacity
-          });
         }
       }
     }
@@ -2642,8 +2673,7 @@ function applyGraduatedStyle(userLayer, field, colorScaleName, classCount, point
   }
 }
 
-function applyCategorizedStyle(userLayer, field, pointSize, outlineWidth, fillOpacity, outlineOpacity, outlineColor) {
-  // console.log('Applying categorized style...');
+function applyCategorizedStyle(userLayer, field, width, opacity, size, hasOnlyLines, hasOnlyPoints) {
   const categories = new Set();
   userLayer.layer.eachLayer(layer => {
     if (layer.feature && layer.feature.properties && 
@@ -2671,33 +2701,30 @@ function applyCategorizedStyle(userLayer, field, pointSize, outlineWidth, fillOp
       const fillColorValue = categoryColorMap[value] || '#CCCCCC';
       
       if (layer.setStyle) {
-        if (layer.feature.geometry.type === 'LineString' || 
-            layer.feature.geometry.type === 'MultiLineString') {
+        if (hasOnlyLines) {
           layer.setStyle({
             color: fillColorValue,
-            weight: outlineWidth,
-            opacity: fillOpacity
+            weight: width,
+            opacity: opacity
+          });
+        } else if (hasOnlyPoints && layer.setRadius) {
+          layer.setStyle({
+            radius: size,
+            fillColor: fillColorValue,
+            color: fillColorValue,
+            weight: 1,
+            opacity: opacity,
+            fillOpacity: opacity
           });
         } else {
           layer.setStyle({
-            color: outlineColor,
-            weight: outlineWidth,
-            opacity: outlineOpacity,
             fillColor: fillColorValue,
-            fillOpacity: fillOpacity
+            color: fillColorValue,
+            weight: width,
+            opacity: opacity,
+            fillOpacity: opacity
           });
         }
-      }
-      
-      if (layer.feature.geometry.type === 'Point' && layer.setRadius) {
-        layer.setStyle({
-          radius: pointSize,
-          fillColor: fillColorValue,
-          color: outlineColor,
-          weight: outlineWidth,
-          opacity: outlineOpacity,
-          fillOpacity: fillOpacity
-        });
       }
     }
   });
@@ -3899,6 +3926,16 @@ function updateAmenitiesDropdownLabel() {
   }
 }
 
+function updateLayerStyles() {
+  if (ScoresLayer && isPanelOpen("Connectivity Scores")) {
+    applyScoresLayerStyling();
+  } else if (AmenitiesCatchmentLayer && isPanelOpen("Journey Time Catchments - Amenities")) {
+    applyAmenitiesCatchmentLayerStyling();
+  } else if (CensusLayer && isPanelOpen("Census / Local Plan Data")) {
+    applyCensusLayerStyling();
+  }
+}
+
 function updateScoresLayer() {
   // console.log('Updating scores layer...');
   if (!initialLoadComplete || !isPanelOpen("Connectivity Scores")) {
@@ -4774,7 +4811,8 @@ function updateFilterDropdown() {
   const standardOptions = [
     { value: 'LA', text: 'Local Authority' },
     { value: 'Ward', text: 'Ward' },
-    { value: 'GrowthZone', text: 'Growth Zone' }
+    { value: 'GrowthZone', text: 'Growth Zone' },
+    { value: 'WestLinkZone', text: 'WESTlink Zone' }
   ];
   
   if (ScoresLayer || AmenitiesCatchmentLayer) {
@@ -4950,6 +4988,10 @@ function updateFilterValues() {
   } else if (currentFilterType === 'GrowthZone') {
     if (GrowthZonesLayer) {
       options = GrowthZonesLayer.getLayers().map(layer => layer.feature.properties.Name).sort();
+    }
+  } else if (currentFilterType === 'WestLinkZone') {
+    if (WestLinkZonesLayer) {
+      options = WestLinkZonesLayer.getLayers().map(layer => layer.feature.properties.name).sort();
     }
   } else if (currentFilterType === 'LA') {
     options = ['MCA', 'LEP'];
@@ -5250,7 +5292,7 @@ function applyFilters(features) {
     
     filteredFeatures = combinedFeatures;
   } 
-  else if (['Ward', 'GrowthZone', 'LA'].includes(filterType)) {
+  else if (['Ward', 'GrowthZone', 'WestLinkZone', 'LA'].includes(filterType)) {
     const filterValueContainer = document.getElementById('filterValueContainer');
     if (!filterValueContainer) return filteredFeatures;
     
@@ -5351,6 +5393,13 @@ function applyGeographicFilter(features, filterType, filterValue) {
         layer.feature.properties.Name === filterValue
       );
       polygon = growthZoneLayer?.toGeoJSON();
+    } else if (filterType === 'WestLinkZone') {
+      if (!WestLinkZonesLayer) return null;
+
+      const WestLinkZoneLayer = WestLinkZonesLayer.getLayers().find(layer =>
+        layer.feature.properties.name === filterValue
+      );
+      polygon = WestLinkZoneLayer?.toGeoJSON();
     } else if (filterType === 'LA') {
       if (!uaBoundariesLayer) return null;
 
@@ -5727,6 +5776,13 @@ function highlightSelectedArea() {
     selectedValues.forEach(filterValue => {
       const growthZoneLayers = GrowthZonesLayer.getLayers().filter(layer => layer.feature.properties.Name === filterValue);
       selectedPolygons = [...selectedPolygons, ...growthZoneLayers.map(layer => layer.toGeoJSON())];
+    });
+  } else if (filterType === 'WestLinkZone') {
+    if (!WestLinkZonesLayer) return;
+    
+    selectedValues.forEach(filterValue => {
+      const WestLinkZoneLayers = WestLinkZonesLayer.getLayers().filter(layer => layer.feature.properties.name === filterValue);
+      selectedPolygons = [...selectedPolygons, ...WestLinkZoneLayers.map(layer => layer.toGeoJSON())];
     });
   } else if (filterType === 'LA') {
     if (!uaBoundariesLayer) return;
