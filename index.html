@@ -572,45 +572,180 @@
   #legend.collapsed #toggle-legend:after {
     content: '\25B6';
   }
+  
+  /* Styles for User Layer Features */
+  .legend-file-upload-label {
+    display: inline-block;
+    padding: 4px 8px;
+    cursor: pointer;
+    background-color: #f0f0f0;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 0.9em;
+  }
+  
+  .legend-btn {
+    padding: 4px 8px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9em;
+    display: block;
+    width: 100%;
+  }
+  
+  .legend-btn:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+  }
+  
+  #userLayersContainer {
+    max-height: 150px;
+    overflow-y: auto;
+    margin-top: 5px;
+  }
+  
+  .user-layer-item {
+    padding: 3px 0;
+    font-size: 0.9em;
+  }
+  
+  .layer-controls button {
+    padding: 2px;
+    font-size: 0.85em;
+  }
+  
+  #legend {
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+  
+  /* Style Dialog CSS */
+  .modal-dialog {
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    background-color: white;
+    border-radius: 5px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    max-width: 90%;
+    width: 400px;
+  }
+  
+  .modal-content {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .modal-header h3 {
+    margin: 0;
+    font-size: 18px;
+  }
+  
+  .modal-body {
+    padding: 15px;
+    max-height: 400px;
+    overflow-y: auto;
+  }
+  
+  .modal-footer {
+    padding: 10px 15px;
+    border-top: 1px solid #eee;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+  
+  .style-option {
+    margin-bottom: 15px;
+  }
+  
+  .style-option label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+  }
+  
+  .style-option select,
+  .style-option input[type="color"] {
+    width: 100%;
+    padding: 5px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+  }
+  
+  .style-sub-option {
+    margin-top: 10px;
+    margin-left: 15px;
+  }
+  
+  .slider {
+    width: 100%;
+  }
+  
+  #apply-style,
+  #cancel-style {
+    padding: 8px 15px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  #apply-style {
+    background-color: #4CAF50;
+    color: white;
+  }
+  
+  #apply-style:hover {
+    background-color: #45a049;
+  }
+  
+  #cancel-style {
+    background-color: #f44336;
+    color: white;
+  }
+  
+  #cancel-style:hover {
+    background-color: #d32f2f;
+  }
+  
+  /* Drawing Tools Styles */
   .draw-buttons {
     display: flex;
-    gap: 2px;
-    margin-bottom: 10px;
+    gap: 5px;
+    margin-bottom: 8px;
   }
+
   .draw-button {
     flex: 1;
-    padding: 5px;
+    padding: 6px;
     background-color: #f5f5f5;
     border: 1px solid #ccc;
     border-radius: 4px;
     cursor: pointer;
-    text-align: center;
   }
+
   .draw-button:hover {
     background-color: #e8e8e8;
   }
+
   .draw-button.active {
     background-color: #4CAF50;
     color: white;
   }
-  #save-drawing-container {
-    display: none;
-    align-items: center;
-    margin-top: 8px;
-  }
-  #drawing-instructions {
-    font-size: 0.85em;
-    color: #666;
-    margin-bottom: 5px;
-  }
-  #drawingNameInput {
-    flex: 1;
-    padding: 4px;
-    margin-right: 5px;
-  }
-  #saveDrawingBtn {
-    padding: 4px 8px;
-  }
+
   .leaflet-draw-tooltip {
     background: rgba(0, 0, 0, 0.7);
     border: 1px solid #000;
@@ -620,150 +755,11 @@
     font-size: 12px;
     white-space: nowrap;
   }
+
   .leaflet-draw-actions {
     display: none;
   }
-  #attribute-editor-modal {
-    width: 450px;
-    z-index: 2000;
-  }
-  .attribute-field {
-    margin-bottom: 8px;
-  }
-  .field-row {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-  }
-  .attribute-name, .attribute-value {
-    padding: 6px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-  }
-  .attribute-name {
-    width: 40%;
-    background-color: #f8f8f8;
-  }
-  .attribute-value {
-    width: 50%;
-  }
-  .remove-attribute {
-    background: none;
-    border: none;
-    color: #f44336;
-    cursor: pointer;
-    font-size: 18px;
-    padding: 0 5px;
-  }
-  .attribute-field:first-child .remove-attribute {
-    display: none;
-  }
-  #cancel-attributes {
-    background-color: #f44336;
-    color: white;
-  }
   </style>
-  <template id="style-dialog-template">
-    <div id="style-dialog" class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h3 id="style-dialog-title">Style: Layer Name</h3>
-          <span class="close-btn">&times;</span>
-        </div>
-        <div class="modal-body">
-          <div class="style-option">
-            <label>Style Mode:</label>
-            <select id="style-mode">
-              <option value="single">Single Color</option>
-              <option value="graduated">Graduated Colors</option>
-              <option value="categorized">Categorized</option>
-            </select>
-          </div>
-          
-          <div id="field-selector" class="style-option" style="display: none;">
-            <label>Field:</label>
-            <select id="style-field">
-              <option value="">Select Field</option>
-            </select>
-          </div>
-          
-          <div class="style-tabs">
-            <div class="style-tab active" data-tab="fill">Fill Style</div>
-            <div class="style-tab" data-tab="outline">Outline Style</div>
-          </div>
-          
-          <div id="fill-tab" class="tab-content active">
-            <div id="single-color-options" class="style-option">
-              <div class="color-picker-row">
-                <label>Fill Color:</label>
-                <input type="color" id="single-fill-color">
-              </div>
-            </div>
-            
-            <div id="graduated-options" class="style-option" style="display: none;">
-              <label>Fill Color Scale:</label>
-              <select id="fill-color-scale">
-                <option value="viridis">Viridis</option>
-                <option value="inferno">Inferno</option>
-                <option value="plasma">Plasma</option>
-                <option value="magma">Magma</option>
-                <option value="blues">Blues</option>
-                <option value="greens">Greens</option>
-                <option value="reds">Reds</option>
-              </select>
-            </div>
-            
-            <div class="style-option">
-              <label>Fill Opacity:</label>
-              <input type="range" id="fill-opacity" min="0" max="1" step="0.1" value="0.7" class="slider">
-              <span id="fill-opacity-value">0.7</span>
-            </div>
-          </div>
-          
-          <div id="outline-tab" class="tab-content">
-            <div class="style-option">
-              <div class="color-picker-row">
-                <label>Outline Color:</label>
-                <input type="color" id="outline-color" value="#000000">
-              </div>
-            </div>
-            
-            <div class="style-option">
-              <label>Outline Width:</label>
-              <input type="range" id="outline-width" min="0.5" max="5" step="0.5" value="2" class="slider">
-              <span id="outline-width-value">2</span>
-            </div>
-            
-            <div class="style-option">
-              <label>Outline Opacity:</label>
-              <input type="range" id="outline-opacity" min="0" max="1" step="0.1" value="1" class="slider">
-              <span id="outline-opacity-value">1</span>
-            </div>
-          </div>
-          
-          <div id="classes-option" class="style-option" style="display: none;">
-            <label>Number of Classes:</label>
-            <select id="class-count">
-              <option value="3">3</option>
-              <option value="5" selected>5</option>
-              <option value="7">7</option>
-              <option value="9">9</option>
-            </select>
-          </div>
-          
-          <div id="point-size-option" class="style-option" style="display: none;">
-            <label>Point Size:</label>
-            <input type="range" id="point-size" min="2" max="20" value="8" class="slider">
-            <span id="point-size-value">8</span>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button id="apply-style">Apply</button>
-          <button id="cancel-style">Cancel</button>
-        </div>
-      </div>
-    </div>
-  </template>
 </head>
 <body>
   <div id="map"></div>
@@ -963,7 +959,7 @@
     <div id="Census" class="panel">
       <button class="panel-header">Census / Local Plan Data</button>
       <div id="panel-content">
-        <label for="baseColorCensus" class="large-font">Base Color:</label>
+        <label for="baseColorCensus" class="large-font">Base Colour:</label>
         <select id="baseColorCensus" class="medium-font">
           <option value="#1f77b4">Blue</option>
           <option value="#ff7f0e">Orange</option>
@@ -1224,7 +1220,6 @@
     <div class="modal-content">
       <div class="modal-header">
         <h3>Feature Attributes</h3>
-        <span class="close-btn" id="close-attribute-modal">&times;</span>
       </div>
       <div class="modal-body">
         <div id="attribute-fields-container">
@@ -1259,6 +1254,114 @@
         <button class="layer-remove-btn" data-id="" title="Remove layer">
           <i class="fas fa-trash"></i>
         </button>
+      </div>
+    </div>
+  </template>
+  <template id="infrastructure-popup-template">
+    <div class="infrastructure-popup">
+      <div class="popup-header">
+        <strong data-field="feature-type">Bus Stop</strong>
+        <div class="page-indicator"><span data-field="current-index">1</span> of <span data-field="total-features">1</span></div>
+      </div>
+      <div class="combined-frequency-header" data-field="frequency-container" style="display:none">
+        Combined AM Peak Frequency: <span data-field="combined-frequency">0</span> vph
+      </div>
+      <div class="popup-content" data-field="content">
+        <!-- Content will be inserted here -->
+      </div>
+      <div class="popup-footer" data-field="footer" style="display:none">
+        <button id="prev-feature" data-field="prev-btn">← Previous</button>
+        <button id="next-feature" data-field="next-btn">Next →</button>
+      </div>
+    </div>
+  </template>
+  <template id="style-dialog-template">
+    <div id="style-dialog" class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 id="style-dialog-title">Style: Layer Name</h3>
+        </div>
+        <div class="modal-body">
+          <div class="style-option">
+            <label>Style Mode:</label>
+            <select id="style-mode">
+              <option value="single">Single Colour</option>
+              <option value="graduated">Graduated Colours</option>
+              <option value="categorized">Categorized</option>
+            </select>
+          </div>
+          <div id="field-selector" class="style-option" style="display: none;">
+            <label>Field:</label>
+            <select id="style-field">
+              <option value="">Select Field</option>
+            </select>
+          </div>
+          <div class="style-tabs">
+            <div class="style-tab active" data-tab="fill">Fill Style</div>
+            <div class="style-tab" data-tab="outline">Outline Style</div>
+          </div>
+          <div id="fill-tab" class="tab-content active">
+            <div id="single-color-options" class="style-option">
+              <div class="color-picker-row">
+                <label>Colour:</label>
+                <input type="color" id="single-fill-color">
+              </div>
+            </div>
+            <div id="graduated-options" class="style-option" style="display: none;">
+              <label>Colour Scale:</label>
+              <select id="fill-color-scale">
+                <option value="viridis">Viridis</option>
+                <option value="inferno">Inferno</option>
+                <option value="plasma">Plasma</option>
+                <option value="magma">Magma</option>
+                <option value="blues">Blues</option>
+                <option value="greens">Greens</option>
+                <option value="reds">Reds</option>
+              </select>
+            </div>
+            <div class="style-option">
+              <label>Opacity:</label>
+              <input type="range" id="fill-opacity" min="0" max="1" step="0.1" value="0.7" class="slider">
+              <span id="fill-opacity-value">0.7</span>
+            </div>
+          </div>
+          <div id="outline-tab" class="tab-content">
+            <div class="style-option">
+              <div class="color-picker-row">
+                <label>Colour:</label>
+                <input type="color" id="outline-color" value="#000000">
+              </div>
+            </div>
+            <div class="style-option">
+              <label>Width:</label>
+              <input type="range" id="outline-width" min="0.5" max="5" step="0.5" value="2" class="slider">
+              <span id="outline-width-value">2</span>
+            </div>
+            <div class="style-option">
+              <label>Opacity:</label>
+              <input type="range" id="outline-opacity" min="0" max="1" step="0.1" value="1" class="slider">
+              <span id="outline-opacity-value">1</span>
+            </div>
+          </div>
+          <div id="classes-option" class="style-option" style="display: none;">
+            <label>Number of Classes:</label>
+            <select id="class-count">
+              <option value="3">3</option>
+              <option value="5" selected>5</option>
+              <option value="7">7</option>
+              <option value="9">9</option>
+            </select>
+          </div>
+          <div id="point-size-option" class="style-option" style="display: none;">
+            <label>Point Size:</label>
+            <input type="range" id="point-size" min="2" max="20" value="8" class="slider">
+            <span id="point-size-value">8</span>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="apply-style">Apply</button>
+          <button id="cancel-style">Cancel</button>
+        </div>
       </div>
     </div>
   </template>
