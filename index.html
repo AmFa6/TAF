@@ -1076,6 +1076,9 @@
           <div>
             <input type="checkbox" id="busLinesCheckbox"> <span style="font-size: 1em;">Bus Lines</span>
           </div>
+          <div>
+            <input type="checkbox" id="WestLinkZonesCheckbox"> <span style="font-size: 1em;">WESTlink Zones</span>
+          </div>
         </div>
       </div>   
       <div class="legend-category">
@@ -1138,6 +1141,7 @@
           <option value="LA">Local Authority</option>
           <option value="Ward">Ward</option>
           <option value="GrowthZone">Growth Zone</option>
+          <option value="WestLinkZone">WESTlink Zone</option>
           <option value="Range">Range (see Legend)</option>
         </select>
       </div>
@@ -1267,7 +1271,6 @@
         Combined AM Peak Frequency: <span data-field="combined-frequency">0</span> vph
       </div>
       <div class="popup-content" data-field="content">
-        <!-- Content will be inserted here -->
       </div>
       <div class="popup-footer" data-field="footer" style="display:none">
         <button id="prev-feature" data-field="prev-btn">← Previous</button>
@@ -1285,77 +1288,76 @@
           <div class="style-option">
             <label>Style Mode:</label>
             <select id="style-mode">
-              <option value="single">Single Colour</option>
-              <option value="graduated">Graduated Colours</option>
+              <option value="single">Single Style</option>
+              <option value="graduated">Graduated</option>
               <option value="categorized">Categorized</option>
             </select>
           </div>
+          
           <div id="field-selector" class="style-option" style="display: none;">
             <label>Field:</label>
             <select id="style-field">
               <option value="">Select Field</option>
             </select>
           </div>
-          <div class="style-tabs">
-            <div class="style-tab active" data-tab="fill">Fill Style</div>
-            <div class="style-tab" data-tab="outline">Outline Style</div>
-          </div>
-          <div id="fill-tab" class="tab-content active">
-            <div id="single-color-options" class="style-option">
+          
+          <!-- Single style options - will adapt based on geometry type -->
+          <div id="single-style-options">
+            <div class="style-option">
               <div class="color-picker-row">
-                <label>Colour:</label>
-                <input type="color" id="single-fill-color">
+                <label>Color:</label>
+                <input type="color" id="style-color" value="#3388ff">
               </div>
             </div>
-            <div id="graduated-options" class="style-option" style="display: none;">
-              <label>Colour Scale:</label>
-              <select id="fill-color-scale">
+            
+            <div class="style-option" id="opacity-option">
+              <label>Opacity: <span id="opacity-value">0.7</span></label>
+              <input type="range" id="style-opacity" min="0" max="1" step="0.1" value="0.7" class="slider">
+            </div>
+            
+            <div class="style-option" id="width-option">
+              <label>Width: <span id="width-value">2</span></label>
+              <input type="range" id="style-width" min="0" max="10" step="0.5" value="2" class="slider">
+            </div>
+            
+            <div class="style-option" id="point-size-option" style="display: none;">
+              <label>Size: <span id="point-size-value">8</span></label>
+              <input type="range" id="point-size" min="2" max="20" value="8" class="slider">
+            </div>
+          </div>
+          
+          <!-- Graduated/Categorized style options -->
+          <div id="graduated-options" style="display: none;">
+            <div class="style-option">
+              <label>Color Scale:</label>
+              <select id="color-scale">
                 <option value="viridis">Viridis</option>
                 <option value="inferno">Inferno</option>
                 <option value="plasma">Plasma</option>
-                <option value="magma">Magma</option>
                 <option value="blues">Blues</option>
                 <option value="greens">Greens</option>
                 <option value="reds">Reds</option>
               </select>
             </div>
+            
             <div class="style-option">
-              <label>Opacity:</label>
-              <input type="range" id="fill-opacity" min="0" max="1" step="0.1" value="0.7" class="slider">
-              <span id="fill-opacity-value">0.7</span>
+              <label>Number of Classes:</label>
+              <select id="class-count">
+                <option value="3">3</option>
+                <option value="5" selected>5</option>
+                <option value="7">7</option>
+              </select>
             </div>
-          </div>
-          <div id="outline-tab" class="tab-content">
-            <div class="style-option">
-              <div class="color-picker-row">
-                <label>Colour:</label>
-                <input type="color" id="outline-color" value="#000000">
-              </div>
+            
+            <div class="style-option" id="graduated-opacity-option">
+              <label>Opacity: <span id="graduated-opacity-value">0.7</span></label>
+              <input type="range" id="graduated-opacity" min="0" max="1" step="0.1" value="0.7" class="slider">
             </div>
-            <div class="style-option">
-              <label>Width:</label>
-              <input type="range" id="outline-width" min="0.5" max="5" step="0.5" value="2" class="slider">
-              <span id="outline-width-value">2</span>
+            
+            <div class="style-option" id="graduated-width-option">
+              <label>Width/Size: <span id="graduated-width-value">2</span></label>
+              <input type="range" id="graduated-width" min="0" max="10" step="0.5" value="2" class="slider">
             </div>
-            <div class="style-option">
-              <label>Opacity:</label>
-              <input type="range" id="outline-opacity" min="0" max="1" step="0.1" value="1" class="slider">
-              <span id="outline-opacity-value">1</span>
-            </div>
-          </div>
-          <div id="classes-option" class="style-option" style="display: none;">
-            <label>Number of Classes:</label>
-            <select id="class-count">
-              <option value="3">3</option>
-              <option value="5" selected>5</option>
-              <option value="7">7</option>
-              <option value="9">9</option>
-            </select>
-          </div>
-          <div id="point-size-option" class="style-option" style="display: none;">
-            <label>Point Size:</label>
-            <input type="range" id="point-size" min="2" max="20" value="8" class="slider">
-            <span id="point-size-value">8</span>
           </div>
         </div>
         <div class="modal-footer">
