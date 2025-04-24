@@ -746,24 +746,6 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
   updateFilterDropdown();
   updateFilterValues();
-  
-  const style = document.createElement('style');
-  style.textContent = `
-    .show-catchment-btn {
-      margin-top: 8px;
-      padding: 5px 10px;
-      background-color: #4CAF50;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 12px;
-    }
-    .show-catchment-btn:hover {
-      background-color: #45a049;
-    }
-  `;
-  document.head.appendChild(style);
 
   initialLoadComplete = true;
 
@@ -820,165 +802,6 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
   initializeFileUpload();
 
-  const additionalStyle = document.createElement('style');
-  additionalStyle.textContent = `
-    .legend-file-upload-label {
-      display: inline-block;
-      padding: 4px 8px;
-      cursor: pointer;
-      background-color: #f0f0f0;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      font-size: 0.9em;
-    }
-    
-    .legend-btn {
-      padding: 4px 8px;
-      background-color: #4CAF50;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 0.9em;
-      display: block;
-      width: 100%;
-    }
-    
-    .legend-btn:disabled {
-      background-color: #ccc;
-      cursor: not-allowed;
-    }
-    
-    #userLayersContainer {
-      max-height: 150px;
-      overflow-y: auto;
-      margin-top: 5px;
-    }
-    
-    .user-layer-item {
-      padding: 3px 0;
-      font-size: 0.9em;
-    }
-    
-    .layer-controls button {
-      padding: 2px;
-      font-size: 0.85em;
-    }
-    
-    #legend {
-      max-height: 80vh;
-      overflow-y: auto;
-    }
-  `;
-  document.head.appendChild(additionalStyle);
-
-  const styleDialogCss = document.createElement('style');
-  styleDialogCss.textContent = `
-    .modal-dialog {
-      position: fixed;
-      left: 50%;
-      top: 50%;
-      transform: translate(-50%, -50%);
-      background-color: white;
-      border-radius: 5px;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-      z-index: 1000;
-      max-width: 90%;
-      width: 400px;
-    }
-    
-    .modal-content {
-      display: flex;
-      flex-direction: column;
-    }
-    
-    .modal-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px 15px;
-      border-bottom: 1px solid #eee;
-    }
-    
-    .modal-header h3 {
-      margin: 0;
-      font-size: 18px;
-    }
-    
-    .close-btn {
-      cursor: pointer;
-      font-size: 20px;
-    }
-    
-    .modal-body {
-      padding: 15px;
-      max-height: 400px;
-      overflow-y: auto;
-    }
-    
-    .modal-footer {
-      padding: 10px 15px;
-      border-top: 1px solid #eee;
-      display: flex;
-      justify-content: flex-end;
-      gap: 10px;
-    }
-    
-    .style-option {
-      margin-bottom: 15px;
-    }
-    
-    .style-option label {
-      display: block;
-      margin-bottom: 5px;
-      font-weight: bold;
-    }
-    
-    .style-option select,
-    .style-option input[type="color"] {
-      width: 100%;
-      padding: 5px;
-      border-radius: 4px;
-      border: 1px solid #ccc;
-    }
-    
-    .style-sub-option {
-      margin-top: 10px;
-      margin-left: 15px;
-    }
-    
-    .slider {
-      width: 100%;
-    }
-    
-    #apply-style,
-    #cancel-style {
-      padding: 8px 15px;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    
-    #apply-style {
-      background-color: #4CAF50;
-      color: white;
-    }
-    
-    #apply-style:hover {
-      background-color: #45a049;
-    }
-    
-    #cancel-style {
-      background-color: #f44336;
-      color: white;
-    }
-    
-    #cancel-style:hover {
-      background-color: #d32f2f;
-    }
-  `;
-  document.head.appendChild(styleDialogCss);
-
   document.getElementById('add-attribute-field').addEventListener('click', function() {
     addAttributeField();
   });
@@ -990,56 +813,8 @@ document.addEventListener('DOMContentLoaded', (event) => {
   document.getElementById('cancel-attributes').addEventListener('click', function() {
     cancelAttributeEditing();
   });
-  
-  document.getElementById('close-attribute-modal').addEventListener('click', function() {
-    cancelAttributeEditing();
-  });
-});
 
-document.addEventListener('DOMContentLoaded', function() {
   setupDrawingTools();
-  
-  const drawingToolsStyle = document.createElement('style');
-  drawingToolsStyle.textContent = `
-    .draw-buttons {
-      display: flex;
-      gap: 5px;
-      margin-bottom: 8px;
-    }
-
-    .draw-button {
-      flex: 1;
-      padding: 6px;
-      background-color: #f5f5f5;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-
-    .draw-button:hover {
-      background-color: #e8e8e8;
-    }
-
-    .draw-button.active {
-      background-color: #4CAF50;
-      color: white;
-    }
-
-    .leaflet-draw-tooltip {
-      background: rgba(0, 0, 0, 0.7);
-      border: 1px solid #000;
-      color: #fff;
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-size: 12px;
-      white-space: nowrap;
-    }
-
-    .leaflet-draw-actions {
-      display: none;
-    }
-  `;
-  document.head.appendChild(drawingToolsStyle);
 });
 
 map.on('zoomend', () => {
@@ -1279,7 +1054,7 @@ function initializeFileUpload() {
 }
 
 function addUserLayer(data, fileName) {
-  // // console.log('Adding user layer...');
+  // console.log('Adding user layer...');
   try {
     const layerId = `userLayer_${userLayerCount++}`;
     const layerName = fileName.split('.')[0];
@@ -2518,7 +2293,6 @@ function continueDrawing() {
 }
 
 function openStyleDialog(layerId) {
-  // console.log('Opening style dialog...');
   const userLayer = userLayers.find(l => l.id === layerId);
   if (!userLayer) return;
   
@@ -2532,6 +2306,12 @@ function openStyleDialog(layerId) {
   
   const titleElement = dialogClone.querySelector('#style-dialog-title');
   titleElement.textContent = `Style: ${userLayer.name}`;
+  
+  const hasOnlyLines = userLayer.layer && userLayer.layer.getLayers().every(layer => 
+    layer.feature && 
+    layer.feature.geometry && 
+    (layer.feature.geometry.type === 'LineString' || layer.feature.geometry.type === 'MultiLineString')
+  );
   
   const styleMode = dialogClone.querySelector('#style-mode');
   styleMode.value = userLayer.styleMode || 'single';
@@ -2548,6 +2328,41 @@ function openStyleDialog(layerId) {
     option.selected = userLayer.styleField === field;
     styleField.appendChild(option);
   });
+  
+  if (hasOnlyLines) {
+    const fillTab = dialogClone.querySelector('[data-tab="fill"]');
+    if (fillTab) {
+      fillTab.textContent = "Line Style";
+    }
+    
+    const outlineTab = dialogClone.querySelector('[data-tab="outline"]');
+    if (outlineTab) {
+      outlineTab.style.display = 'none';
+    }
+    
+    const fillTabContent = dialogClone.querySelector('#fill-tab');
+    const widthControl = document.createElement('div');
+    widthControl.className = 'style-option';
+    widthControl.innerHTML = `
+      <label for="line-width">Width:</label>
+      <div class="slider-container">
+        <input type="range" id="line-width" class="slider" min="0.5" max="10" step="0.5" value="${userLayer.lineWidth || userLayer.outlineWidth || 2}">
+        <span id="line-width-value">${userLayer.lineWidth || userLayer.outlineWidth || 2}</span>
+      </div>
+    `;
+    
+    const opacityControl = fillTabContent.querySelector('.style-option:nth-child(2)');
+    if (opacityControl && opacityControl.nextSibling) {
+      fillTabContent.insertBefore(widthControl, opacityControl.nextSibling);
+    } else {
+      fillTabContent.appendChild(widthControl);
+    }
+    
+    const outlineTabContent = dialogClone.querySelector('#outline-tab');
+    if (outlineTabContent) {
+      outlineTabContent.style.display = 'none';
+    }
+  }
   
   const singleFillColor = dialogClone.querySelector('#single-fill-color');
   singleFillColor.value = userLayer.fillColor || userLayer.defaultColor;
@@ -2603,6 +2418,11 @@ function openStyleDialog(layerId) {
   
   document.querySelectorAll('.style-tab').forEach(tab => {
     tab.addEventListener('click', function() {
+      if (hasOnlyLines && tab.getAttribute('data-tab') === 'outline' ||
+          tab.style.display === 'none') {
+        return;
+      }
+      
       const tabName = this.getAttribute('data-tab');
       
       document.querySelectorAll('.style-tab').forEach(t => t.classList.remove('active'));
@@ -2620,6 +2440,10 @@ function openStyleDialog(layerId) {
     'point-size': 'point-size-value'
   };
   
+  if (hasOnlyLines) {
+    sliders['line-width'] = 'line-width-value';
+  }
+  
   Object.entries(sliders).forEach(([sliderId, valueId]) => {
     const slider = document.getElementById(sliderId);
     if (slider) {
@@ -2629,16 +2453,12 @@ function openStyleDialog(layerId) {
     }
   });
   
-  document.querySelector('.close-btn').addEventListener('click', function() {
-    document.body.removeChild(document.getElementById('style-dialog'));
-  });
-  
   document.getElementById('cancel-style').addEventListener('click', function() {
     document.body.removeChild(document.getElementById('style-dialog'));
   });
   
   document.getElementById('apply-style').addEventListener('click', function() {
-    applyLayerStyle(layerId);
+    applyUserLayerStyle(layerId);
     document.body.removeChild(document.getElementById('style-dialog'));
   });
 }
@@ -2653,8 +2473,7 @@ function updateLayerStyles() {
   }
 }
 
-function applyLayerStyle(layerId) {
-  // console.log('Applying layer style...');
+function applyUserLayerStyle(layerId) {
   const userLayer = userLayers.find(l => l.id === layerId);
   if (!userLayer) return;
   
@@ -2665,7 +2484,18 @@ function applyLayerStyle(layerId) {
   const colorScale = document.getElementById('fill-color-scale')?.value || 'viridis';
   const classCount = parseInt(document.getElementById('class-count')?.value || '5');
   const pointSize = parseInt(document.getElementById('point-size')?.value || '8');
+  
+  const hasOnlyLines = userLayer.layer && userLayer.layer.getLayers().every(layer => 
+    layer.feature && 
+    layer.feature.geometry && 
+    (layer.feature.geometry.type === 'LineString' || layer.feature.geometry.type === 'MultiLineString')
+  );
+  
   const outlineWidth = parseFloat(document.getElementById('outline-width')?.value || '2');
+  const lineWidth = hasOnlyLines ? 
+    parseFloat(document.getElementById('line-width')?.value || '2') : 
+    outlineWidth;
+  
   const fillOpacity = parseFloat(document.getElementById('fill-opacity')?.value || '0.7');
   const outlineOpacity = parseFloat(document.getElementById('outline-opacity')?.value || '1.0');
   
@@ -2679,28 +2509,47 @@ function applyLayerStyle(layerId) {
   userLayer.outlineWidth = outlineWidth;
   userLayer.pointSize = pointSize;
   
+  if (hasOnlyLines) {
+    userLayer.lineWidth = lineWidth;
+  }
+  
   if (styleMode === 'single') {
-    applySingleColorStyle(userLayer, fillColor, outlineColor, pointSize, outlineWidth, fillOpacity, outlineOpacity);
+    applySingleColorStyle(userLayer, fillColor, outlineColor, pointSize, lineWidth, outlineWidth, fillOpacity, outlineOpacity);
   }
   else if (styleMode === 'graduated' && styleField) {
-    applyGraduatedStyle(userLayer, styleField, colorScale, classCount, pointSize, outlineWidth, fillOpacity, outlineOpacity, outlineColor);
+    applyGraduatedStyle(userLayer, styleField, colorScale, classCount, pointSize, lineWidth, outlineWidth, fillOpacity, outlineOpacity, outlineColor);
   }
   else if (styleMode === 'categorized' && styleField) {
-    applyCategorizedStyle(userLayer, styleField, pointSize, outlineWidth, fillOpacity, outlineOpacity, outlineColor);
+    applyCategorizedStyle(userLayer, styleField, pointSize, lineWidth, outlineWidth, fillOpacity, outlineOpacity, outlineColor);
   }
 }
 
-function applySingleColorStyle(userLayer, fillColor, outlineColor, pointSize, outlineWidth, fillOpacity, outlineOpacity) {
-  // console.log('Applying single color style...');
+function applySingleColorStyle(userLayer, fillColor, outlineColor, pointSize, lineWidth, outlineWidth, fillOpacity, outlineOpacity) {
+  const hasOnlyLines = userLayer.layer && userLayer.layer.getLayers().every(layer => 
+    layer.feature && 
+    layer.feature.geometry && 
+    (layer.feature.geometry.type === 'LineString' || layer.feature.geometry.type === 'MultiLineString')
+  );
+  
   userLayer.layer.eachLayer(layer => {
     if (layer.setStyle) {
-      layer.setStyle({
-        color: outlineColor,
-        weight: outlineWidth,
-        opacity: outlineOpacity,
-        fillColor: fillColor,
-        fillOpacity: fillOpacity
-      });
+      if (layer.feature && layer.feature.geometry && 
+          (layer.feature.geometry.type === 'LineString' || 
+           layer.feature.geometry.type === 'MultiLineString')) {
+        layer.setStyle({
+          color: fillColor,
+          weight: lineWidth,
+          opacity: fillOpacity
+        });
+      } else {
+        layer.setStyle({
+          color: outlineColor,
+          weight: outlineWidth,
+          opacity: outlineOpacity,
+          fillColor: fillColor,
+          fillOpacity: fillOpacity
+        });
+      }
     }
     
     if (layer.feature && layer.feature.geometry && 
@@ -2715,6 +2564,8 @@ function applySingleColorStyle(userLayer, fillColor, outlineColor, pointSize, ou
       });
     }
   });
+  
+  userLayer.isLineOnlyLayer = hasOnlyLines;
 }
 
 function applyGraduatedStyle(userLayer, field, colorScaleName, classCount, pointSize, outlineWidth, fillOpacity, outlineOpacity, outlineColor) {
@@ -2751,13 +2602,22 @@ function applyGraduatedStyle(userLayer, field, colorScaleName, classCount, point
         const fillColorValue = colorScale[colorIndex];
         
         if (layer.setStyle) {
-          layer.setStyle({
-            color: outlineColor,
-            weight: outlineWidth,
-            opacity: outlineOpacity,
-            fillColor: fillColorValue,
-            fillOpacity: fillOpacity
-          });
+          if (layer.feature.geometry.type === 'LineString' || 
+              layer.feature.geometry.type === 'MultiLineString') {
+            layer.setStyle({
+              color: fillColorValue,
+              weight: outlineWidth,
+              opacity: fillOpacity
+            });
+          } else {
+            layer.setStyle({
+              color: outlineColor,
+              weight: outlineWidth,
+              opacity: outlineOpacity,
+              fillColor: fillColorValue,
+              fillOpacity: fillOpacity
+            });
+          }
         }
         
         if (layer.feature.geometry.type === 'Point' && layer.setRadius) {
@@ -2811,13 +2671,22 @@ function applyCategorizedStyle(userLayer, field, pointSize, outlineWidth, fillOp
       const fillColorValue = categoryColorMap[value] || '#CCCCCC';
       
       if (layer.setStyle) {
-        layer.setStyle({
-          color: outlineColor,
-          weight: outlineWidth,
-          opacity: outlineOpacity,
-          fillColor: fillColorValue,
-          fillOpacity: fillOpacity
-        });
+        if (layer.feature.geometry.type === 'LineString' || 
+            layer.feature.geometry.type === 'MultiLineString') {
+          layer.setStyle({
+            color: fillColorValue,
+            weight: outlineWidth,
+            opacity: fillOpacity
+          });
+        } else {
+          layer.setStyle({
+            color: outlineColor,
+            weight: outlineWidth,
+            opacity: outlineOpacity,
+            fillColor: fillColorValue,
+            fillOpacity: fillOpacity
+          });
+        }
       }
       
       if (layer.feature.geometry.type === 'Point' && layer.setRadius) {
@@ -3843,7 +3712,6 @@ function formatFeatureProperties(feature, featureType) {
 }
 
 function showInfrastructurePopup(latlng, nearbyFeatures) {
-  // console.log('Showing infrastructure popup...');
   const busLineFeatures = nearbyFeatures.busLines;
   const busStopFeatures = nearbyFeatures.busStops;
   
@@ -3905,38 +3773,34 @@ function showInfrastructurePopup(latlng, nearbyFeatures) {
     const currentFeature = allFeatures[currentIndex];
     const featureType = busStopFeatures.includes(currentFeature) ? 'Bus Stop' : 'Bus Line';
     
-    let content = `
-      <div class="infrastructure-popup">
-        <div class="popup-header">
-          <strong>${featureType}</strong>
-          <div class="page-indicator">${currentIndex + 1} of ${totalFeatures}</div>
-        </div>`;
+    const template = document.getElementById('infrastructure-popup-template');
+    const content = document.importNode(template.content, true);
     
+    content.querySelector('[data-field="feature-type"]').textContent = featureType;
+    content.querySelector('[data-field="current-index"]').textContent = currentIndex + 1;
+    content.querySelector('[data-field="total-features"]').textContent = totalFeatures;
+    
+    const frequencyContainer = content.querySelector('[data-field="frequency-container"]');
     if (busLineFeatures.length > 0 && featureType === 'Bus Line') {
-      content += `
-        <div class="combined-frequency-header">
-          Combined AM Peak Frequency: ${Math.round(combinedBusFrequency)} vph
-        </div>`;
+      frequencyContainer.style.display = 'block';
+      content.querySelector('[data-field="combined-frequency"]').textContent = Math.round(combinedBusFrequency);
     }
     
-    content += `
-        <div class="popup-content">
-          ${formatFeatureProperties(currentFeature.feature, featureType)}
-        </div>
-    `;
+    content.querySelector('[data-field="content"]').innerHTML = formatFeatureProperties(currentFeature.feature, featureType);
     
+    const footer = content.querySelector('[data-field="footer"]');
     if (totalFeatures > 1) {
-      content += `
-        <div class="popup-footer">
-          <button id="prev-feature" ${currentIndex === 0 ? 'disabled' : ''}>← Previous</button>
-          <button id="next-feature" ${currentIndex === totalFeatures - 1 ? 'disabled' : ''}>Next →</button>
-        </div>
-      `;
+      footer.style.display = 'flex';
+      const prevBtn = content.querySelector('[data-field="prev-btn"]');
+      const nextBtn = content.querySelector('[data-field="next-btn"]');
+      
+      prevBtn.disabled = currentIndex === 0;
+      nextBtn.disabled = currentIndex === totalFeatures - 1;
     }
     
-    content += '</div>';
-    
-    popup.setContent(content);
+    const div = document.createElement('div');
+    div.appendChild(content);
+    popup.setContent(div.innerHTML);
     
     highlightCurrentFeature();
     
