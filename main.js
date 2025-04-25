@@ -1302,33 +1302,40 @@ function openStyleDialog(layerId) {
   const userLayer = userLayers.find(l => l.id === layerId);
   if (!userLayer) return;
 
+  // Remove any existing color pickers first
+  const existingPickers = document.querySelectorAll('input[type="color"].style-color-picker');
+  existingPickers.forEach(picker => picker.parentNode.removeChild(picker));
+
   const colorPicker = document.createElement('input');
   colorPicker.type = 'color';
   colorPicker.value = userLayer.defaultColor || '#000000';
-  colorPicker.style.position = 'absolute';
+  colorPicker.className = 'style-color-picker';
+  colorPicker.style.position = 'fixed'; // Use fixed instead of absolute
   colorPicker.style.zIndex = '1000';
-  colorPicker.style.marginLeft = '-50px';
-  
+
   const styleButton = document.querySelector(`.layer-style-btn[data-id="${layerId}"]`);
   if (styleButton) {
+    // Position relative to viewport using getBoundingClientRect
     const rect = styleButton.getBoundingClientRect();
-    colorPicker.style.top = `${rect.bottom + 5}px`;
-    colorPicker.style.left = `${rect.left + rect.width/2}px`;
+    colorPicker.style.left = `${rect.right-60}px`;
+    colorPicker.style.top = `${rect.top}px`;
+    document.body.appendChild(colorPicker);
+  } else {
+    document.body.appendChild(colorPicker);
   }
-  
+
   colorPicker.addEventListener('change', function() {
     applySimpleStyle(layerId, this.value);
     document.body.removeChild(this);
   });
-  
+
   document.addEventListener('click', function closeColorPicker(e) {
     if (e.target !== colorPicker && e.target !== styleButton) {
-      document.body.removeChild(colorPicker);
+      if (colorPicker.parentNode) colorPicker.parentNode.removeChild(colorPicker);
       document.removeEventListener('click', closeColorPicker);
     }
   });
-  
-  document.body.appendChild(colorPicker);
+
   setTimeout(() => colorPicker.click(), 100);
 }
 
