@@ -1286,83 +1286,11 @@
         </div>
         <div class="modal-body">
           <div class="style-option">
-            <label>Style Mode:</label>
-            <select id="style-mode">
-              <option value="single">Single Style</option>
-              <option value="graduated">Graduated</option>
-              <option value="categorized">Categorized</option>
-            </select>
-          </div>
-          
-          <div id="field-selector" class="style-option" style="display: none;">
-            <label>Field:</label>
-            <select id="style-field">
-              <option value="">Select Field</option>
-            </select>
-          </div>
-          
-          <!-- Single style options - will adapt based on geometry type -->
-          <div id="single-style-options">
-            <div class="style-option">
-              <div class="color-picker-row">
-                <label>Color:</label>
-                <input type="color" id="style-color" value="#3388ff">
-              </div>
-            </div>
-            
-            <div class="style-option" id="opacity-option">
-              <label>Opacity: <span id="opacity-value">0.7</span></label>
-              <input type="range" id="style-opacity" min="0" max="1" step="0.1" value="0.7" class="slider">
-            </div>
-            
-            <div class="style-option" id="width-option">
-              <label>Width: <span id="width-value">2</span></label>
-              <input type="range" id="style-width" min="0" max="10" step="0.5" value="2" class="slider">
-            </div>
-            
-            <div class="style-option" id="point-size-option" style="display: none;">
-              <label>Size: <span id="point-size-value">8</span></label>
-              <input type="range" id="point-size" min="2" max="20" value="8" class="slider">
+            <div class="color-picker-row">
+              <label>Color:</label>
+              <input type="color" id="style-color" value="#000000">
             </div>
           </div>
-          
-          <!-- Graduated/Categorized style options -->
-          <div id="graduated-options" style="display: none;">
-            <div class="style-option">
-              <label>Color Scale:</label>
-              <select id="color-scale">
-                <option value="viridis">Viridis</option>
-                <option value="inferno">Inferno</option>
-                <option value="plasma">Plasma</option>
-                <option value="blues">Blues</option>
-                <option value="greens">Greens</option>
-                <option value="reds">Reds</option>
-              </select>
-            </div>
-            
-            <div class="style-option">
-              <label>Number of Classes:</label>
-              <select id="class-count">
-                <option value="3">3</option>
-                <option value="5" selected>5</option>
-                <option value="7">7</option>
-              </select>
-            </div>
-            
-            <div class="style-option" id="graduated-opacity-option">
-              <label>Opacity: <span id="graduated-opacity-value">0.7</span></label>
-              <input type="range" id="graduated-opacity" min="0" max="1" step="0.1" value="0.7" class="slider">
-            </div>
-            
-            <div class="style-option" id="graduated-width-option">
-              <label>Width/Size: <span id="graduated-width-value">2</span></label>
-              <input type="range" id="graduated-width" min="0" max="10" step="0.5" value="2" class="slider">
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button id="apply-style">Apply</button>
-          <button id="cancel-style">Cancel</button>
         </div>
       </div>
     </div>
