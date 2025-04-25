@@ -1125,27 +1125,16 @@ function addUserLayer(data, fileName) {
       }
     }
     
-    const defaultColor = getRandomColor();
+    const defaultColor = '#000000';
 
-    function getRandomColor() {
-      const letters = '0123456789ABCDEF';
-      let color = '#';
-      for (let i = 0; i < 6; i++) {
-        color += letters[Math.floor(Math.random() * 16)];
-      }
-      return color;
-    }
-
-    const defaultStyle = {
-      color: defaultColor,
-      weight: 2,
-      opacity: 0.7,
-      fillOpacity: 0.3
-    };
-    
     const layer = L.geoJSON(reprojectedData, {
-      style: function(feature) {
-        return defaultStyle;
+      style: function() {
+        return {
+          color: defaultColor,
+          weight: 3,
+          opacity: 0.75,
+          fillOpacity: 0
+        };
       },
       onEachFeature: function(feature, layer) {
         if (feature.properties) {
@@ -1171,12 +1160,12 @@ function addUserLayer(data, fileName) {
       },
       pointToLayer: function(feature, latlng) {
         return L.circleMarker(latlng, {
-          radius: 8,
+          radius: 3,
           fillColor: defaultColor,
-          color: '#000',
+          color: defaultColor,
           weight: 1,
-          opacity: 1,
-          fillOpacity: 0.8
+          opacity: 0.75,
+          fillOpacity: 0.75
         });
       }
     }).addTo(map);
@@ -1186,13 +1175,7 @@ function addUserLayer(data, fileName) {
       name: layerName,
       fileName: fileName,
       layer: layer,
-      styleMode: 'single',
-      styleField: '',
-      colorScale: 'viridis',
-      fieldValues: null,
-      colorMap: {},
       defaultColor: defaultColor,
-      originalStyle: defaultStyle,
       fieldNames: fieldNames,
       numericFields: numericFields,
       originalData: reprojectedData
@@ -1264,6 +1247,89 @@ function addUserLayer(data, fileName) {
     console.error("Error details:", error);
     return null;
   }
+}
+
+function applySimpleStyle(layerId, color) {
+  const userLayer = userLayers.find(l => l.id === layerId);
+  if (!userLayer) return;
+  
+  userLayer.defaultColor = color;
+  
+  const hasOnlyPoints = userLayer.layer.getLayers().every(layer => 
+    layer.feature && 
+    layer.feature.geometry && 
+    layer.feature.geometry.type === 'Point'
+  );
+  
+  const hasOnlyLines = userLayer.layer.getLayers().every(layer => 
+    layer.feature && 
+    layer.feature.geometry && 
+    (layer.feature.geometry.type === 'LineString' || layer.feature.geometry.type === 'MultiLineString')
+  );
+  
+  userLayer.layer.eachLayer(layer => {
+    if (layer.setStyle) {
+      if (hasOnlyPoints && layer.setRadius) {
+        layer.setStyle({
+          radius: 3,
+          fillColor: color,
+          color: color,
+          weight: 1,
+          opacity: 0.75,
+          fillOpacity: 0.75
+        });
+      } else if (hasOnlyLines) {
+        layer.setStyle({
+          color: color,
+          weight: 3,
+          opacity: 0.75,
+          fillOpacity: 0
+        });
+      } else {
+        layer.setStyle({
+          color: color,
+          fillColor: color,
+          weight: 3,
+          opacity: 0.75,
+          fillOpacity: 0
+        });
+      }
+    }
+  });
+}
+
+function openStyleDialog(layerId) {
+  const userLayer = userLayers.find(l => l.id === layerId);
+  if (!userLayer) return;
+
+  const colorPicker = document.createElement('input');
+  colorPicker.type = 'color';
+  colorPicker.value = userLayer.defaultColor || '#000000';
+  colorPicker.style.position = 'absolute';
+  colorPicker.style.zIndex = '1000';
+  colorPicker.style.marginLeft = '-50px';
+  
+  const styleButton = document.querySelector(`.layer-style-btn[data-id="${layerId}"]`);
+  if (styleButton) {
+    const rect = styleButton.getBoundingClientRect();
+    colorPicker.style.top = `${rect.bottom + 5}px`;
+    colorPicker.style.left = `${rect.left + rect.width/2}px`;
+  }
+  
+  colorPicker.addEventListener('change', function() {
+    applySimpleStyle(layerId, this.value);
+    document.body.removeChild(this);
+  });
+  
+  document.addEventListener('click', function closeColorPicker(e) {
+    if (e.target !== colorPicker && e.target !== styleButton) {
+      document.body.removeChild(colorPicker);
+      document.removeEventListener('click', closeColorPicker);
+    }
+  });
+  
+  document.body.appendChild(colorPicker);
+  setTimeout(() => colorPicker.click(), 100);
 }
 
 function setupDrawingTools() {
@@ -2343,507 +2409,140 @@ function continueDrawing() {
   }
 }
 
-function openStyleDialog(layerId) {
-  const userLayer = userLayers.find(l => l.id === layerId);
-  if (!userLayer) return;
+function populateUserLayerFilterValues(userLayer, fieldName) {
+  // console.log('populateUserLayerFilterValues called from:');
+  const filterValueContainer = document.getElementById('filterValueContainer');
+  const filterCheckboxesSection = document.createElement('div');
+  filterCheckboxesSection.className = 'filter-checkboxes-section';
+  filterCheckboxesSection.style.marginTop = '10px';
   
-  const existingDialog = document.getElementById('style-dialog');
-  if (existingDialog) {
-    document.body.removeChild(existingDialog);
+  const existingCheckboxes = filterValueContainer.querySelector('.filter-checkboxes-section');
+  if (existingCheckboxes) {
+    filterValueContainer.removeChild(existingCheckboxes);
   }
   
-  const templateContent = document.getElementById('style-dialog-template').content;
-  const dialogClone = document.importNode(templateContent, true);
-  
-  const titleElement = dialogClone.querySelector('#style-dialog-title');
-  titleElement.textContent = `Style: ${userLayer.name}`;
-  
-  const hasOnlyLines = userLayer.layer && userLayer.layer.getLayers().every(layer => 
-    layer.feature && 
-    layer.feature.geometry && 
-    (layer.feature.geometry.type === 'LineString' || layer.feature.geometry.type === 'MultiLineString')
-  );
-  
-  const hasOnlyPoints = userLayer.layer && userLayer.layer.getLayers().every(layer => 
-    layer.feature && 
-    layer.feature.geometry && 
-    layer.feature.geometry.type === 'Point'
-  );
-  
-  const styleMode = dialogClone.querySelector('#style-mode');
-  styleMode.value = userLayer.styleMode || 'single';
-  
-  const fieldSelector = dialogClone.querySelector('#field-selector');
-  fieldSelector.style.display = userLayer.styleMode !== 'single' ? 'block' : 'none';
-  
-  const styleField = dialogClone.querySelector('#style-field');
-  styleField.innerHTML = '<option value="">Select Field</option>';
-  userLayer.fieldNames.forEach(field => {
-    const option = document.createElement('option');
-    option.value = field;
-    option.textContent = field;
-    option.selected = userLayer.styleField === field;
-    styleField.appendChild(option);
-  });
-  
-  const styleColor = dialogClone.querySelector('#style-color');
-  const styleOpacity = dialogClone.querySelector('#style-opacity');
-  const styleWidth = dialogClone.querySelector('#style-width');
-  const pointSizeOption = dialogClone.querySelector('#point-size-option');
-  const widthOption = dialogClone.querySelector('#width-option');
-  const opacityOption = dialogClone.querySelector('#opacity-option');
-  
-  styleColor.value = userLayer.fillColor || userLayer.defaultColor || '#3388ff';
-  styleOpacity.value = userLayer.fillOpacity || 0.7;
-  styleWidth.value = hasOnlyLines ? (userLayer.lineWidth || 2) : (userLayer.outlineWidth || 2);
-  
-  dialogClone.querySelector('#opacity-value').textContent = styleOpacity.value;
-  dialogClone.querySelector('#width-value').textContent = styleWidth.value;
-  
-  if (hasOnlyPoints) {
-    widthOption.style.display = 'none';
-    pointSizeOption.style.display = 'block';
-    const pointSize = dialogClone.querySelector('#point-size');
-    pointSize.value = userLayer.pointSize || 8;
-    dialogClone.querySelector('#point-size-value').textContent = pointSize.value;
-    
-    opacityOption.querySelector('label').textContent = 'Fill Opacity: ' + styleOpacity.value;
-  } else if (hasOnlyLines) {
-    pointSizeOption.style.display = 'none';
-    widthOption.querySelector('label').textContent = 'Line Width: ' + styleWidth.value;
-    opacityOption.querySelector('label').textContent = 'Line Opacity: ' + styleOpacity.value;
-  } else {
-    pointSizeOption.style.display = 'none';
-    widthOption.querySelector('label').textContent = 'Outline Width: ' + styleWidth.value;
-    opacityOption.querySelector('label').textContent = 'Fill Opacity: ' + styleOpacity.value;
-  }
-  
-  const graduatedOptions = dialogClone.querySelector('#graduated-options');
-  graduatedOptions.style.display = userLayer.styleMode === 'graduated' || 
-                                   userLayer.styleMode === 'categorized' ? 'block' : 'none';
-  
-  const colorScale = dialogClone.querySelector('#color-scale');
-  colorScale.value = userLayer.colorScale || 'viridis';
-  
-  const classCount = dialogClone.querySelector('#class-count');
-  classCount.value = userLayer.classCount || '5';
-  
-  const graduatedOpacity = dialogClone.querySelector('#graduated-opacity');
-  graduatedOpacity.value = userLayer.fillOpacity || 0.7;
-  dialogClone.querySelector('#graduated-opacity-value').textContent = graduatedOpacity.value;
-  
-  const graduatedWidth = dialogClone.querySelector('#graduated-width');
-  graduatedWidth.value = hasOnlyLines ? (userLayer.lineWidth || 2) : 
-                          hasOnlyPoints ? (userLayer.pointSize || 8) : (userLayer.outlineWidth || 2);
-  dialogClone.querySelector('#graduated-width-value').textContent = graduatedWidth.value;
-  
-  if (hasOnlyPoints) {
-    dialogClone.querySelector('#graduated-width-option label').textContent = 
-      'Point Size: ' + graduatedWidth.value;
-  } else if (hasOnlyLines) {
-    dialogClone.querySelector('#graduated-width-option label').textContent = 
-      'Line Width: ' + graduatedWidth.value;
-  } else {
-    dialogClone.querySelector('#graduated-width-option label').textContent = 
-      'Outline Width: ' + graduatedWidth.value;
-  }
-  
-  document.body.appendChild(dialogClone);
-  
-  const styledDialog = document.getElementById('style-dialog');
-  
-  if (styledDialog) {
-    const styleModeElement = styledDialog.querySelector('#style-mode');
-    if (styleModeElement) {
-      styleModeElement.addEventListener('change', function() {
-        const mode = this.value;
-        const fieldSelectorElement = styledDialog.querySelector('#field-selector');
-        if (fieldSelectorElement) {
-          fieldSelectorElement.style.display = mode === 'single' ? 'none' : 'block';
-        }
-        const singleStyleOptions = styledDialog.querySelector('#single-style-options');
-        if (singleStyleOptions) {
-          singleStyleOptions.style.display = mode === 'single' ? 'block' : 'none';
-        }
-        const gradOptions = styledDialog.querySelector('#graduated-options');
-        if (gradOptions) {
-          gradOptions.style.display = mode === 'single' ? 'none' : 'block';
-        }
-      });
+  if (!fieldName) {
+    const filterValueButton = document.getElementById('filterValueButton');
+    if (filterValueButton) {
+      filterValueButton.textContent = 'All features';
     }
     
-    const sliders = [
-      { slider: 'style-opacity', display: 'opacity-value' },
-      { slider: 'style-width', display: 'width-value' },
-      { slider: 'point-size', display: 'point-size-value' },
-      { slider: 'graduated-opacity', display: 'graduated-opacity-value' },
-      { slider: 'graduated-width', display: 'graduated-width-value' }
-    ];
+    const hiddenDiv = document.createElement('div');
+    hiddenDiv.style.display = 'none';
     
-    sliders.forEach(({ slider, display }) => {
-      const sliderElement = styledDialog.querySelector(`#${slider}`);
-      const displayElement = styledDialog.querySelector(`#${display}`);
-      if (sliderElement && displayElement) {
-        sliderElement.addEventListener('input', function() {
-          displayElement.textContent = this.value;
-        });
+    const allFeaturesCheckbox = document.createElement('input');
+    allFeaturesCheckbox.type = 'checkbox';
+    allFeaturesCheckbox.id = 'all-features-filter';
+    allFeaturesCheckbox.checked = true;
+    allFeaturesCheckbox.className = 'filter-value-checkbox';
+    allFeaturesCheckbox.value = 'All features';
+    
+    hiddenDiv.appendChild(allFeaturesCheckbox);
+    filterCheckboxesSection.appendChild(hiddenDiv);
+    filterValueContainer.appendChild(filterCheckboxesSection);
+
+    updateSummaryStatistics(getCurrentFeatures());
+    
+    if (document.getElementById('highlightAreaCheckbox').checked) {
+      highlightSelectedArea();
+    }
+    
+    return;
+  }
+
+  const uniqueValues = new Set();
+  userLayer.layer.eachLayer(layer => {
+    if (layer.feature && layer.feature.properties && 
+        layer.feature.properties[fieldName] !== undefined) {
+      uniqueValues.add(String(layer.feature.properties[fieldName]));
+    }
+  });
+  
+  const values = Array.from(uniqueValues).sort();
+  
+  const selectAllLabel = document.createElement('label');
+  selectAllLabel.className = 'checkbox-label';
+  
+  const selectAllCheckbox = document.createElement('input');
+  selectAllCheckbox.type = 'checkbox';
+  selectAllCheckbox.id = 'select-all-filter';
+  selectAllCheckbox.checked = true;
+  
+  const selectAllSpan = document.createElement('span');
+  selectAllSpan.innerHTML = '<i>Select/Deselect All</i>';
+  
+  selectAllLabel.appendChild(selectAllCheckbox);
+  selectAllLabel.appendChild(selectAllSpan);
+  filterCheckboxesSection.appendChild(selectAllLabel);
+  
+  const checkboxes = [];
+  values.forEach((value, index) => {
+    const label = document.createElement('label');
+    label.className = 'checkbox-label';
+    
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.id = `filter-${value.toString().replace(/\s+/g, '-').replace(/[^\w-]/g, '')}`;
+    checkbox.value = value;
+    checkbox.checked = true;
+    checkbox.className = 'filter-value-checkbox';
+    checkboxes.push(checkbox);
+    
+    const span = document.createElement('span');
+    span.textContent = value;
+    
+    label.appendChild(checkbox);
+    label.appendChild(span);
+    filterCheckboxesSection.appendChild(label);
+    
+    checkbox.addEventListener('change', function() {
+      updateFilterButtonText();
+      updateSummaryStatistics(getCurrentFeatures());
+      
+      if (document.getElementById('highlightAreaCheckbox').checked) {
+        highlightSelectedArea();
       }
     });
+  });
+  
+  selectAllCheckbox.addEventListener('change', function() {
+    const isChecked = this.checked;
+    checkboxes.forEach(cb => cb.checked = isChecked);
+    updateFilterButtonText();
+    updateSummaryStatistics(getCurrentFeatures());
     
-    const cancelButton = styledDialog.querySelector('#cancel-style');
-    if (cancelButton) {
-      cancelButton.addEventListener('click', function() {
-        const dialogElement = document.getElementById('style-dialog');
-        if (dialogElement) {
-          document.body.removeChild(dialogElement);
-        }
-      });
+    if (document.getElementById('highlightAreaCheckbox').checked) {
+      highlightSelectedArea();
     }
+  });
+  
+  function updateFilterButtonText() {
+    const selectedValues = checkboxes
+      .filter(cb => cb.checked)
+      .map(cb => cb.value);
     
-    const applyButton = styledDialog.querySelector('#apply-style');
-    if (applyButton) {
-      applyButton.addEventListener('click', function() {
-        applyUserLayerStyle(layerId);
-        const dialogElement = document.getElementById('style-dialog');
-        if (dialogElement) {
-          document.body.removeChild(dialogElement);
-        }
-      });
-    }
-  }
-}
-
-function applyUserLayerStyle(layerId) {
-  const userLayer = userLayers.find(l => l.id === layerId);
-  if (!userLayer) return;
-  
-  const styleDialog = document.getElementById('style-dialog');
-  if (!styleDialog) return;
-  
-  const styleMode = document.getElementById('style-mode').value;
-  const styleField = document.getElementById('style-field')?.value || '';
-  
-  const hasOnlyLines = userLayer.layer && userLayer.layer.getLayers().every(layer => 
-    layer.feature && 
-    layer.feature.geometry && 
-    (layer.feature.geometry.type === 'LineString' || layer.feature.geometry.type === 'MultiLineString')
-  );
-  
-  const hasOnlyPoints = userLayer.layer && userLayer.layer.getLayers().every(layer => 
-    layer.feature && 
-    layer.feature.geometry && 
-    layer.feature.geometry.type === 'Point'
-  );
-  
-  let color, opacity, width, size;
-  let classCount = 5;
-  
-  if (styleMode === 'single') {
-    color = document.getElementById('style-color').value;
-    opacity = parseFloat(document.getElementById('style-opacity').value);
-    width = parseFloat(document.getElementById('style-width').value);
-    size = hasOnlyPoints ? parseFloat(document.getElementById('point-size').value) : width;
-  } else {
-    color = document.getElementById('color-scale').value;
-    opacity = parseFloat(document.getElementById('graduated-opacity').value);
-    width = parseFloat(document.getElementById('graduated-width').value);
-    size = hasOnlyPoints ? width : width;
-    classCount = parseInt(document.getElementById('class-count').value);
-  }
-  
-  userLayer.styleMode = styleMode;
-  userLayer.styleField = styleField;
-  userLayer.colorScale = color;
-  userLayer.fillColor = color;
-  userLayer.fillOpacity = opacity;
-  userLayer.outlineWidth = hasOnlyLines ? 0 : width;
-  userLayer.pointSize = hasOnlyPoints ? size : 8;
-  userLayer.lineWidth = hasOnlyLines ? width : 2;
-  userLayer.classCount = classCount;
-  
-  if (styleMode === 'single') {
-    applySingleStyle(userLayer, color, width, opacity, size, hasOnlyLines, hasOnlyPoints);
-  }
-  else if (styleMode === 'graduated' && styleField) {
-    applyGraduatedStyle(userLayer, styleField, color, classCount, width, opacity, size, hasOnlyLines, hasOnlyPoints);
-  }
-  else if (styleMode === 'categorized' && styleField) {
-    applyCategorizedStyle(userLayer, styleField, width, opacity, size, hasOnlyLines, hasOnlyPoints);
-  }
-}
-
-function applySingleStyle(userLayer, color, width, opacity, size, hasOnlyLines, hasOnlyPoints) {
-  userLayer.layer.eachLayer(layer => {
-    if (layer.setStyle) {
-      if (hasOnlyLines) {
-        layer.setStyle({
-          color: color,
-          weight: width,
-          opacity: opacity
-        });
-      } else if (hasOnlyPoints && layer.setRadius) {
-        layer.setStyle({
-          radius: size,
-          fillColor: color,
-          color: color,
-          weight: 1,
-          opacity: opacity,
-          fillOpacity: opacity
-        });
+    const filterValueButton = document.getElementById('filterValueButton');
+    if (filterValueButton) {
+      if (selectedValues.length === 0) {
+        filterValueButton.textContent = '\u00A0';
+      } else if (selectedValues.length === 1) {
+        filterValueButton.textContent = selectedValues[0];
+      } else if (selectedValues.length === values.length) {
+        filterValueButton.textContent = 'All Values';
       } else {
-        layer.setStyle({
-          fillColor: color,
-          color: color,
-          weight: width,
-          opacity: opacity,
-          fillOpacity: opacity
-        });
+        filterValueButton.textContent = `${selectedValues.length} values selected`;
       }
     }
-  });
-}
-
-function applyGraduatedStyle(userLayer, field, colorScaleName, classCount, width, opacity, size, hasOnlyLines, hasOnlyPoints) {
-  const values = [];
-  userLayer.layer.eachLayer(layer => {
-    if (layer.feature && layer.feature.properties && 
-        layer.feature.properties[field] !== undefined && 
-        !isNaN(parseFloat(layer.feature.properties[field]))) {
-      values.push(parseFloat(layer.feature.properties[field]));
-    }
-  });
-  
-  if (values.length === 0) {
-    alert(`No numeric values found in field "${field}"`);
-    return;
   }
   
-  const breaks = calculateQuantileBreaks(values, classCount);
-  const colorScale = getColorScale(colorScaleName, classCount);
+  filterValueContainer.appendChild(filterCheckboxesSection);
+  updateFilterButtonText();
   
-  userLayer.layer.eachLayer(layer => {
-    if (layer.feature && layer.feature.properties) {
-      const value = parseFloat(layer.feature.properties[field]);
-      if (!isNaN(value)) {
-        let colorIndex = 0;
-        for (let i = 0; i < breaks.length - 1; i++) {
-          if (value >= breaks[i] && value <= breaks[i + 1]) {
-            colorIndex = i;
-            break;
-          }
-        }
-        
-        const fillColorValue = colorScale[colorIndex];
-        
-        if (layer.setStyle) {
-          if (hasOnlyLines) {
-            layer.setStyle({
-              color: fillColorValue,
-              weight: width,
-              opacity: opacity
-            });
-          } else if (hasOnlyPoints && layer.setRadius) {
-            layer.setStyle({
-              radius: size,
-              fillColor: fillColorValue,
-              color: fillColorValue,
-              weight: 1,
-              opacity: opacity,
-              fillOpacity: opacity
-            });
-          } else {
-            layer.setStyle({
-              fillColor: fillColorValue,
-              color: fillColorValue,
-              weight: width,
-              opacity: opacity,
-              fillOpacity: opacity
-            });
-          }
-        }
-      }
-    }
-  });
+  updateSummaryStatistics(getCurrentFeatures());
   
-  userLayer.fieldValues = breaks;
-  userLayer.colorMap = {};
-  for (let i = 0; i < breaks.length - 1; i++) {
-    const label = `${breaks[i].toFixed(2)} - ${breaks[i+1].toFixed(2)}`;
-    userLayer.colorMap[label] = colorScale[i];
+  if (document.getElementById('highlightAreaCheckbox').checked) {
+    highlightSelectedArea();
   }
-}
-
-function applyCategorizedStyle(userLayer, field, width, opacity, size, hasOnlyLines, hasOnlyPoints) {
-  const categories = new Set();
-  userLayer.layer.eachLayer(layer => {
-    if (layer.feature && layer.feature.properties && 
-        layer.feature.properties[field] !== undefined) {
-      categories.add(String(layer.feature.properties[field]));
-    }
-  });
-  
-  if (categories.size === 0) {
-    alert(`No values found in field "${field}"`);
-    return;
-  }
-  
-  const categoryArray = Array.from(categories);
-  const colorScale = getCategoricalColorScale(categoryArray.length);
-  const categoryColorMap = {};
-  
-  categoryArray.forEach((category, index) => {
-    categoryColorMap[category] = colorScale[index % colorScale.length];
-  });
-  
-  userLayer.layer.eachLayer(layer => {
-    if (layer.feature && layer.feature.properties) {
-      const value = String(layer.feature.properties[field]);
-      const fillColorValue = categoryColorMap[value] || '#CCCCCC';
-      
-      if (layer.setStyle) {
-        if (hasOnlyLines) {
-          layer.setStyle({
-            color: fillColorValue,
-            weight: width,
-            opacity: opacity
-          });
-        } else if (hasOnlyPoints && layer.setRadius) {
-          layer.setStyle({
-            radius: size,
-            fillColor: fillColorValue,
-            color: fillColorValue,
-            weight: 1,
-            opacity: opacity,
-            fillOpacity: opacity
-          });
-        } else {
-          layer.setStyle({
-            fillColor: fillColorValue,
-            color: fillColorValue,
-            weight: width,
-            opacity: opacity,
-            fillOpacity: opacity
-          });
-        }
-      }
-    }
-  });
-  
-  userLayer.fieldValues = categoryArray;
-  userLayer.colorMap = categoryColorMap;
-}
-
-function calculateQuantileBreaks(values, numClasses) {
-  // console.log('Calculating quantile breaks...');
-  if (values.length === 0) return [];
-  
-  const sortedValues = [...values].sort((a, b) => a - b);
-  const min = sortedValues[0];
-  const max = sortedValues[sortedValues.length - 1];
-  
-  if (min === max) {
-    return [min, max];
-  }
-  
-  const breaks = [min];
-  
-  for (let i = 1; i < numClasses; i++) {
-    const index = Math.floor((sortedValues.length - 1) * i / numClasses);
-    breaks.push(sortedValues[index]);
-  }
-  
-  breaks.push(max);
-  
-  return breaks;
-}
-
-function getColorScale(name, count) {
-  // console.log('Getting color scale...');
-  const scales = {
-    viridis: ['#440154', '#3b528b', '#21918c', '#5ec962', '#fde725'],
-    inferno: ['#000004', '#781c6d', '#ed6925', '#fcfea4'],
-    plasma: ['#0d0887', '#7e03a8', '#cb4678', '#f89540', '#f0f921'],
-    magma: ['#000004', '#51127c', '#b63679', '#fb8861', '#fcfdbf'],
-    blues: ['#f7fbff', '#c6dbef', '#85bcdb', '#4292c6', '#08306b'],
-    greens: ['#f7fcf5', '#c7e9c0', '#74c476', '#31a354', '#006d2c'],
-    reds: ['#fff5f0', '#fcbba1', '#fb6a4a', '#de2d26', '#a50f15']
-  };
-  
-  const baseScale = scales[name] || scales.viridis;
-  
-  if (count <= baseScale.length) {
-    return baseScale.slice(0, count);
-  }
-  
-  const result = [];
-  for (let i = 0; i < count; i++) {
-    const position = i / (count - 1) * (baseScale.length - 1);
-    const index = Math.floor(position);
-    const remainder = position - index;
-    
-    if (index >= baseScale.length - 1) {
-      result.push(baseScale[baseScale.length - 1]);
-    } else {
-      const color1 = hexToRgb(baseScale[index]);
-      const color2 = hexToRgb(baseScale[index + 1]);
-      
-      const r = Math.round(color1.r + remainder * (color2.r - color1.r));
-      const g = Math.round(color1.g + remainder * (color2.g - color1.g));
-      const b = Math.round(color1.b + remainder * (color2.b - color1.b));
-      
-      result.push(rgbToHex(r, g, b));
-    }
-  }
-  
-  return result;
-}
-
-function getCategoricalColorScale(count) {
-  // console.log('Getting categorical color scale...');
-  const colors = [
-    '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
-    '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf',
-    '#aec7e8', '#ffbb78', '#98df8a', '#ff9896', '#c5b0d5',
-    '#c49c94', '#f7b6d2', '#c7c7c7', '#dbdb8d', '#9edae5'
-  ];
-  
-  if (count <= colors.length) {
-    return colors.slice(0, count);
-  }
-  
-  const result = [];
-  for (let i = 0; i < count; i++) {
-    result.push(colors[i % colors.length]);
-  }
-  
-  return result;
-}
-
-function hexToRgb(hex) {
-  // console.log('Converting hex to RGB...');
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  return result ? {
-    r: parseInt(result[1], 16),
-    g: parseInt(result[2], 16),
-    b: parseInt(result[3], 16)
-  } : null;
-}
-
-function rgbToHex(r, g, b) {
-  // console.log('Converting RGB to hex...');
-  return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
-}
-
-function darkenColor(color, factor) {
-  // console.log('Darkening color...');
-  const rgb = hexToRgb(color);
-  if (!rgb) return color;
-  
-  const r = Math.max(0, Math.floor(rgb.r * (1 - factor)));
-  const g = Math.max(0, Math.floor(rgb.g * (1 - factor)));
-  const b = Math.max(0, Math.floor(rgb.b * (1 - factor)));
-  
-  return rgbToHex(r, g, b);
 }
 
 function detectAndFixProjection(data) {
@@ -4656,142 +4355,6 @@ function applyCensusLayerStyling() {
       fillOpacity: opacity
     });
   });
-}
-
-function populateUserLayerFilterValues(userLayer, fieldName) {
-  // console.log('populateUserLayerFilterValues called from:');
-  const filterValueContainer = document.getElementById('filterValueContainer');
-  const filterCheckboxesSection = document.createElement('div');
-  filterCheckboxesSection.className = 'filter-checkboxes-section';
-  filterCheckboxesSection.style.marginTop = '10px';
-  
-  const existingCheckboxes = filterValueContainer.querySelector('.filter-checkboxes-section');
-  if (existingCheckboxes) {
-    filterValueContainer.removeChild(existingCheckboxes);
-  }
-  
-  if (!fieldName) {
-    const filterValueButton = document.getElementById('filterValueButton');
-    if (filterValueButton) {
-      filterValueButton.textContent = 'All features';
-    }
-    
-    const hiddenDiv = document.createElement('div');
-    hiddenDiv.style.display = 'none';
-    
-    const allFeaturesCheckbox = document.createElement('input');
-    allFeaturesCheckbox.type = 'checkbox';
-    allFeaturesCheckbox.id = 'all-features-filter';
-    allFeaturesCheckbox.checked = true;
-    allFeaturesCheckbox.className = 'filter-value-checkbox';
-    allFeaturesCheckbox.value = 'All features';
-    
-    hiddenDiv.appendChild(allFeaturesCheckbox);
-    filterCheckboxesSection.appendChild(hiddenDiv);
-    filterValueContainer.appendChild(filterCheckboxesSection);
-
-    updateSummaryStatistics(getCurrentFeatures());
-    
-    if (document.getElementById('highlightAreaCheckbox').checked) {
-      highlightSelectedArea();
-    }
-    
-    return;
-  }
-
-  const uniqueValues = new Set();
-  userLayer.layer.eachLayer(layer => {
-    if (layer.feature && layer.feature.properties && 
-        layer.feature.properties[fieldName] !== undefined) {
-      uniqueValues.add(String(layer.feature.properties[fieldName]));
-    }
-  });
-  
-  const values = Array.from(uniqueValues).sort();
-  
-  const selectAllLabel = document.createElement('label');
-  selectAllLabel.className = 'checkbox-label';
-  
-  const selectAllCheckbox = document.createElement('input');
-  selectAllCheckbox.type = 'checkbox';
-  selectAllCheckbox.id = 'select-all-filter';
-  selectAllCheckbox.checked = true;
-  
-  const selectAllSpan = document.createElement('span');
-  selectAllSpan.innerHTML = '<i>Select/Deselect All</i>';
-  
-  selectAllLabel.appendChild(selectAllCheckbox);
-  selectAllLabel.appendChild(selectAllSpan);
-  filterCheckboxesSection.appendChild(selectAllLabel);
-  
-  const checkboxes = [];
-  values.forEach((value, index) => {
-    const label = document.createElement('label');
-    label.className = 'checkbox-label';
-    
-    const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
-    checkbox.id = `filter-${value.toString().replace(/\s+/g, '-').replace(/[^\w-]/g, '')}`;
-    checkbox.value = value;
-    checkbox.checked = true;
-    checkbox.className = 'filter-value-checkbox';
-    checkboxes.push(checkbox);
-    
-    const span = document.createElement('span');
-    span.textContent = value;
-    
-    label.appendChild(checkbox);
-    label.appendChild(span);
-    filterCheckboxesSection.appendChild(label);
-    
-    checkbox.addEventListener('change', function() {
-      updateFilterButtonText();
-      updateSummaryStatistics(getCurrentFeatures());
-      
-      if (document.getElementById('highlightAreaCheckbox').checked) {
-        highlightSelectedArea();
-      }
-    });
-  });
-  
-  selectAllCheckbox.addEventListener('change', function() {
-    const isChecked = this.checked;
-    checkboxes.forEach(cb => cb.checked = isChecked);
-    updateFilterButtonText();
-    updateSummaryStatistics(getCurrentFeatures());
-    
-    if (document.getElementById('highlightAreaCheckbox').checked) {
-      highlightSelectedArea();
-    }
-  });
-  
-  function updateFilterButtonText() {
-    const selectedValues = checkboxes
-      .filter(cb => cb.checked)
-      .map(cb => cb.value);
-    
-    const filterValueButton = document.getElementById('filterValueButton');
-    if (filterValueButton) {
-      if (selectedValues.length === 0) {
-        filterValueButton.textContent = '\u00A0';
-      } else if (selectedValues.length === 1) {
-        filterValueButton.textContent = selectedValues[0];
-      } else if (selectedValues.length === values.length) {
-        filterValueButton.textContent = 'All Values';
-      } else {
-        filterValueButton.textContent = `${selectedValues.length} values selected`;
-      }
-    }
-  }
-  
-  filterValueContainer.appendChild(filterCheckboxesSection);
-  updateFilterButtonText();
-  
-  updateSummaryStatistics(getCurrentFeatures());
-  
-  if (document.getElementById('highlightAreaCheckbox').checked) {
-    highlightSelectedArea();
-  }
 }
 
 function updateFilterDropdown() {
