@@ -2718,15 +2718,15 @@ function configureSlider(sliderElement, isInverse) {
     sliderElement.noUiSlider.off('update');
   }
   
+  updateLayerStyles()
+
   const handles = sliderElement.querySelectorAll('.noUi-handle');
   const connectElements = sliderElement.querySelectorAll('.noUi-connect');
 
-  // Reset all handle and connection styles first
   if (handles.length >= 2) {
     handles[0].classList.add('noUi-handle-lower');
     handles[1].classList.add('noUi-handle-upper');
   }
-  
   handles.forEach(handle => {
     handle.classList.remove('noUi-handle-transparent');
   });
@@ -2735,31 +2735,36 @@ function configureSlider(sliderElement, isInverse) {
     connect.classList.remove('noUi-connect-dark-grey', 'noUi-connect-gradient-right', 'noUi-connect-gradient-left');
   });
 
-  // Apply appropriate styles based on isInverse flag
   if (isInverse) {
-    // For inverse scale (high values on left, low values on right)
+    sliderElement.noUiSlider.updateOptions({
+      connect: [true, true, true]
+    }, false);
+    
     if (handles.length >= 2) {
-      handles[1].classList.remove('noUi-handle-transparent');
-      handles[0].classList.add('noUi-handle-transparent');
+      handles[1].classList.add('noUi-handle-transparent');
+      handles[0].classList.remove('noUi-handle-transparent');
     }
     
     if (connectElements.length >= 3) {
-      connectElements[0].classList.remove('noUi-connect-dark-grey');
+      connectElements[0].classList.add('noUi-connect-dark-grey');
       connectElements[1].classList.remove('noUi-connect-gradient-right');
       connectElements[1].classList.add('noUi-connect-gradient-left');
-      connectElements[2].classList.add('noUi-connect-dark-grey');
+      connectElements[2].classList.remove('noUi-connect-dark-grey');
     }
   } else {
-    // For normal scale (low values on left, high values on right)
+    sliderElement.noUiSlider.updateOptions({
+      connect: [true, true, true]
+    }, false);
+    
     if (handles.length >= 2) {
-      handles[0].classList.add('noUi-handle-transparent');
       handles[1].classList.remove('noUi-handle-transparent');
+      handles[0].classList.add('noUi-handle-transparent');
     }
     
     if (connectElements.length >= 3) {
       connectElements[0].classList.remove('noUi-connect-dark-grey');
-      connectElements[1].classList.add('noUi-connect-gradient-right');
       connectElements[1].classList.remove('noUi-connect-gradient-left');
+      connectElements[1].classList.add('noUi-connect-gradient-right');
       connectElements[2].classList.add('noUi-connect-dark-grey');
     }
   }
@@ -2891,7 +2896,7 @@ function updateSliderRanges(type, scaleType) {
       maxElement.innerText = formatValue(adjustedMaxValue, step);
     }
 
-    configureSlider(rangeElement, null, isInverse, order);   
+    configureSlider(rangeElement, isInverse);   
   }
 
   isUpdatingSliders = false;
@@ -2943,7 +2948,7 @@ function toggleInverseScale(type, scaleType) {
   // console.log('Toggling inverse scale...');
   isUpdatingSliders = true;
 
-  let isInverse, rangeElement;
+  let isInverse, rangeElement, order;
 
   if (type === 'Scores') {
     if (scaleType === 'Opacity') {
@@ -2982,8 +2987,12 @@ function toggleInverseScale(type, scaleType) {
       outlineCensusOrder = isInverse ? 'high-to-low' : 'low-to-high';
     }
   }
+
+  const currentValues = rangeElement.noUiSlider.get();
   
-  configureSlider(rangeElement,isInverse);
+  // Fix: Pass isInverse directly as the second parameter
+  configureSlider(rangeElement, isInverse);
+  rangeElement.noUiSlider.set(currentValues, false);
 
   updateSliderRanges(type, scaleType);
 
