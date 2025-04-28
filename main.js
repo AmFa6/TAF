@@ -2727,6 +2727,7 @@ function configureSlider(sliderElement, isInverse) {
     handles[0].classList.add('noUi-handle-lower');
     handles[1].classList.add('noUi-handle-upper');
   }
+  
   handles.forEach(handle => {
     handle.classList.remove('noUi-handle-transparent');
   });
@@ -2736,36 +2737,38 @@ function configureSlider(sliderElement, isInverse) {
   });
 
   if (isInverse) {
+    // When inverse, we want:
+    // [FILLED][GRADIENT][TRANSPARENT]
     sliderElement.noUiSlider.updateOptions({
       connect: [true, true, true]
     }, false);
     
     if (handles.length >= 2) {
-      handles[1].classList.add('noUi-handle-transparent');
-      handles[0].classList.remove('noUi-handle-transparent');
+      handles[1].classList.add('noUi-handle-transparent'); // Right handle transparent
+      handles[0].classList.remove('noUi-handle-transparent'); // Left handle visible
     }
     
     if (connectElements.length >= 3) {
-      connectElements[0].classList.add('noUi-connect-dark-grey');
-      connectElements[1].classList.remove('noUi-connect-gradient-right');
-      connectElements[1].classList.add('noUi-connect-gradient-left');
-      connectElements[2].classList.remove('noUi-connect-dark-grey');
+      connectElements[0].classList.add('noUi-connect-dark-grey'); // Left section filled
+      connectElements[1].classList.add('noUi-connect-gradient-left'); // Middle section gradient from filled to transparent
+      connectElements[2].classList.remove('noUi-connect-dark-grey'); // Right section transparent
     }
   } else {
+    // When not inverse, we want:
+    // [TRANSPARENT][GRADIENT][FILLED]
     sliderElement.noUiSlider.updateOptions({
       connect: [true, true, true]
     }, false);
     
     if (handles.length >= 2) {
-      handles[1].classList.remove('noUi-handle-transparent');
-      handles[0].classList.add('noUi-handle-transparent');
+      handles[0].classList.add('noUi-handle-transparent'); // Left handle transparent
+      handles[1].classList.remove('noUi-handle-transparent'); // Right handle visible
     }
     
     if (connectElements.length >= 3) {
-      connectElements[0].classList.remove('noUi-connect-dark-grey');
-      connectElements[1].classList.remove('noUi-connect-gradient-left');
-      connectElements[1].classList.add('noUi-connect-gradient-right');
-      connectElements[2].classList.add('noUi-connect-dark-grey');
+      connectElements[0].classList.remove('noUi-connect-dark-grey'); // Left section transparent
+      connectElements[1].classList.add('noUi-connect-gradient-right'); // Middle section gradient from transparent to filled
+      connectElements[2].classList.add('noUi-connect-dark-grey'); // Right section filled
     }
   }
 
