@@ -175,6 +175,7 @@ const filterValueDropdown = document.getElementById('filterValueDropdown');
 fetch('https://AmFa6.github.io/TAF_test/hexes-socioeco.geojson')
   .then(response => response.json())
   .then(data => {
+    data.features = data.features.map(adjustSpecialHexCenters);
     hexes = data;
     if (initialLoadComplete) {
       updateSummaryStatistics(hexes.features);
@@ -333,6 +334,13 @@ let currentFeatureAttributes = {};
 let pendingFeature = null;
 let currentUserLayerId = null;
 let defaultAttributes = { "Name": "" };
+let previousFilterSelections = {
+  LA: null,
+  Ward: null,
+  GrowthZone: null,
+  WestLinkZone: null,
+  Range: null,
+};
 
 initializeSliders(ScoresOpacityRange);
 initializeSliders(ScoresOutlineRange);
@@ -610,14 +618,12 @@ document.addEventListener('DOMContentLoaded', (event) => {
       const isCollapsed = this.classList.contains("collapsed");
       this.classList.toggle("collapsed");
       summaryContent.style.display = isCollapsed ? "block" : "none";
-      // console.log("Summary panel clicked, new display:", summaryContent.style.display);
     });
     
     summaryHeader.addEventListener("click", function() {
       this.classList.toggle("collapsed");
       const isNowCollapsed = this.classList.contains("collapsed");
       summaryContent.style.display = isNowCollapsed ? "none" : "block";
-      // console.log("Summary panel clicked, new display:", summaryContent.style.display);
     });
   }
 
@@ -1302,7 +1308,6 @@ function openStyleDialog(layerId) {
   const userLayer = userLayers.find(l => l.id === layerId);
   if (!userLayer) return;
 
-  // Remove any existing color pickers first
   const existingPickers = document.querySelectorAll('input[type="color"].style-color-picker');
   existingPickers.forEach(picker => picker.parentNode.removeChild(picker));
 
@@ -1310,12 +1315,11 @@ function openStyleDialog(layerId) {
   colorPicker.type = 'color';
   colorPicker.value = userLayer.defaultColor || '#000000';
   colorPicker.className = 'style-color-picker';
-  colorPicker.style.position = 'fixed'; // Use fixed instead of absolute
+  colorPicker.style.position = 'fixed';
   colorPicker.style.zIndex = '1000';
 
   const styleButton = document.querySelector(`.layer-style-btn[data-id="${layerId}"]`);
   if (styleButton) {
-    // Position relative to viewport using getBoundingClientRect
     const rect = styleButton.getBoundingClientRect();
     colorPicker.style.left = `${rect.right-60}px`;
     colorPicker.style.top = `${rect.top}px`;
@@ -2737,38 +2741,34 @@ function configureSlider(sliderElement, isInverse) {
   });
 
   if (isInverse) {
-    // When inverse, we want:
-    // [FILLED][GRADIENT][TRANSPARENT]
     sliderElement.noUiSlider.updateOptions({
       connect: [true, true, true]
     }, false);
     
     if (handles.length >= 2) {
-      handles[1].classList.add('noUi-handle-transparent'); // Right handle transparent
-      handles[0].classList.remove('noUi-handle-transparent'); // Left handle visible
+      handles[1].classList.add('noUi-handle-transparent');
+      handles[0].classList.remove('noUi-handle-transparent');
     }
     
     if (connectElements.length >= 3) {
-      connectElements[0].classList.add('noUi-connect-dark-grey'); // Left section filled
-      connectElements[1].classList.add('noUi-connect-gradient-left'); // Middle section gradient from filled to transparent
-      connectElements[2].classList.remove('noUi-connect-dark-grey'); // Right section transparent
+      connectElements[0].classList.add('noUi-connect-dark-grey');
+      connectElements[1].classList.add('noUi-connect-gradient-left');
+      connectElements[2].classList.remove('noUi-connect-dark-grey');
     }
   } else {
-    // When not inverse, we want:
-    // [TRANSPARENT][GRADIENT][FILLED]
     sliderElement.noUiSlider.updateOptions({
       connect: [true, true, true]
     }, false);
     
     if (handles.length >= 2) {
-      handles[0].classList.add('noUi-handle-transparent'); // Left handle transparent
-      handles[1].classList.remove('noUi-handle-transparent'); // Right handle visible
+      handles[0].classList.add('noUi-handle-transparent');
+      handles[1].classList.remove('noUi-handle-transparent');
     }
     
     if (connectElements.length >= 3) {
-      connectElements[0].classList.remove('noUi-connect-dark-grey'); // Left section transparent
-      connectElements[1].classList.add('noUi-connect-gradient-right'); // Middle section gradient from transparent to filled
-      connectElements[2].classList.add('noUi-connect-dark-grey'); // Right section filled
+      connectElements[0].classList.remove('noUi-connect-dark-grey');
+      connectElements[1].classList.add('noUi-connect-gradient-right');
+      connectElements[2].classList.add('noUi-connect-dark-grey');
     }
   }
 
@@ -2993,7 +2993,6 @@ function toggleInverseScale(type, scaleType) {
 
   const currentValues = rangeElement.noUiSlider.get();
   
-  // Fix: Pass isInverse directly as the second parameter
   configureSlider(rangeElement, isInverse);
   rangeElement.noUiSlider.set(currentValues, false);
 
@@ -4519,22 +4518,27 @@ function updateFilterValues() {
         filterFieldSelector.appendChild(option);
       });
       
+      if (previousFilterSelections[`UserLayer_${layerId}_field`]) {
+        filterFieldSelector.value = previousFilterSelections[`UserLayer_${layerId}_field`];
+      }
+      
       fieldSelectorDiv.appendChild(filterFieldSelector);
       filterValueContainer.appendChild(fieldSelectorDiv);
       
       filterFieldSelector.addEventListener('change', function() {
+        previousFilterSelections[`UserLayer_${layerId}_field`] = this.value;
         populateUserLayerFilterValues(userLayer, this.value);
         if (document.getElementById('highlightAreaCheckbox').checked) {
           highlightSelectedArea();
         }
       });
       
-      populateUserLayerFilterValues(userLayer, '');
+      populateUserLayerFilterValues(userLayer, filterFieldSelector.value);
       isUpdatingFilterValues = false;
       return;
     }
   } else if (currentFilterType === 'Range') {
-    const selectedYear = ScoresYear.value;
+    const selectedYear = ScoresLayer ? ScoresYear.value : AmenitiesYear.value;
     if (ScoresLayer) {
       if (selectedYear.includes('-')) {
         options = [
@@ -4592,6 +4596,8 @@ function updateFilterValues() {
   selectAllLabel.appendChild(selectAllSpan);
   filterValueContainer.appendChild(selectAllLabel);
 
+  const previouslySelected = previousFilterSelections[currentFilterType] || [];
+
   const checkboxes = [];
   options.forEach((option, index) => {
     const label = document.createElement('label');
@@ -4601,7 +4607,11 @@ function updateFilterValues() {
     checkbox.type = 'checkbox';
     checkbox.id = `filter-${option.replace(/\s+/g, '-').replace(/[^\w-]/g, '')}`;
     checkbox.value = option;
-    checkbox.checked = index === 0;
+    
+    checkbox.checked = previouslySelected.length > 0 ? 
+      previouslySelected.includes(option) : 
+      index === 0;
+    
     checkbox.className = 'filter-value-checkbox';
     checkboxes.push(checkbox);
     
@@ -4613,6 +4623,7 @@ function updateFilterValues() {
     filterValueContainer.appendChild(label);
     
     checkbox.addEventListener('change', function() {
+      updateStoredSelections();
       updateFilterButtonText();
       updateSummaryStatistics(getCurrentFeatures());
       if (document.getElementById('highlightAreaCheckbox').checked) {
@@ -4624,12 +4635,21 @@ function updateFilterValues() {
   selectAllCheckbox.addEventListener('change', function() {
     const isChecked = this.checked;
     checkboxes.forEach(cb => cb.checked = isChecked);
+    updateStoredSelections();
     updateFilterButtonText();
     updateSummaryStatistics(getCurrentFeatures());
     if (document.getElementById('highlightAreaCheckbox').checked) {
       highlightSelectedArea();
     }
   });
+  
+  function updateStoredSelections() {
+    const currentSelections = checkboxes
+      .filter(cb => cb.checked)
+      .map(cb => cb.value);
+    
+    previousFilterSelections[currentFilterType] = currentSelections;
+  }
   
   function updateFilterButtonText() {
     const selectedValues = checkboxes
@@ -4643,6 +4663,11 @@ function updateFilterValues() {
       filterValueButton.textContent = selectedValues.join(', ');
     }
   }
+  
+  const allChecked = checkboxes.every(cb => cb.checked);
+  const anyChecked = checkboxes.some(cb => cb.checked);
+  selectAllCheckbox.checked = allChecked;
+  selectAllCheckbox.indeterminate = anyChecked && !allChecked;
   
   updateFilterButtonText();
   requestAnimationFrame(() => {
@@ -4704,6 +4729,12 @@ function displayEmptyStatistics() {
   
   statisticIds.forEach(id => {
     document.getElementById(id).textContent = '-';
+  });
+  
+  const amenityTypes = ['PriSch', 'SecSch', 'FurEd', 'Em500', 'Em5000', 'StrEmp', 'CitCtr', 'MajCtr', 'DisCtr', 'GP', 'Hos'];
+  amenityTypes.forEach(type => {
+    const element = document.getElementById(`count-${type}`);
+    if (element) element.textContent = '-';
   });
 }
 
@@ -4912,6 +4943,20 @@ function applyRangeFilter(features, filterValue) {
   return features;
 }
 
+function adjustSpecialHexCenters(feature) {
+  if (feature.properties && feature.properties.Hex_ID === 'NS00493') {
+    feature._originalGeometry = JSON.parse(JSON.stringify(feature.geometry));
+    
+    const shiftedCenter = turf.center(turf.polygon(feature.geometry.coordinates));
+    shiftedCenter.geometry.coordinates[0] += 0.001;
+    
+    feature.properties._adjustedCenter = shiftedCenter.geometry.coordinates;
+    
+    return feature;
+  }
+  return feature;
+}
+
 function applyGeographicFilter(features, filterType, filterValue) {
   // console.log('applyGeographicFilter called from:');
   const getPolygonForFilter = () => {
@@ -5007,7 +5052,15 @@ function applyGeographicFilter(features, filterType, filterValue) {
 
   return features.filter(feature => {
     const hexPolygon = turf.polygon(feature.geometry.coordinates);
-    return turf.booleanPointInPolygon(turf.center(hexPolygon), polygon);
+    
+    let centerPoint;
+    if (feature.properties && feature.properties.Hex_ID === 'NS00493' && feature.properties._adjustedCenter) {
+      centerPoint = turf.point(feature.properties._adjustedCenter);
+    } else {
+      centerPoint = turf.center(hexPolygon);
+    }
+    
+    return turf.booleanPointInPolygon(centerPoint, polygon);
   });
 }
 
@@ -5023,7 +5076,9 @@ function calculateStatistics(features) {
     layerStats = calculateTimeStatistics(features);
   }
   
-  return {...baseStats, ...layerStats};
+  const amenityCounts = countAmenitiesByType(features);
+  
+  return {...baseStats, ...layerStats, amenityCounts};
 }
 
 function calculateBaseStatistics(features) {
@@ -5124,8 +5179,44 @@ function calculateTimeStatistics(features) {
   };
 }
 
+function countAmenitiesByType(filteredHexagons) {
+  const amenityCounts = {
+    'PriSch': 0,
+    'SecSch': 0,
+    'FurEd': 0,
+    'Em500': 0,
+    'Em5000': 0,
+    'StrEmp': 0,
+    'CitCtr': 0,
+    'MajCtr': 0,
+    'DisCtr': 0,
+    'GP': 0,
+    'Hos': 0
+  };
+
+  const filteredHexIds = new Set();
+  filteredHexagons.forEach(feature => {
+    const hexId = feature.properties.Hex_ID;
+    if (hexId) {
+      filteredHexIds.add(hexId);
+    }
+  });
+
+  Object.keys(amenityLayers).forEach(amenityType => {
+    if (amenityLayers[amenityType] && amenityLayers[amenityType].features) {
+      amenityLayers[amenityType].features.forEach(feature => {
+        const hexId = feature.properties.Hex_ID;
+        if (hexId && filteredHexIds.has(hexId)) {
+          amenityCounts[amenityType]++;
+        }
+      });
+    }
+  });
+
+  return amenityCounts;
+}
+
 function updateStatisticsUI(stats) {
-  // console.log('updateStatisticsUI called from:');
   document.getElementById('total-population').textContent = formatValue(stats.totalPopulation, 10);
   document.getElementById('min-population').textContent = formatValue(stats.minPopulation, 10);
   document.getElementById('max-population').textContent = formatValue(stats.maxPopulation, 10);
@@ -5169,6 +5260,21 @@ function updateStatisticsUI(stats) {
     document.getElementById('avg-percentile').textContent = '-';
     document.getElementById('min-percentile').textContent = '-';
     document.getElementById('max-percentile').textContent = '-';
+  }
+  
+  if (stats.amenityCounts) {
+    Object.keys(stats.amenityCounts).forEach(amenityType => {
+      const countElement = document.getElementById(`count-${amenityType}`);
+      if (countElement) {
+        countElement.textContent = stats.amenityCounts[amenityType];
+      }
+    });
+  } else {
+    const amenityTypes = ['PriSch', 'SecSch', 'FurEd', 'Em500', 'Em5000', 'StrEmp', 'CitCtr', 'MajCtr', 'DisCtr', 'GP', 'Hos'];
+    amenityTypes.forEach(type => {
+      const element = document.getElementById(`count-${type}`);
+      if (element) element.textContent = '-';
+    });
   }
 }
 
