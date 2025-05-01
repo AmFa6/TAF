@@ -13,7 +13,7 @@ function convertMultiPolygonToPolygons(geoJson) {
   const featureCounts = {};
   
   geoJson.features.forEach(feature => {
-    const name = feature.properties.LAD24NM || feature.properties.WD24NM || feature.properties.LSOA21NM || 'Unknown';
+    const name = feature.properties.LAD24NM || feature.properties.WD24NM || feature.properties.LSOA21NM || feature.properties.name || 'Unknown';
     featureCounts[name] = (featureCounts[name] || 0) + 1;
     
     if (feature.geometry.type === 'MultiPolygon') {      
@@ -24,7 +24,9 @@ function convertMultiPolygonToPolygons(geoJson) {
       
       parts.sort((a, b) => b.area - a.area);
             
-      if (name === 'North Somerset' || name === 'South Gloucestershire') {
+      if (name === 'North Somerset' || name === 'South Gloucestershire' || 
+          (feature.properties.name && feature.properties.name.length > 0)) {
+        // Keep only the largest polygon for named areas (including WestLink zones)
         features.push({
           type: 'Feature',
           geometry: {
