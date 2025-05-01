@@ -759,6 +759,29 @@
   .leaflet-draw-actions {
     display: none;
   }
+  #amenities-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+  }
+
+  #amenities-table th, #amenities-table td {
+    border: 1px solid #ccc;
+    padding: 5px;
+    text-align: left;
+  }
+
+  #amenities-table th {
+    background-color: #f2f2f2;
+  }
+
+  #amenities-table .total-row {
+    background-color: #f5f5f5;
+  }
+
+  #amenities-table tr:hover {
+    background-color: #f9f9f9;
+  }
   </style>
 </head>
 <body>
@@ -1158,7 +1181,7 @@
       <div style="margin-bottom: 15px;"></div>
       <table id="summary-table">
         <thead>
-          <tr>
+          <tr style="background-color: #f2f2f2;">
             <th id="metric-header">Metric</th>
             <th>Average</th>
             <th>Total</th>
@@ -1218,6 +1241,30 @@
           </tr>
         </tbody>
       </table>
+
+      <div id="amenities-summary" style="margin-top: 15px;">
+        <table id="amenities-table">
+          <thead>
+            <tr>
+              <th>Amenity Type</th>
+              <th>Count</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>Primary Schools</td><td id="count-PriSch">-</td></tr>
+            <tr><td>Secondary Schools</td><td id="count-SecSch">-</td></tr>
+            <tr><td>Further Education</td><td id="count-FurEd">-</td></tr>
+            <tr><td>Employment (500+)</td><td id="count-Em500">-</td></tr>
+            <tr><td>Employment (5000+)</td><td id="count-Em5000">-</td></tr>
+            <tr><td>Strategic Employment</td><td id="count-StrEmp">-</td></tr>
+            <tr><td>City Centre</td><td id="count-CitCtr">-</td></tr>
+            <tr><td>Major Centre</td><td id="count-MajCtr">-</td></tr>
+            <tr><td>District Centre</td><td id="count-DisCtr">-</td></tr>
+            <tr><td>General Practice</td><td id="count-GP">-</td></tr>
+            <tr><td>Hospital</td><td id="count-Hos">-</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
   <div id="attribute-editor-modal" style="display:none;" class="modal-dialog">
