@@ -64,6 +64,7 @@ fetch(`https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Local_
     const convertedData = convertMultiPolygonToPolygons(data);
     uaBoundariesLayer = convertedData;
     uaBoundariesLayer = L.geoJSON(convertedData, {
+      pane: 'boundaryLayers',
       style: function (feature) {
         return {
           color: 'black',
@@ -87,6 +88,7 @@ fetch('https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Wards_
     };
 
     wardBoundariesLayer = L.geoJSON(wardGeoJson, {
+      pane: 'boundaryLayers',
       style: function () {
         return {
           color: 'black',
@@ -118,6 +120,7 @@ fetch('https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/LSOA21
     };
 
     lsoaBoundariesLayer = L.geoJSON(lsoaGeoJson, {
+      pane: 'boundaryLayers',
       style: function () {
         return {
           color: 'black',
@@ -188,6 +191,7 @@ fetch('https://AmFa6.github.io/TAF_test/GrowthZones.geojson')
   .then(response => response.json())
   .then(data => {
     GrowthZonesLayer = L.geoJSON(data, {
+      pane: 'boundaryLayers',
       style: function () {
         return {
           color: 'black',
@@ -212,6 +216,7 @@ fetch('https://AmFa6.github.io/TAF_test/lines.geojson')
   .then(response => response.json())
   .then(data => {
     busLinesLayer = L.geoJSON(data, {
+      pane: 'busLayers',
       style: function (feature) {
         const frequency = parseFloat(feature.properties.am_peak_service_frequency) || 0;
         const opacity = frequency === 0 ? 0.1 : Math.min(0.1 + (frequency / 6) * 0.4, 0.5);
@@ -231,6 +236,7 @@ fetch('https://AmFa6.github.io/TAF_test/stops.geojson')
   .then(response => response.json())
   .then(data => {
     busStopsLayer = L.geoJSON(data, {
+      pane: 'busLayers',
       pointToLayer: function(feature, latlng) {
         const frequency = parseFloat(feature.properties.am_peak_combined_frequency) || 0;
         const fillOpacity = frequency === 0 ? 0 : Math.min(frequency / 12, 1);
@@ -258,6 +264,7 @@ fetch('https://AmFa6.github.io/TAF_test/westlink.geojson')
     ];
     const convertedData = convertMultiPolygonToPolygons(data);
     WestLinkZonesLayer = L.geoJSON(convertedData, {
+      pane: 'boundaryLayers',
       style: function (feature, layer) {
         const featureIndex = convertedData.features.findIndex(f => 
           f.properties.name === feature.properties.name
@@ -273,6 +280,30 @@ fetch('https://AmFa6.github.io/TAF_test/westlink.geojson')
       },
     }).addTo(map);
   })
+
+fetch('https://AmFa6.github.io/TAF_test/simplified_network.geojson')
+  .then(response => response.json())
+  .then(data => {
+    roadNetworkLayer = L.geoJSON(data, {
+      pane: 'roadLayers',
+      style: function (feature) {
+        const roadFunction = feature.properties.roadfunction;
+        let weight = 1;
+        
+        if (roadFunction === 'Motorway') {
+          weight = 4;
+        } else if (roadFunction === 'A Road') {
+          weight = 2;
+        }
+        
+        return {
+          color: 'white',
+          weight: weight,
+          opacity: 0,
+        };
+      },
+    }).addTo(map);
+  });
 
 ScoresYear.value = "";
 ScoresOpacity.value = "None";
@@ -314,6 +345,7 @@ let wasAboveZoomThreshold = false;
 let hexLayer = null;
 let busLinesLayer;
 let busStopsLayer;
+let roadNetworkLayer;
 let WestLinkZonesLayer;
 let userLayers = [];
 let userLayerCount = 0;
@@ -321,7 +353,9 @@ let drawControl;
 let currentDrawingLayer = null;
 let isDrawingActive = false;
 let currentDrawType = null;
-let drawFeatureGroup = L.featureGroup().addTo(map);
+drawFeatureGroup = L.featureGroup({
+  pane: 'userLayers'
+}).addTo(map);
 let isUpdatingStyles = false;
 let isCalculatingStats = false;
 let isUpdatingVisibility = false;
@@ -760,6 +794,20 @@ document.addEventListener('DOMContentLoaded', (event) => {
         }
       });
     }
+    const roadNetworkCheckbox = document.getElementById('roadNetworkCheckbox');
+      if (roadNetworkCheckbox) {
+        roadNetworkCheckbox.addEventListener('change', () => {
+          if (roadNetworkCheckbox.checked) {
+            roadNetworkLayer.setStyle({
+                opacity: 1,
+              });
+          } else {
+            roadNetworkLayer.setStyle({
+              opacity: 0,
+            });
+          }
+        });
+      }
   }
   createStaticLegendControls();
 
@@ -865,6 +913,25 @@ document.addEventListener('DOMContentLoaded', (event) => {
   });
 
   setupDrawingTools();
+
+  function setupMapPanes() {
+    // Remove existing custom panes if they exist
+    const existingPanes = document.querySelectorAll('.leaflet-pane[style*="z-index"]');
+    existingPanes.forEach(pane => {
+      if (pane.className.includes('custom-pane')) {
+        pane.parentNode.removeChild(pane);
+      }
+    });
+    
+    map.createPane('polygonLayers').style.zIndex = 300;    // Hexagons, scores, catchment
+    map.createPane('boundaryLayers').style.zIndex = 400;   // Admin boundaries
+    map.createPane('roadLayers').style.zIndex = 500;       // Road network
+    map.createPane('busLayers').style.zIndex = 600;        // Bus lines and stops
+    map.createPane('userLayers').style.zIndex = 700;       // User-uploaded layers
+  }
+  
+  // Call this function during initialization
+  setupMapPanes();
 });
 
 map.on('zoomend', () => {
@@ -1136,6 +1203,7 @@ function addUserLayer(data, fileName) {
     const defaultColor = '#000000';
 
     const layer = L.geoJSON(reprojectedData, {
+      pane: 'userLayers',
       style: function() {
         return {
           color: defaultColor,
@@ -3726,7 +3794,9 @@ function updateScoresLayer() {
     features: featuresWithScores
   };
 
-  ScoresLayer = L.geoJSON(filteredScoresLayer).addTo(map);
+  ScoresLayer = L.geoJSON(filteredScoresLayer, {
+    pane: 'polygonLayers',
+  }).addTo(map);
   ScoresLayer._currentYear = selectedYear;
 
   applyScoresLayerStyling();
@@ -4182,7 +4252,9 @@ function updateAmenitiesCatchmentLayer() {
       features: filteredFeatures
     };
     
-    AmenitiesCatchmentLayer = L.geoJSON(filteredAmenitiesCatchmentLayer).addTo(map);
+    AmenitiesCatchmentLayer = L.geoJSON(filteredAmenitiesCatchmentLayer, {
+      pane: 'polygonLayers',
+    }).addTo(map);
     AmenitiesCatchmentLayer._currentMode = selectedMode;
 
     applyAmenitiesCatchmentLayerStyling();
@@ -4296,6 +4368,7 @@ function updateCensusLayer() {
   }
 
   CensusLayer = L.geoJSON(hexes, {
+    pane: 'polygonLayers',
     style: () => {
       return {
         fillColor: baseColorCensus.value,
