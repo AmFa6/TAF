@@ -865,32 +865,31 @@ document.addEventListener('DOMContentLoaded', (event) => {
     const file = fileInput.files[0];
     if (!file) return;
     
-    const reader = new FileReader();
     const fileExtension = file.name.split('.').pop().toLowerCase();
     
-    reader.onload = function(e) {
-      try {
-        let layerData;
-        
-        if (fileExtension === 'geojson' || fileExtension === 'json') {
-          layerData = JSON.parse(e.target.result);
+    if (fileExtension === 'geojson' || fileExtension === 'json') {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const layerData = JSON.parse(e.target.result);
           addUserLayer(layerData, file.name);
-        } else if (fileExtension === 'kml') {
-          const kml = new DOMParser().parseFromString(e.target.result, 'text/xml');
-          layerData = toGeoJSON.kml(kml);
-          addUserLayer(layerData, file.name);
-        } else if (fileExtension === 'zip') {
-          handleShapefile(file);
+        } catch (error) {
+          alert('Error processing file: ' + error.message);
         }
-      } catch (error) {
-        alert('Error processing file: ' + error.message);
-      }
-    };
-    
-    if (fileExtension === 'kml' || fileExtension === 'geojson' || fileExtension === 'json') {
+      };
       reader.readAsText(file);
-    } else if (fileExtension === 'zip') {
-      handleShapefile(file);
+    } else if (fileExtension === 'kml') {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const kml = new DOMParser().parseFromString(e.target.result, 'text/xml');
+          const layerData = toGeoJSON.kml(kml);
+          addUserLayer(layerData, file.name);
+        } catch (error) {
+          alert('Error processing file: ' + error.message);
+        }
+      };
+      reader.readAsText(file);
     }
     
     fileInput.value = '';
@@ -1145,32 +1144,31 @@ function initializeFileUpload() {
     const file = fileInput.files[0];
     if (!file) return;
     
-    const reader = new FileReader();
     const fileExtension = file.name.split('.').pop().toLowerCase();
     
-    reader.onload = function(e) {
-      try {
-        let layerData;
-        
-        if (fileExtension === 'geojson' || fileExtension === 'json') {
-          layerData = JSON.parse(e.target.result);
+    if (fileExtension === 'geojson' || fileExtension === 'json') {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const layerData = JSON.parse(e.target.result);
           addUserLayer(layerData, file.name);
-        } else if (fileExtension === 'kml') {
-          const kml = new DOMParser().parseFromString(e.target.result, 'text/xml');
-          layerData = toGeoJSON.kml(kml);
-          addUserLayer(layerData, file.name);
-        } else if (fileExtension === 'zip') {
-          handleShapefile(file);
+        } catch (error) {
+          alert('Error processing file: ' + error.message);
         }
-      } catch (error) {
-        alert('Error processing file: ' + error.message);
-      }
-    };
-    
-    if (fileExtension === 'kml' || fileExtension === 'geojson' || fileExtension === 'json') {
+      };
       reader.readAsText(file);
-    } else if (fileExtension === 'zip') {
-      handleShapefile(file);
+    } else if (fileExtension === 'kml') {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const kml = new DOMParser().parseFromString(e.target.result, 'text/xml');
+          const layerData = toGeoJSON.kml(kml);
+          addUserLayer(layerData, file.name);
+        } catch (error) {
+          alert('Error processing file: ' + error.message);
+        }
+      };
+      reader.readAsText(file);
     }
     
     fileInput.value = '';
@@ -2735,49 +2733,6 @@ function removeUserLayer(layerId) {
       filterTypeDropdown.value = AmenitiesCatchmentLayer ? 'Range' : 'LA';
       updateFilterValues();
     }
-  }
-}
-
-function handleShapefile(file) {
-  // console.log('Handling shapefile...');
-  const loadingIndicator = document.createElement('div');
-  loadingIndicator.id = 'shp-loading';
-  loadingIndicator.style.position = 'fixed';
-  loadingIndicator.style.top = '50%';
-  loadingIndicator.style.left = '50%';
-  loadingIndicator.style.transform = 'translate(-50%, -50%)';
-  loadingIndicator.style.padding = '20px';
-  loadingIndicator.style.background = 'rgba(255,255,255,0.9)';
-  loadingIndicator.style.borderRadius = '5px';
-  loadingIndicator.style.boxShadow = '0 0 10px rgba(0,0,0,0.2)';
-  loadingIndicator.style.zIndex = '2000';
-  loadingIndicator.textContent = 'Processing shapefile...';
-  document.body.appendChild(loadingIndicator);
-
-  try {
-    shp(file)
-      .then(function(geojson) {
-        const indicator = document.getElementById('shp-loading');
-        if (indicator) indicator.remove();
-        
-        if (!geojson || !geojson.features || geojson.features.length === 0) {
-          throw new Error('No valid features found in shapefile');
-        }
-        addUserLayer(geojson, file.name);
-      })
-      .catch(function(error) {
-        const indicator = document.getElementById('shp-loading');
-        if (indicator) indicator.remove();
-        
-        console.error('Error processing shapefile:', error);
-        alert('Error processing shapefile: ' + error.message);
-      });
-  } catch (error) {
-    const indicator = document.getElementById('shp-loading');
-    if (indicator) indicator.remove();
-    
-    console.error('Exception in shapefile processing:', error);
-    alert('Could not process shapefile: ' + error.message);
   }
 }
 
