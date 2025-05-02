@@ -2627,11 +2627,9 @@ function populateUserLayerFilterValues(userLayer, fieldName) {
 }
 
 function detectAndFixProjection(data) {
-  // console.log('Detecting and fixing projection...');
   if (!data || !data.features || !data.features.length) return data;
   
   const result = JSON.parse(JSON.stringify(data));
-  let needsReprojection = false;
   
   const checkSampleCoordinates = () => {
     for (let i = 0; i < Math.min(5, data.features.length); i++) {
@@ -2650,65 +2648,72 @@ function detectAndFixProjection(data) {
       }
       
       if (coord) {
-        if (Math.abs(coord[0]) > 180 || Math.abs(coord[1]) > 90) {
-          // console.log("Detected likely Web Mercator coordinates:", coord);
-          return true;
+        // Check if coordinates are likely in British National Grid
+        if (coord[0] > 100000 && coord[0] < 700000 && 
+            coord[1] > 0 && coord[1] < 1300000) {
+          console.log("Detected likely British National Grid coordinates:", coord);
+          return 'EPSG:27700';
+        }
+        // Check if coordinates are likely in Web Mercator
+        else if (Math.abs(coord[0]) > 180 || Math.abs(coord[1]) > 90) {
+          console.log("Detected likely Web Mercator coordinates:", coord);
+          return 'EPSG:3857';
         }
       }
     }
     return false;
   };
   
-  needsReprojection = checkSampleCoordinates();
+  const projectionType = checkSampleCoordinates();
   
-  if (needsReprojection) {
-    // console.log("Attempting to reproject from EPSG:3857 to EPSG:4326");
+  if (projectionType) {
+    console.log(`Reprojecting from ${projectionType} to WGS84`);
+    
+    // Use Leaflet's CRS system to transform coordinates
+    const sourceCrs = projectionType === 'EPSG:27700' 
+      ? new L.Proj.CRS('EPSG:27700', '+proj=tmerc +lat_0=49 +lon_0=-2 +k=0.9996012717 +x_0=400000 +y_0=-100000 +ellps=airy +towgs84=446.448,-125.157,542.060,0.1502,0.2470,0.8421,-20.4894 +units=m +no_defs')
+      : L.CRS.EPSG3857;
+    
+    const targetCrs = L.CRS.EPSG4326;
     
     for (let i = 0; i < result.features.length; i++) {
       const feature = result.features[i];
       if (!feature.geometry || !feature.geometry.coordinates) continue;
       
       if (feature.geometry.type === 'Point') {
-        feature.geometry.coordinates = mercatorToWgs84(feature.geometry.coordinates);
+        const point = L.point(feature.geometry.coordinates[0], feature.geometry.coordinates[1]);
+        const latLng = sourceCrs.unproject(point);
+        feature.geometry.coordinates = [latLng.lng, latLng.lat];
       } 
       else if (['LineString', 'MultiPoint'].includes(feature.geometry.type)) {
-        feature.geometry.coordinates = feature.geometry.coordinates.map(mercatorToWgs84);
+        feature.geometry.coordinates = feature.geometry.coordinates.map(coord => {
+          const point = L.point(coord[0], coord[1]);
+          const latLng = sourceCrs.unproject(point);
+          return [latLng.lng, latLng.lat];
+        });
       }
       else if (['Polygon', 'MultiLineString'].includes(feature.geometry.type)) {
         feature.geometry.coordinates = feature.geometry.coordinates.map(ring => 
-          ring.map(mercatorToWgs84)
+          ring.map(coord => {
+            const point = L.point(coord[0], coord[1]);
+            const latLng = sourceCrs.unproject(point);
+            return [latLng.lng, latLng.lat];
+          })
         );
       }
       else if (feature.geometry.type === 'MultiPolygon') {
         feature.geometry.coordinates = feature.geometry.coordinates.map(polygon => 
-          polygon.map(ring => ring.map(mercatorToWgs84))
+          polygon.map(ring => ring.map(coord => {
+            const point = L.point(coord[0], coord[1]);
+            const latLng = sourceCrs.unproject(point);
+            return [latLng.lng, latLng.lat];
+          }))
         );
       }
     }
   }
   
   return result;
-}
-
-function mercatorToWgs84(coord) {
-  // console.log('Converting Mercator to WGS84...');
-  const x = coord[0];
-  const y = coord[1];
-  
-  if (Math.abs(x) <= 180 && Math.abs(y) <= 90) {
-    return coord;
-  }
-  
-  const R2D = 180 / Math.PI;
-  const earthRadius = 6378137;
-  
-  let lon = (x / earthRadius) * R2D;
-  let lat = ((Math.PI/2) - 2 * Math.atan(Math.exp(-y / earthRadius))) * R2D;
-  
-  lon = Math.max(-180, Math.min(180, lon));
-  lat = Math.max(-90, Math.min(90, lat));
-  
-  return [lon, lat];
 }
 
 function removeUserLayer(layerId) {
