@@ -15,6 +15,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Turf.js/6.5.0/turf.min.js"></script>
   <script src="https://unpkg.com/@mapbox/togeojson@0.16.0/togeojson.js"></script>
   <script src="https://unpkg.com/shpjs@latest/dist/shp.js"></script>
+  <script src="https://unpkg.com/proj4"></script>
+  <script src="https://unpkg.com/proj4leaflet"></script>
   <style>
   html, body {
     height: 100%;
@@ -1118,7 +1120,7 @@
             <div class="file-upload-container" style="margin-bottom: 5px;">
               <label for="fileUpload" class="file-upload-label">
                 <span>Upload file</span>
-                <input type="file" id="fileUpload" accept=".geojson,.kml,.zip,.json" />
+                <input type="file" id="fileUpload" accept=".geojson,.kml,.zip,.json,.gpkg,.shp" />
               </label>
               <span id="fileNameDisplay"></span>
             </div>
