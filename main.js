@@ -954,9 +954,55 @@ map.on('click', function (e) {
   if (isDrawingActive) {
     return;
   }
+
   const clickedLatLng = e.latlng;
   const clickedPoint = turf.point([clickedLatLng.lng, clickedLatLng.lat]);
+
+    let userLayerFeatureFound = false;
   
+  if (userLayers && userLayers.length > 0) {
+    for (const userLayer of userLayers) {
+      if (!userLayer.layer || !map.hasLayer(userLayer.layer)) continue;
+      
+      // Use the existing findNearbyInfrastructure logic for user layers
+      const nearbyFeatures = findNearbyInfrastructure(clickedLatLng, 10, userLayer.layer);
+      
+      if (nearbyFeatures && nearbyFeatures.features && nearbyFeatures.features.length > 0) {
+        const nearestFeature = nearbyFeatures.features[0];
+        
+        // Create popup content for user layer feature
+        let properties = nearestFeature.feature.feature.properties || {};
+        
+        let popupContent = `<div class="custom-feature-popup">`;
+        popupContent += `<h4>${userLayer.name || 'Custom Feature'}</h4>`;
+        
+        // Add properties to table
+        if (Object.keys(properties).length > 0) {
+          popupContent += `<table class="popup-table">`;
+          popupContent += `<tr><th>Property</th><th>Value</th></tr>`;
+          for (const [key, value] of Object.entries(properties)) {
+            if (key !== 'id' && key !== 'layerId') {
+              popupContent += `<tr><td>${key}</td><td>${value}</td></tr>`;
+            }
+          }
+          popupContent += `</table>`;
+        }
+        
+        popupContent += `</div>`;
+        
+        L.popup()
+          .setLatLng(clickedLatLng)
+          .setContent(popupContent)
+          .openOn(map);
+        
+        userLayerFeatureFound = true;
+        break;
+      }
+    }
+    
+    if (userLayerFeatureFound) return;
+  }
+
   const busStopsVisible = document.getElementById('busStopsCheckbox')?.checked;
   const busLinesVisible = document.getElementById('busLinesCheckbox')?.checked;
   
@@ -3303,13 +3349,120 @@ function getAmenityPopupContent(amenityType, properties) {
   return `<strong>Amenity:</strong> ${amenityName} (${amenityTypeDisplay})${showCatchmentButton}`;
 }
 
-function findNearbyInfrastructure(latlng, maxPixelDistance = 10) {
+function findNearbyInfrastructure(latlng, maxPixelDistance = 10, targetLayer = null) {
   // console.log('Finding nearby infrastructure...');
   const results = {
     busStops: [],
-    busLines: []
+    busLines: [],
+    features: []
   };
-  
+
+  if (targetLayer) {
+    targetLayer.eachLayer(layer => {
+      if (layer.getLatLng) {
+        const markerPoint = map.latLngToContainerPoint(layer.getLatLng());
+        const clickPoint = map.latLngToContainerPoint(latlng);
+        const pixelDistance = clickPoint.distanceTo(markerPoint);
+        
+        if (pixelDistance <= maxPixelDistance) {
+          results.features.push({
+            layer: layer,
+            feature: layer,
+            distance: pixelDistance
+          });
+        }
+      }
+      else {
+        const geojson = layer.toGeoJSON();
+        let minPixelDistance = Infinity;
+        
+        if (geojson.geometry.type === 'LineString') {
+          for (let i = 0; i < geojson.geometry.coordinates.length - 1; i++) {
+            const p1 = L.latLng(
+              geojson.geometry.coordinates[i][1], 
+              geojson.geometry.coordinates[i][0]
+            );
+            const p2 = L.latLng(
+              geojson.geometry.coordinates[i+1][1], 
+              geojson.geometry.coordinates[i+1][0]
+            );
+            
+            const p1Screen = map.latLngToContainerPoint(p1);
+            const p2Screen = map.latLngToContainerPoint(p2);
+            
+            const distance = distanceToLineSegment(
+              map.latLngToContainerPoint(latlng), 
+              p1Screen, 
+              p2Screen
+            );
+            
+            if (distance < minPixelDistance) {
+              minPixelDistance = distance;
+            }
+          }
+        }
+        else if (geojson.geometry.type === 'MultiLineString') {
+          for (const lineCoords of geojson.geometry.coordinates) {
+            for (let i = 0; i < lineCoords.length - 1; i++) {
+              const p1 = L.latLng(lineCoords[i][1], lineCoords[i][0]);
+              const p2 = L.latLng(lineCoords[i+1][1], lineCoords[i+1][0]);
+              
+              const p1Screen = map.latLngToContainerPoint(p1);
+              const p2Screen = map.latLngToContainerPoint(p2);
+              
+              const distance = distanceToLineSegment(
+                map.latLngToContainerPoint(latlng),
+                p1Screen,
+                p2Screen
+              );
+              
+              if (distance < minPixelDistance) {
+                minPixelDistance = distance;
+              }
+            }
+          }
+        }
+        // Handle polygons
+        else if (geojson.geometry.type === 'Polygon' || geojson.geometry.type === 'MultiPolygon') {
+          const coords = geojson.geometry.coordinates;
+          const flattenCoords = coords.flat(geojson.geometry.type === 'MultiPolygon' ? 2 : 1);
+          
+          for (let ring of flattenCoords) {
+            for (let i = 0; i < ring.length - 1; i++) {
+              const p1 = L.latLng(ring[i][1], ring[i][0]);
+              const p2 = L.latLng(ring[i+1][1], ring[i+1][0]);
+              
+              const p1Screen = map.latLngToContainerPoint(p1);
+              const p2Screen = map.latLngToContainerPoint(p2);
+              
+              const distance = distanceToLineSegment(
+                map.latLngToContainerPoint(latlng),
+                p1Screen,
+                p2Screen
+              );
+              
+              if (distance < minPixelDistance) {
+                minPixelDistance = distance;
+              }
+            }
+          }
+        }
+        
+        if (minPixelDistance <= maxPixelDistance) {
+          results.features.push({
+            layer: layer,
+            feature: layer,
+            distance: minPixelDistance
+          });
+        }
+      }
+    });
+    
+    // Sort features by distance
+    results.features.sort((a, b) => a.distance - b.distance);
+    return results;
+  }
+
   if (busStopsLayer) {
     busStopsLayer.eachLayer(layer => {
       const markerPoint = map.latLngToContainerPoint(layer.getLatLng());
