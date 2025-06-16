@@ -26,7 +26,6 @@ function convertMultiPolygonToPolygons(geoJson) {
             
       if (name === 'North Somerset' || name === 'South Gloucestershire' || 
           (feature.properties.name && feature.properties.name.length > 0)) {
-        // Keep only the largest polygon for named areas (including WestLink zones)
         features.push({
           type: 'Feature',
           geometry: {
@@ -910,11 +909,11 @@ document.addEventListener('DOMContentLoaded', (event) => {
   document.getElementById('cancel-attributes').addEventListener('click', function() {
     cancelAttributeEditing();
   });
-
+  
+  addContextMenuStyles();
   setupDrawingTools();
 
   function setupMapPanes() {
-    // Remove existing custom panes if they exist
     const existingPanes = document.querySelectorAll('.leaflet-pane[style*="z-index"]');
     existingPanes.forEach(pane => {
       if (pane.className.includes('custom-pane')) {
@@ -922,14 +921,13 @@ document.addEventListener('DOMContentLoaded', (event) => {
       }
     });
     
-    map.createPane('polygonLayers').style.zIndex = 300;    // Hexagons, scores, catchment
-    map.createPane('boundaryLayers').style.zIndex = 400;   // Admin boundaries
-    map.createPane('roadLayers').style.zIndex = 500;       // Road network
-    map.createPane('busLayers').style.zIndex = 600;        // Bus lines and stops
-    map.createPane('userLayers').style.zIndex = 700;       // User-uploaded layers
+    map.createPane('polygonLayers').style.zIndex = 300;
+    map.createPane('boundaryLayers').style.zIndex = 400;
+    map.createPane('roadLayers').style.zIndex = 500;
+    map.createPane('busLayers').style.zIndex = 600;
+    map.createPane('userLayers').style.zIndex = 700;
   }
   
-  // Call this function during initialization
   setupMapPanes();
 });
 
@@ -964,19 +962,16 @@ map.on('click', function (e) {
     for (const userLayer of userLayers) {
       if (!userLayer.layer || !map.hasLayer(userLayer.layer)) continue;
       
-      // Use the existing findNearbyInfrastructure logic for user layers
       const nearbyFeatures = findNearbyInfrastructure(clickedLatLng, 10, userLayer.layer);
       
       if (nearbyFeatures && nearbyFeatures.features && nearbyFeatures.features.length > 0) {
         const nearestFeature = nearbyFeatures.features[0];
         
-        // Create popup content for user layer feature
         let properties = nearestFeature.feature.feature.properties || {};
         
         let popupContent = `<div class="custom-feature-popup">`;
         popupContent += `<h4>${userLayer.name || 'Custom Feature'}</h4>`;
         
-        // Add properties to table
         if (Object.keys(properties).length > 0) {
           popupContent += `<table class="popup-table">`;
           popupContent += `<tr><th>Property</th><th>Value</th></tr>`;
@@ -1223,8 +1218,26 @@ function initializeFileUpload() {
   });
 }
 
+function createFeaturePopupContent(properties, layerName) {
+  let popupContent = `<div class="custom-feature-popup">`;
+  popupContent += `<h4>${layerName || 'Custom Feature'}</h4>`;
+  
+  if (properties && Object.keys(properties).length > 0) {
+    popupContent += `<table class="popup-table">`;
+    popupContent += `<tr><th>Property</th><th>Value</th></tr>`;
+    for (const [key, value] of Object.entries(properties)) {
+      if (key !== 'id' && key !== 'layerId') {
+        popupContent += `<tr><td>${key}</td><td>${value || ''}</td></tr>`;
+      }
+    }
+    popupContent += `</table>`;
+  }
+  
+  popupContent += `</div>`;
+  return popupContent;
+}
+
 function addUserLayer(data, fileName) {
-  // console.log('Adding user layer...');
   try {
     const layerId = `userLayer_${userLayerCount++}`;
     const layerName = fileName.split('.')[0];
@@ -1253,27 +1266,20 @@ function addUserLayer(data, fileName) {
           color: defaultColor,
           weight: 3,
           opacity: 0.75,
-          fillOpacity: 0
+          fillColor: defaultColor,
+          fillOpacity: 0.3
         };
       },
       onEachFeature: function(feature, layer) {
         if (feature.properties) {
           layer.on('click', function(e) {
             if (isDrawingActive && activeShapeMode) {
-              L.DomEvent.stopPropagation(e);
-              openAttributeEditor(feature, layerId);
             } else {
-              let popupContent = '<table class="popup-table">';
-              popupContent += '<tr><th>Property</th><th>Value</th></tr>';
-              
-              for (const [key, value] of Object.entries(feature.properties)) {
-                if (value !== null && value !== undefined) {
-                  popupContent += `<tr><td>${key}</td><td>${value}</td></tr>`;
-                }
-              }
-              
-              popupContent += '</table>';
-              layer.bindPopup(popupContent).openPopup();
+              const popupContent = createFeaturePopupContent(feature.properties, layerName);
+              L.popup()
+                .setLatLng(e.latlng)
+                .setContent(popupContent)
+                .openOn(map);
             }
           });
         }
@@ -1296,9 +1302,17 @@ function addUserLayer(data, fileName) {
       fileName: fileName,
       layer: layer,
       defaultColor: defaultColor,
+      strokeOpacity: 0.75,
+      weight: 3,
+      fillColor: defaultColor,
+      fillOpacity: 0.3,
       fieldNames: fieldNames,
       numericFields: numericFields,
-      originalData: reprojectedData
+      originalData: reprojectedData,
+      labelField: '',
+      labelColor: '#000000',
+      labelOpacity: 1,
+      labelSize: 12
     };
     userLayers.push(userLayer);
     
@@ -1323,14 +1337,25 @@ function addUserLayer(data, fileName) {
       checkbox.addEventListener('change', function() {
         if (this.checked) {
           map.addLayer(userLayer.layer);
+          if (userLayer.labelLayerGroup) {
+            map.addLayer(userLayer.labelLayerGroup);
+          }
         } else {
           map.removeLayer(userLayer.layer);
+          if (userLayer.labelLayerGroup) {
+            map.removeLayer(userLayer.labelLayerGroup);
+          }
         }
       });
       
       layerControl.querySelector('.layer-style-btn').addEventListener('click', function() {
         const layerId = this.getAttribute('data-id');
         openStyleDialog(layerId);
+      });
+      
+      layerControl.querySelector('.layer-edit-btn').addEventListener('click', function() {
+        const layerId = this.getAttribute('data-id');
+        startEditingLayer(layerId);
       });
       
       layerControl.querySelector('.layer-zoom-btn').addEventListener('click', function() {
@@ -1361,6 +1386,8 @@ function addUserLayer(data, fileName) {
       updateFilterDropdown();
     }
     
+    drawFeatureGroup.clearLayers();
+    
     return layer;
   } catch (error) {
     alert('Error adding layer: ' + error.message);
@@ -1374,87 +1401,461 @@ function applySimpleStyle(layerId, color) {
   if (!userLayer) return;
   
   userLayer.defaultColor = color;
-  
-  const hasOnlyPoints = userLayer.layer.getLayers().every(layer => 
-    layer.feature && 
-    layer.feature.geometry && 
-    layer.feature.geometry.type === 'Point'
-  );
-  
-  const hasOnlyLines = userLayer.layer.getLayers().every(layer => 
-    layer.feature && 
-    layer.feature.geometry && 
-    (layer.feature.geometry.type === 'LineString' || layer.feature.geometry.type === 'MultiLineString')
-  );
-  
-  userLayer.layer.eachLayer(layer => {
-    if (layer.setStyle) {
-      if (hasOnlyPoints && layer.setRadius) {
-        layer.setStyle({
-          radius: 3,
-          fillColor: color,
-          color: color,
-          weight: 1,
-          opacity: 0.75,
-          fillOpacity: 0.75
-        });
-      } else if (hasOnlyLines) {
-        layer.setStyle({
-          color: color,
-          weight: 3,
-          opacity: 0.75,
-          fillOpacity: 0
-        });
-      } else {
-        layer.setStyle({
-          color: color,
-          fillColor: color,
-          weight: 3,
-          opacity: 0.75,
-          fillOpacity: 0
-        });
-      }
-    }
-  });
+  applyUserLayerStyle(layerId);
 }
 
 function openStyleDialog(layerId) {
   const userLayer = userLayers.find(l => l.id === layerId);
   if (!userLayer) return;
 
-  const existingPickers = document.querySelectorAll('input[type="color"].style-color-picker');
-  existingPickers.forEach(picker => picker.parentNode.removeChild(picker));
-
-  const colorPicker = document.createElement('input');
-  colorPicker.type = 'color';
-  colorPicker.value = userLayer.defaultColor || '#000000';
-  colorPicker.className = 'style-color-picker';
-  colorPicker.style.position = 'fixed';
-  colorPicker.style.zIndex = '1000';
-
-  const styleButton = document.querySelector(`.layer-style-btn[data-id="${layerId}"]`);
-  if (styleButton) {
-    const rect = styleButton.getBoundingClientRect();
-    colorPicker.style.left = `${rect.right-60}px`;
-    colorPicker.style.top = `${rect.top}px`;
-    document.body.appendChild(colorPicker);
-  } else {
-    document.body.appendChild(colorPicker);
+  const existingModal = document.getElementById('style-dialog');
+  if (existingModal) {
+    document.body.removeChild(existingModal);
   }
 
-  colorPicker.addEventListener('change', function() {
-    applySimpleStyle(layerId, this.value);
-    document.body.removeChild(this);
+  const template = document.getElementById('style-dialog-template');
+  const dialog = document.importNode(template.content, true).querySelector('#style-dialog');
+  
+  dialog.querySelector('#style-dialog-title').textContent = `Style: ${userLayer.name}`;
+  
+  let hasPolygons = false;
+  
+  if (userLayer.layer) {
+    userLayer.layer.eachLayer(layer => {
+      if (layer.feature && layer.feature.geometry) {
+        const geomType = layer.feature.geometry.type;
+        if (geomType === 'Polygon' || geomType === 'MultiPolygon') {
+          hasPolygons = true;
+        }
+      }
+    });
+  }
+  
+  const featureColor = dialog.querySelector('#feature-color');
+  featureColor.value = userLayer.defaultColor || '#000000';
+  
+  const featureOpacity = dialog.querySelector('#feature-opacity');
+  featureOpacity.value = userLayer.strokeOpacity ? userLayer.strokeOpacity * 100 : 75;
+  dialog.querySelector('#feature-opacity-value').textContent = `${featureOpacity.value}%`;
+  
+  const featureSize = dialog.querySelector('#feature-size');
+  featureSize.value = userLayer.weight || 3;
+  dialog.querySelector('#feature-size-value').textContent = featureSize.value;
+  
+  const fillOptions = dialog.querySelector('.fill-options');
+  if (fillOptions) {
+    fillOptions.style.display = hasPolygons ? 'block' : 'none';
+  }
+  
+  const featureFillColor = dialog.querySelector('#feature-fill-color');
+  featureFillColor.value = userLayer.fillColor || userLayer.defaultColor || '#000000';
+  
+  const featureFillOpacity = dialog.querySelector('#feature-fill-opacity');
+  featureFillOpacity.value = userLayer.fillOpacity ? userLayer.fillOpacity * 100 : 30;
+  dialog.querySelector('#feature-fill-opacity-value').textContent = `${featureFillOpacity.value}%`;
+  
+  const labelField = dialog.querySelector('#label-field');
+  if (userLayer.fieldNames) {
+    userLayer.fieldNames.forEach(field => {
+      const option = document.createElement('option');
+      option.value = field;
+      option.textContent = field;
+      if (userLayer.labelField === field) {
+        option.selected = true;
+      }
+      labelField.appendChild(option);
+    });
+  }
+  
+  const labelColor = dialog.querySelector('#label-color');
+  labelColor.value = userLayer.labelColor || '#000000';
+  
+  const labelOpacity = dialog.querySelector('#label-opacity');
+  labelOpacity.value = userLayer.labelOpacity ? userLayer.labelOpacity * 100 : 100;
+  dialog.querySelector('#label-opacity-value').textContent = `${labelOpacity.value}%`;
+  
+  const labelSize = dialog.querySelector('#label-size');
+  labelSize.value = userLayer.labelSize || 12;
+  dialog.querySelector('#label-size-value').textContent = `${labelSize.value}px`;
+  
+  featureOpacity.addEventListener('input', function() {
+    dialog.querySelector('#feature-opacity-value').textContent = `${this.value}%`;
   });
+  
+  featureSize.addEventListener('input', function() {
+    dialog.querySelector('#feature-size-value').textContent = this.value;
+  });
+  
+  featureFillOpacity.addEventListener('input', function() {
+    dialog.querySelector('#feature-fill-opacity-value').textContent = `${this.value}%`;
+  });
+  
+  labelOpacity.addEventListener('input', function() {
+    dialog.querySelector('#label-opacity-value').textContent = `${this.value}%`;
+  });
+  
+  labelSize.addEventListener('input', function() {
+    dialog.querySelector('#label-size-value').textContent = `${this.value}px`;
+  });
+  
+  dialog.querySelector('#apply-style').addEventListener('click', function() {
+    userLayer.defaultColor = featureColor.value;
+    userLayer.strokeOpacity = featureOpacity.value / 100;
+    userLayer.weight = parseInt(featureSize.value);
+    
+    if (hasPolygons) {
+      userLayer.fillColor = featureFillColor.value;
+      userLayer.fillOpacity = featureFillOpacity.value / 100;
+    }
+    
+    userLayer.labelField = labelField.value;
+    userLayer.labelColor = labelColor.value;
+    userLayer.labelOpacity = labelOpacity.value / 100;
+    userLayer.labelSize = parseInt(labelSize.value);
+    
+    applyUserLayerStyle(layerId);
+    document.body.removeChild(dialog);
+  });
+  
+  dialog.querySelector('#cancel-style').addEventListener('click', function() {
+    document.body.removeChild(dialog);
+  });
+  
+  document.body.appendChild(dialog);
+}
 
-  document.addEventListener('click', function closeColorPicker(e) {
-    if (e.target !== colorPicker && e.target !== styleButton) {
-      if (colorPicker.parentNode) colorPicker.parentNode.removeChild(colorPicker);
-      document.removeEventListener('click', closeColorPicker);
+function applyUserLayerStyle(layerId) {
+  const userLayer = userLayers.find(l => l.id === layerId);
+  if (!userLayer) return;
+  
+  if (userLayer.labelLayerGroup) {
+    map.removeLayer(userLayer.labelLayerGroup);
+    userLayer.labelLayerGroup = null;
+  }
+  
+  userLayer.layer.eachLayer(layer => {
+    if (layer.setStyle) {
+      layer.setStyle({
+        color: userLayer.defaultColor || '#000000',
+        weight: userLayer.weight || 3,
+        opacity: userLayer.strokeOpacity || 0.75,
+        fillColor: userLayer.fillColor || userLayer.defaultColor || '#000000',
+        fillOpacity: userLayer.fillOpacity || 0.3
+      });
+    } else if (layer.setIcon) {
+      const markerElement = layer.getElement();
+      if (markerElement) {
+      }
     }
   });
+  
+  if (userLayer.labelField && userLayer.labelField !== '') {
+    userLayer.labelLayerGroup = L.layerGroup().addTo(map);
+    
+    userLayer.layer.eachLayer(layer => {
+      if (layer.feature && layer.feature.properties && 
+          layer.feature.properties[userLayer.labelField] !== undefined) {
+        
+        const labelValue = layer.feature.properties[userLayer.labelField];
+        
+        let labelPosition;
+        if (layer.getLatLng) {
+          labelPosition = layer.getLatLng();
+        } else if (layer.getCenter) {
+          labelPosition = layer.getCenter();
+        } else if (layer.feature.geometry) {
+          const center = turf.center(layer.feature);
+          labelPosition = L.latLng(
+            center.geometry.coordinates[1], 
+            center.geometry.coordinates[0]
+          );
+        }
+        
+        if (labelPosition) {
+          const opacity = userLayer.labelOpacity !== undefined ? userLayer.labelOpacity : 1;
+          const labelIcon = L.divIcon({
+            className: 'user-layer-label',
+            html: `<div style="color:${userLayer.labelColor}; opacity:${opacity}; font-size:${userLayer.labelSize}px; 
+                   text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff;">
+                   ${labelValue}</div>`,
+            iconSize: [100, 40],
+            iconAnchor: [50, 20]
+          });
+          
+          const labelMarker = L.marker(labelPosition, {
+            icon: labelIcon,
+            interactive: false,
+            pane: 'userLayers'
+          });
+          
+          userLayer.labelLayerGroup.addLayer(labelMarker);
+        }
+      }
+    });
+  }
+}
 
-  setTimeout(() => colorPicker.click(), 100);
+function startEditingLayer(layerId) {
+  const userLayer = userLayers.find(l => l.id === layerId);
+  if (!userLayer) return;
+  
+  resetAllModes();
+  
+  isDrawingActive = true;
+  activeActionMode = 'edit';
+  currentEditingUserLayer = userLayer;
+  
+  saveOriginalState();
+  
+  userLayer.editEnabled = true;
+  userLayer.layer.eachLayer(layer => {
+    if (layer.editing) {
+      layer.editing.enable();
+    }
+    
+    layer.on('click', function(e) {
+      L.DomEvent.stopPropagation(e);
+      currentDrawingLayer = this;
+      
+      showFeatureContextMenu(e.latlng, this, userLayer);
+    });
+  });
+  
+  const saveDrawingContainer = document.getElementById('save-drawing-container');
+  if (saveDrawingContainer) {
+    saveDrawingContainer.style.display = 'flex';
+  }
+  
+  const drawingNameInput = document.getElementById('drawingNameInput');
+  if (drawingNameInput) {
+    drawingNameInput.value = userLayer.name || '';
+    drawingNameInput.disabled = true;
+    drawingNameInput.style.opacity = '0.6';
+    drawingNameInput.style.backgroundColor = '#f0f0f0';
+  }
+  
+  const instructions = document.getElementById('drawing-instructions');
+  if (instructions) {
+    instructions.textContent = 'Editing mode: Click on features to edit or delete them. Use drawing tools to add new features. Press ESC to cancel.';
+    instructions.style.display = 'block';
+  }
+  
+  map.getContainer().style.cursor = 'pointer';
+}
+
+function resetAllModes() {
+  if (drawPointBtn) drawPointBtn.classList.remove('active');
+  if (drawLineBtn) drawLineBtn.classList.remove('active');
+  if (drawPolygonBtn) drawPolygonBtn.classList.remove('active');
+  
+  isDrawingActive = false;
+  currentDrawType = null;
+  activeShapeMode = null;
+  activeActionMode = null;
+  
+  if (map.drawHandler) {
+    map.off('click', map.drawHandler);
+    map.drawHandler = null;
+  }
+  
+  if (map.activeDrawingTool) {
+    map.activeDrawingTool.disable();
+    map.activeDrawingTool = null;
+  }
+  
+  const instructions = document.getElementById('drawing-instructions');
+  if (instructions) {
+    instructions.style.display = 'none';
+  }
+
+  userLayers.forEach(userLayer => {
+    if (userLayer.layer) {
+      userLayer.layer.eachLayer(layer => {
+        if (layer.editing && layer.editing.enabled()) {
+          layer.editing.disable();
+        }
+        layer.off('click');
+      });
+      userLayer.editEnabled = false;
+    }
+  });
+    
+  drawFeatureGroup.eachLayer(layer => {
+    if (layer.editing && layer.editing.enabled()) {
+      layer.editing.disable();
+    }
+    layer.off('click');
+  });
+  
+  const existingMenu = document.getElementById('feature-context-menu');
+  if (existingMenu) {
+    document.body.removeChild(existingMenu);
+  }
+  
+  map.getContainer().style.cursor = '';
+  
+  const saveDrawingContainer = document.getElementById('save-drawing-container');
+  if (saveDrawingContainer) {
+    saveDrawingContainer.style.display = 'none';
+  }
+  
+  const drawingNameInput = document.getElementById('drawingNameInput');
+  if (drawingNameInput) {
+    drawingNameInput.disabled = false;
+    drawingNameInput.style.opacity = '1';
+    drawingNameInput.style.backgroundColor = '#ffffff';
+    drawingNameInput.value = '';
+  }
+  
+  const saveDrawingBtn = document.getElementById('saveDrawingBtn');
+  if (saveDrawingBtn) {
+    saveDrawingBtn.disabled = false;
+  }
+  
+  originalLayerState = null;
+  hasUnsavedChanges = false;
+  currentEditingUserLayer = null;
+}
+
+function saveOriginalState() {
+  if (currentEditingUserLayer) {
+    originalLayerState = {
+      id: currentEditingUserLayer.id,
+      name: currentEditingUserLayer.name,
+      data: JSON.parse(JSON.stringify(currentEditingUserLayer.originalData))
+    };
+  } else {
+    const drawnItemsGeoJSON = drawFeatureGroup.toGeoJSON();
+    originalLayerState = {
+      drawn: true,
+      data: JSON.parse(JSON.stringify(drawnItemsGeoJSON))
+    };
+  }
+  
+  userLayers.forEach(userLayer => {
+    if (userLayer.layer && map.hasLayer(userLayer.layer)) {
+      userLayer._originalState = JSON.parse(JSON.stringify(userLayer.layer.toGeoJSON()));
+    }
+  });
+  
+  hasUnsavedChanges = false;
+}
+
+function showFeatureContextMenu(latlng, layer, userLayer) {
+  const existingMenu = document.getElementById('feature-context-menu');
+  if (existingMenu) {
+    document.body.removeChild(existingMenu);
+  }
+  
+  const contextMenu = document.createElement('div');
+  contextMenu.id = 'feature-context-menu';
+  contextMenu.className = 'feature-context-menu';
+  contextMenu.style.position = 'absolute';
+  contextMenu.style.zIndex = '1000';
+  contextMenu.style.backgroundColor = 'white';
+  contextMenu.style.boxShadow = '0 1px 5px rgba(0,0,0,0.4)';
+  contextMenu.style.borderRadius = '4px';
+  contextMenu.style.padding = '6px 0';
+  
+  const point = map.latLngToContainerPoint(latlng);
+  contextMenu.style.left = `${point.x}px`;
+  contextMenu.style.top = `${point.y}px`;
+  
+  const editButton = document.createElement('button');
+  editButton.textContent = 'Edit Attributes';
+  editButton.style.display = 'block';
+  editButton.style.width = '100%';
+  editButton.style.padding = '6px 12px';
+  editButton.style.backgroundColor = 'transparent';
+  editButton.style.border = 'none';
+  editButton.style.textAlign = 'left';
+  editButton.style.cursor = 'pointer';
+  
+  const deleteButton = document.createElement('button');
+  deleteButton.textContent = 'Delete Feature';
+  deleteButton.style.display = 'block';
+  deleteButton.style.width = '100%';
+  deleteButton.style.padding = '6px 12px';
+  deleteButton.style.backgroundColor = 'transparent';
+  deleteButton.style.border = 'none';
+  deleteButton.style.textAlign = 'left';
+  deleteButton.style.cursor = 'pointer';
+  deleteButton.style.color = '#d32f2f';
+  
+  const addHoverEffect = (button) => {
+    button.addEventListener('mouseover', () => {
+      button.style.backgroundColor = '#f0f0f0';
+    });
+    button.addEventListener('mouseout', () => {
+      button.style.backgroundColor = 'transparent';
+    });
+  };
+  
+  addHoverEffect(editButton);
+  addHoverEffect(deleteButton);
+  
+  editButton.addEventListener('click', () => {
+    document.body.removeChild(contextMenu);
+    editFeatureAttributes(layer, userLayer);
+  });
+  
+  deleteButton.addEventListener('click', () => {
+    document.body.removeChild(contextMenu);
+    deleteFeature(layer, userLayer);
+  });
+  
+  contextMenu.appendChild(editButton);
+  contextMenu.appendChild(deleteButton);
+  
+  document.body.appendChild(contextMenu);
+  
+  setTimeout(() => {
+    window.addEventListener('click', function closeMenu(e) {
+      if (!contextMenu.contains(e.target)) {
+        if (document.body.contains(contextMenu)) {
+          document.body.removeChild(contextMenu);
+        }
+        window.removeEventListener('click', closeMenu);
+      }
+    });
+  }, 0);
+}
+
+function editFeatureAttributes(layer, userLayer) {
+  if (!layer.feature || !layer.feature.properties) {
+    layer.feature = {
+      type: 'Feature',
+      properties: { ...defaultAttributes },
+      geometry: layer.toGeoJSON().geometry
+    };
+  }
+  
+  openAttributeEditor(layer.feature, userLayer.id);
+}
+
+function deleteFeature(layer, userLayer) {
+  if (confirm('Are you sure you want to delete this feature?')) {
+    userLayer.layer.removeLayer(layer);
+    hasUnsavedChanges = true;
+    
+    const saveDrawingBtn = document.getElementById('saveDrawingBtn');
+    if (saveDrawingBtn) {
+      saveDrawingBtn.disabled = false;
+    }
+  }
+}
+
+function addContextMenuStyles() {
+  const styleElement = document.createElement('style');
+  styleElement.textContent = `
+    .feature-context-menu {
+      min-width: 150px;
+    }
+    .feature-context-menu button:hover {
+      background-color: #f0f0f0;
+    }
+  `;
+  document.head.appendChild(styleElement);
 }
 
 function setupDrawingTools() {
@@ -1463,12 +1864,9 @@ function setupDrawingTools() {
   const drawPointBtn = document.getElementById('drawPointBtn');
   const drawLineBtn = document.getElementById('drawLineBtn');
   const drawPolygonBtn = document.getElementById('drawPolygonBtn');
-  const editLayerBtn = document.getElementById('editLayerBtn');
-  const deleteLayerBtn = document.getElementById('deleteLayerBtn');
   const saveDrawingBtn = document.getElementById('saveDrawingBtn');
   const drawingNameInput = document.getElementById('drawingNameInput');
   const saveDrawingContainer = document.getElementById('save-drawing-container');
-  
   
   let originalLayerState = null;
   let hasUnsavedChanges = false;
@@ -1506,73 +1904,6 @@ function setupDrawingTools() {
     }
   });
   
-  function resetAllModes() {
-    if (drawPointBtn) drawPointBtn.classList.remove('active');
-    if (drawLineBtn) drawLineBtn.classList.remove('active');
-    if (drawPolygonBtn) drawPolygonBtn.classList.remove('active');
-    if (editLayerBtn) editLayerBtn.classList.remove('active');
-    if (deleteLayerBtn) deleteLayerBtn.classList.remove('active');
-    
-    isDrawingActive = false;
-    currentDrawType = null;
-    activeShapeMode = null;
-    activeActionMode = null;
-    
-    if (map.drawHandler) {
-      map.off('click', map.drawHandler);
-      map.drawHandler = null;
-    }
-    
-    if (map.activeDrawingTool) {
-      map.activeDrawingTool.disable();
-      map.activeDrawingTool = null;
-    }
-    
-    const instructions = document.getElementById('drawing-instructions');
-    if (instructions) {
-      instructions.style.display = 'none';
-    }
-  
-    userLayers.forEach(userLayer => {
-      if (userLayer.editEnabled && userLayer.layer) {
-        userLayer.layer.eachLayer(layer => {
-          if (layer.editing && layer.editing.enabled()) {
-            layer.editing.disable();
-          }
-        });
-        userLayer.editEnabled = false;
-      }
-    });
-      
-    drawFeatureGroup.eachLayer(layer => {
-      if (layer.editing && layer.editing.enabled()) {
-        layer.editing.disable();
-      }
-    });
-    
-    map.getContainer().style.cursor = '';
-    
-    if (saveDrawingContainer) {
-      saveDrawingContainer.style.display = 'none';
-    }
-    
-    if (drawingNameInput) {
-      drawingNameInput.disabled = false;
-      drawingNameInput.style.opacity = '1';
-      drawingNameInput.style.backgroundColor = '#ffffff';
-      drawingNameInput.value = '';
-    }
-    
-    const saveDrawingBtn = document.getElementById('saveDrawingBtn');
-    if (saveDrawingBtn) {
-      saveDrawingBtn.disabled = false;
-    }
-    
-    originalLayerState = null;
-    hasUnsavedChanges = false;
-    currentEditingUserLayer = null;
-  }
-  
   function resetShapeModes() {
     if (drawPointBtn) drawPointBtn.classList.remove('active');
     if (drawLineBtn) drawLineBtn.classList.remove('active');
@@ -1591,71 +1922,6 @@ function setupDrawingTools() {
     activeShapeMode = null;
     
     updateDrawingNameInputState();
-  }
-  
-  function resetActionModes() {
-    if (editLayerBtn) editLayerBtn.classList.remove('active');
-    if (deleteLayerBtn) deleteLayerBtn.classList.remove('active');
-    
-    userLayers.forEach(userLayer => {
-      if (userLayer.editEnabled && userLayer.layer) {
-        userLayer.layer.eachLayer(layer => {
-          if (layer.editing && layer.editing.enabled()) {
-            layer.editing.disable();
-          }
-        });
-        userLayer.editEnabled = false;
-      }
-    });
-    
-    drawFeatureGroup.eachLayer(layer => {
-      if (layer.editing && layer.editing.enabled()) {
-        layer.editing.disable();
-      }
-      
-      if (activeActionMode === 'delete') {
-        if (layer._deleteHandlerFunc) {
-          layer.off('click', layer._deleteHandlerFunc);
-          delete layer._deleteHandlerFunc;
-        }
-        layer.off('click');
-      } else if (activeActionMode === 'edit') {
-        layer.off('click');
-      }
-    });
-    
-    if (activeActionMode === 'delete') {
-      userLayers.forEach(userLayer => {
-        if (userLayer.layer) {
-          userLayer.layer.eachLayer(layer => {
-            if (layer._deleteHandlerFunc) {
-              layer.off('click', layer._deleteHandlerFunc);
-              delete layer._deleteHandlerFunc;
-            }
-            layer.off('click');
-          });
-        }
-      });
-    } else if (activeActionMode === 'edit') {
-      userLayers.forEach(userLayer => {
-        if (userLayer.layer) {
-          userLayer.layer.eachLayer(layer => {
-            layer.off('click');
-          });
-        }
-        userLayer.editEnabled = false;
-      });
-    }
-    
-    const previousActionMode = activeActionMode;
-    activeActionMode = null;
-    currentEditingUserLayer = null;
-    
-    updateDrawingNameInputState();
-    
-    if (activeShapeMode) {
-      updateDrawingInstructions();
-    }
   }
   
   function updateDrawingInstructions() {
@@ -1685,144 +1951,6 @@ function setupDrawingTools() {
     
     instructions.textContent = instructionText;
     instructions.style.display = 'block';
-  }
-  
-  function saveOriginalState() {
-    if (currentEditingUserLayer) {
-      originalLayerState = {
-        id: currentEditingUserLayer.id,
-        name: currentEditingUserLayer.name,
-        data: JSON.parse(JSON.stringify(currentEditingUserLayer.originalData))
-      };
-    } else {
-      const drawnItemsGeoJSON = drawFeatureGroup.toGeoJSON();
-      originalLayerState = {
-        drawn: true,
-        data: JSON.parse(JSON.stringify(drawnItemsGeoJSON))
-      };
-    }
-    
-    userLayers.forEach(userLayer => {
-      if (userLayer.layer && map.hasLayer(userLayer.layer)) {
-        userLayer._originalState = JSON.parse(JSON.stringify(userLayer.layer.toGeoJSON()));
-      }
-    });
-    
-    hasUnsavedChanges = false;
-  }
-  
-  function restoreOriginalState() {
-    if (!originalLayerState && !hasUnsavedChanges) return;
-  
-    if (activeActionMode === 'delete' || activeActionMode === 'edit') {
-      userLayers.forEach(userLayer => {
-        if (userLayer._originalState && userLayer.layer) {
-          map.removeLayer(userLayer.layer);
-          
-          userLayer.layer = L.geoJSON(userLayer._originalState, {
-            style: function() {
-              return userLayer.originalStyle || {
-                color: userLayer.defaultColor,
-                weight: 2,
-                opacity: 0.7,
-                fillOpacity: 0.3
-              };
-            },
-            onEachFeature: function(feature, layer) {
-              if (feature.properties) {
-                let popupContent = '<table class="popup-table">';
-                popupContent += '<tr><th>Property</th><th>Value</th></tr>';
-                
-                for (const [key, value] of Object.entries(feature.properties)) {
-                  if (value !== null && value !== undefined) {
-                    popupContent += `<tr><td>${key}</td><td>${value}</td></tr>`;
-                  }
-                }
-                
-                popupContent += '</table>';
-                layer.bindPopup(popupContent);
-              }
-            },
-            pointToLayer: function(feature, latlng) {
-              return L.circleMarker(latlng, {
-                radius: userLayer.pointSize || 8,
-                fillColor: userLayer.fillColor || userLayer.defaultColor,
-                color: userLayer.outlineColor || '#000',
-                weight: userLayer.outlineWidth || 1,
-                opacity: userLayer.outlineOpacity || 1,
-                fillOpacity: userLayer.fillOpacity || 0.8
-              });
-            }
-          }).addTo(map);
-          
-          delete userLayer._originalState;
-        }
-      });
-    }
-    
-    if (originalLayerState) {
-      if (originalLayerState.id && originalLayerState.data) {
-        const userLayer = userLayers.find(l => l.id === originalLayerState.id);
-        
-        if (userLayer) {
-          userLayer.originalData = JSON.parse(JSON.stringify(originalLayerState.data));
-          userLayer.name = originalLayerState.name;
-          
-          if (map.hasLayer(userLayer.layer)) {
-            map.removeLayer(userLayer.layer);
-          }
-          
-          userLayer.layer = L.geoJSON(userLayer.originalData, {
-            style: function() {
-              return userLayer.originalStyle || {
-                color: userLayer.defaultColor,
-                weight: 2,
-                opacity: 0.7,
-                fillOpacity: 0.3
-              };
-            },
-            onEachFeature: function(feature, layer) {
-              if (feature.properties) {
-                let popupContent = '<table class="popup-table">';
-                popupContent += '<tr><th>Property</th><th>Value</th></tr>';
-                
-                for (const [key, value] of Object.entries(feature.properties)) {
-                  if (value !== null && value !== undefined) {
-                    popupContent += `<tr><td>${key}</td><td>${value}</td></tr>`;
-                  }
-                }
-                
-                popupContent += '</table>';
-                layer.bindPopup(popupContent);
-              }
-            },
-            pointToLayer: function(feature, latlng) {
-              return L.circleMarker(latlng, {
-                radius: userLayer.pointSize || 8,
-                fillColor: userLayer.fillColor || userLayer.defaultColor,
-                color: userLayer.outlineColor || '#000',
-                weight: userLayer.outlineWidth || 1,
-                opacity: userLayer.outlineOpacity || 1,
-                fillOpacity: userLayer.fillOpacity || 0.8
-              });
-            }
-          }).addTo(map);
-        }
-      } else if (originalLayerState.drawn) {
-        drawFeatureGroup.clearLayers();
-        
-        L.geoJSON(originalLayerState.data, {
-          onEachFeature: (feature, layer) => {
-            drawFeatureGroup.addLayer(layer);
-          }
-        });
-      }
-    }
-    
-    originalLayerState = null;
-    currentEditingUserLayer = null;
-    currentDrawingLayer = null;
-    hasUnsavedChanges = false;
   }
   
   function updateDrawingNameInputState() {
@@ -1867,154 +1995,174 @@ function setupDrawingTools() {
     }
   }
   
+  function restoreOriginalState() {
+    if (!originalLayerState && !hasUnsavedChanges) return;
+  
+    if (activeActionMode === 'delete' || activeActionMode === 'edit') {
+      userLayers.forEach(userLayer => {
+        if (userLayer._originalState && userLayer.layer) {
+          map.removeLayer(userLayer.layer);
+          
+          userLayer.layer = L.geoJSON(userLayer._originalState, {
+            pane: 'userLayers',
+            style: function() {
+              return {
+                color: userLayer.defaultColor || '#000000',
+                weight: userLayer.weight || 3,
+                opacity: userLayer.strokeOpacity || 0.75,
+                fillColor: userLayer.fillColor || userLayer.defaultColor || '#000000',
+                fillOpacity: userLayer.fillOpacity || 0.3
+              };
+            },
+            onEachFeature: function(feature, layer) {
+              if (feature.properties) {
+                layer.on('click', function(e) {
+                  if (isDrawingActive && activeShapeMode) {
+                  } else {
+                    let popupContent = '<table class="popup-table">';
+                    popupContent += '<tr><th>Property</th><th>Value</th></tr>';
+                    
+                    for (const [key, value] of Object.entries(feature.properties)) {
+                      if (value !== null && value !== undefined) {
+                        popupContent += `<tr><td>${key}</td><td>${value}</td></tr>`;
+                      }
+                    }
+                    
+                    popupContent += '</table>';
+                    layer.bindPopup(popupContent);
+                  }
+                });
+              }
+            },
+            pointToLayer: function(feature, latlng) {
+              return L.circleMarker(latlng, {
+                radius: 3,
+                fillColor: userLayer.defaultColor || '#000000',
+                color: userLayer.defaultColor || '#000000',
+                weight: 1,
+                opacity: userLayer.strokeOpacity || 0.75,
+                fillOpacity: userLayer.fillOpacity || 0.75
+              });
+            }
+          }).addTo(map);
+          
+          delete userLayer._originalState;
+        }
+      });
+    }
+    
+    if (originalLayerState) {
+      if (originalLayerState.id && originalLayerState.data) {
+        const userLayer = userLayers.find(l => l.id === originalLayerState.id);
+        
+        if (userLayer) {
+          userLayer.originalData = JSON.parse(JSON.stringify(originalLayerState.data));
+          userLayer.name = originalLayerState.name;
+          
+          if (map.hasLayer(userLayer.layer)) {
+            map.removeLayer(userLayer.layer);
+          }
+          
+          userLayer.layer = L.geoJSON(userLayer.originalData, {
+            pane: 'userLayers',
+            style: function() {
+              return {
+                color: userLayer.defaultColor || '#000000',
+                weight: userLayer.weight || 3,
+                opacity: userLayer.strokeOpacity || 0.75,
+                fillColor: userLayer.fillColor || userLayer.defaultColor || '#000000',
+                fillOpacity: userLayer.fillOpacity || 0.3
+              };
+            },
+            onEachFeature: function(feature, layer) {
+              if (feature.properties) {
+                layer.on('click', function(e) {
+                  if (isDrawingActive && activeShapeMode) {
+                  } else {
+                    let popupContent = '<table class="popup-table">';
+                    popupContent += '<tr><th>Property</th><th>Value</th></tr>';
+                    
+                    for (const [key, value] of Object.entries(feature.properties)) {
+                      if (value !== null && value !== undefined) {
+                        popupContent += `<tr><td>${key}</td><td>${value}</td></tr>`;
+                      }
+                    }
+                    
+                    popupContent += '</table>';
+                    layer.bindPopup(popupContent);
+                  }
+                });
+              }
+            },
+            pointToLayer: function(feature, latlng) {
+              return L.circleMarker(latlng, {
+                radius: 3,
+                fillColor: userLayer.defaultColor || '#000000',
+                color: userLayer.defaultColor || '#000000',
+                weight: 1,
+                opacity: userLayer.strokeOpacity || 0.75,
+                fillOpacity: userLayer.fillOpacity || 0.75
+              });
+            }
+          }).addTo(map);
+        }
+      } else if (originalLayerState.drawn) {
+        drawFeatureGroup.clearLayers();
+        
+        L.geoJSON(originalLayerState.data, {
+          onEachFeature: (feature, layer) => {
+            drawFeatureGroup.addLayer(layer);
+          }
+        });
+      }
+    }
+    
+    originalLayerState = null;
+    currentEditingUserLayer = null;
+    currentDrawingLayer = null;
+    hasUnsavedChanges = false;
+  }
+  
   function isDrawingOrActionActive() {
     return activeShapeMode !== null || activeActionMode !== null;
   }
   
-  function enableEditMode() {
-    saveOriginalState();
-    
-    if (map.drawHandler) {
-      map.off('click', map.drawHandler);
-      map.drawHandler = null;
-    }
-    
-    if (map.activeDrawingTool) {
-      map.activeDrawingTool.disable();
-      map.activeDrawingTool = null;
-    }
-    
-    drawFeatureGroup.eachLayer(layer => {
-      if (layer.editing) {
-        layer.editing.enable();
-        
-        layer.on('click', function(e) {
-          L.DomEvent.stopPropagation(e);
-          currentDrawingLayer = this;
-          
-          if (drawingNameInput) {
-            drawingNameInput.value = 'Drawn Feature';
-          }
-        });
-      }
-    });
-    
-    userLayers.forEach(userLayer => {
-      if (userLayer.layer && map.hasLayer(userLayer.layer)) {
-        userLayer.layer.eachLayer(layer => {
-          if (layer.editing) {
-            layer.editing.enable();
-            userLayer.editEnabled = true;
-            
-            layer.on('click', function(e) {
-              L.DomEvent.stopPropagation(e);
-              currentDrawingLayer = this;
-              currentEditingUserLayer = userLayer;
-              hasUnsavedChanges = true;
-              
-              updateDrawingNameInputState();
-            });
-          }
-        });
-      }
-    });
-    
-    map.getContainer().style.cursor = 'pointer';
-    
-    updateDrawingNameInputState();
-  }
-  
-  function setupDeleteHandlers() {
-    saveOriginalState();
-    
-    if (map.drawHandler) {
-      map.off('click', map.drawHandler);
-      map.drawHandler = null;
-    }
-    
-    if (map.activeDrawingTool) {
-      map.activeDrawingTool.disable();
-      map.activeDrawingTool = null;
-    }
-    
-    drawFeatureGroup.eachLayer(layer => {
-      layer.off('click');
+  function switchToDrawModeForEditing(drawType) {
+    if (activeActionMode === 'edit' && currentEditingUserLayer) {
+      isDrawingActive = true;
+      currentDrawType = drawType;
       
-      const clickHandler = function(e) {
-        L.DomEvent.stopPropagation(e);
-        
-        drawFeatureGroup.removeLayer(this);
-        hasUnsavedChanges = true;
-        
-        if (currentDrawingLayer === this) {
-          currentDrawingLayer = null;
-        }
-        
-        updateDrawingNameInputState();
-      };
-      
-      layer._deleteHandlerFunc = clickHandler;
-      layer.on('click', clickHandler);
-    });
-    
-    userLayers.forEach(userLayer => {
-      if (userLayer.layer && map.hasLayer(userLayer.layer)) {
-        const originalFeatureCollection = userLayer.layer.toGeoJSON();
-        userLayer._originalState = JSON.parse(JSON.stringify(originalFeatureCollection));
-        
-        userLayer.layer.eachLayer(layer => {
-          layer.off('click');
-          
-          const clickHandler = function(e) {
-            L.DomEvent.stopPropagation(e);
-            
-            if (!currentEditingUserLayer) {
-              currentEditingUserLayer = userLayer;
-              updateDrawingNameInputState();
-            }
-            
-            userLayer.layer.removeLayer(this);
-            hasUnsavedChanges = true;
-            
-            if (currentDrawingLayer === this) {
-              currentDrawingLayer = null;
-            }
-          };
-          
-          layer._deleteHandlerFunc = clickHandler;
-          layer.on('click', clickHandler);
-        });
+      if (saveDrawingContainer) {
+        saveDrawingContainer.style.display = 'flex';
       }
-    });
-    
-    map.getContainer().style.cursor = 'pointer';
-    
-    const saveDrawingBtn = document.getElementById('saveDrawingBtn');
-    if (saveDrawingBtn) {
-      saveDrawingBtn.disabled = true;
+      
+      if (drawingNameInput) {
+        drawingNameInput.value = currentEditingUserLayer.name || '';
+        drawingNameInput.disabled = true;
+        drawingNameInput.style.opacity = '0.6';
+        drawingNameInput.style.backgroundColor = '#f0f0f0';
+      }
     }
   }
   
-  function hasFeaturesToEditOrDelete() {
-    const hasDrawnFeatures = drawFeatureGroup.getLayers().length > 0;
-    const hasUserLayers = userLayers.some(layer => 
-      layer.layer && map.hasLayer(layer.layer) && layer.layer.getLayers().length > 0
-    );
-    
-    return hasDrawnFeatures || hasUserLayers;
-  }
-
   if (drawPointBtn) {
     drawPointBtn.addEventListener('click', function() {
+      if (activeActionMode === 'edit' && currentEditingUserLayer) {
+        switchToDrawModeForEditing('marker');
+      }
       if (activeShapeMode === 'marker') {
         resetShapeModes();
         if (!activeActionMode) {
           isDrawingActive = false;
           currentDrawType = null;
-          if (saveDrawingContainer) saveDrawingContainer.style.display = 'none';
+          if (saveDrawingContainer) {
+            saveDrawingContainer.style.display = 'none';
+          }
           
           const instructions = document.getElementById('drawing-instructions');
-          if (instructions) instructions.style.display = 'none';
+          if (instructions) {
+            instructions.style.display = 'none';
+          }
         } else {
           updateDrawingInstructions();
         }
@@ -2047,8 +2195,11 @@ function setupDrawingTools() {
           marker.editing.enable();
           marker.on('click', function() {
             currentDrawingLayer = this;
-            if (drawingNameInput) {
+            if (drawingNameInput && !currentEditingUserLayer) {
               drawingNameInput.value = 'Drawn Feature';
+              drawingNameInput.disabled = false;
+              drawingNameInput.style.opacity = '1';
+              drawingNameInput.style.backgroundColor = '#ffffff';
             }
           });
         }
@@ -2065,15 +2216,22 @@ function setupDrawingTools() {
   
   if (drawLineBtn) {
     drawLineBtn.addEventListener('click', function() {
+      if (activeActionMode === 'edit' && currentEditingUserLayer) {
+        switchToDrawModeForEditing('polyline');
+      }
       if (activeShapeMode === 'polyline') {
         resetShapeModes();
         if (!activeActionMode) {
           isDrawingActive = false;
           currentDrawType = null;
-          if (saveDrawingContainer) saveDrawingContainer.style.display = 'none';
+          if (saveDrawingContainer) {
+            saveDrawingContainer.style.display = 'none';
+          }
           
           const instructions = document.getElementById('drawing-instructions');
-          if (instructions) instructions.style.display = 'none';
+          if (instructions) {
+            instructions.style.display = 'none';
+          }
         } else {
           updateDrawingInstructions();
         }
@@ -2101,15 +2259,22 @@ function setupDrawingTools() {
   
   if (drawPolygonBtn) {
     drawPolygonBtn.addEventListener('click', function() {
+      if (activeActionMode === 'edit' && currentEditingUserLayer) {
+        switchToDrawModeForEditing('polygon');
+      }
       if (activeShapeMode === 'polygon') {
         resetShapeModes();
         if (!activeActionMode) {
           isDrawingActive = false;
           currentDrawType = null;
-          if (saveDrawingContainer) saveDrawingContainer.style.display = 'none';
+          if (saveDrawingContainer) {
+            saveDrawingContainer.style.display = 'none';
+          }
           
           const instructions = document.getElementById('drawing-instructions');
-          if (instructions) instructions.style.display = 'none';
+          if (instructions) {
+            instructions.style.display = 'none';
+          }
         } else {
           updateDrawingInstructions();
         }
@@ -2134,90 +2299,6 @@ function setupDrawingTools() {
       updateDrawingNameInputState();
     });
   }
-
-  if (editLayerBtn) {
-    editLayerBtn.addEventListener('click', function() {
-      if (activeActionMode === 'edit') {
-        resetActionModes();
-        if (!activeShapeMode) {
-          isDrawingActive = false;
-          currentDrawType = null;
-          if (saveDrawingContainer) saveDrawingContainer.style.display = 'none';
-          
-          const instructions = document.getElementById('drawing-instructions');
-          if (instructions) instructions.style.display = 'none';
-          
-          originalLayerState = null;
-          currentEditingUserLayer = null;
-        } else {
-          updateDrawingInstructions();
-        }
-        return;
-      }
-      
-      if (!hasFeaturesToEditOrDelete()) {
-        alert('No features to edit. Draw or upload something first.');
-        return;
-      }
-      
-      resetActionModes();
-      
-      this.classList.add('active');
-      isDrawingActive = true;
-      activeActionMode = 'edit';
-      
-      if (saveDrawingContainer) {
-        saveDrawingContainer.style.display = 'flex';
-      }
-      
-      enableEditMode();
-      
-      updateDrawingInstructions();
-      updateDrawingNameInputState();
-    });
-  }
-  
-  if (deleteLayerBtn) {
-    deleteLayerBtn.addEventListener('click', function() {
-      if (activeActionMode === 'delete') {
-        resetActionModes();
-        if (!activeShapeMode) {
-          isDrawingActive = false;
-          currentDrawType = null;
-          if (saveDrawingContainer) saveDrawingContainer.style.display = 'none';
-          
-          const instructions = document.getElementById('drawing-instructions');
-          if (instructions) instructions.style.display = 'none';
-          
-          originalLayerState = null;
-          currentEditingUserLayer = null;
-        } else {
-          updateDrawingInstructions();
-        }
-        return;
-      }
-      
-      if (!hasFeaturesToEditOrDelete()) {
-        alert('No features to delete. Draw or upload something first.');
-        return;
-      }
-      
-      resetActionModes();
-      
-      this.classList.add('active');
-      isDrawingActive = true;
-      activeActionMode = 'delete';
-      
-      if (saveDrawingContainer) {
-        saveDrawingContainer.style.display = 'flex';
-      }
-      
-      setupDeleteHandlers();
-      
-      updateDrawingInstructions();
-      updateDrawingNameInputState();
-    });
-  }
   
   if (saveDrawingBtn) {
     saveDrawingBtn.addEventListener('click', function() {
@@ -2237,8 +2318,79 @@ function setupDrawingTools() {
           }
         }
         
-        const updatedGeoJSON = currentEditingUserLayer.layer.toGeoJSON();
-        currentEditingUserLayer.originalData = updatedGeoJSON;
+        currentEditingUserLayer.layer.eachLayer(layer => {
+          if (layer.editing && layer.editing.enabled()) {
+            layer.editing.disable();
+          }
+        });
+        
+        const currentLayerGeoJSON = currentEditingUserLayer.layer.toGeoJSON();
+        
+        const newFeatures = [];
+        drawFeatureGroup.eachLayer(layer => {
+          if (layer._userLayerId === currentEditingUserLayer.id) {
+            const feature = layer.toGeoJSON();
+            newFeatures.push(feature);
+          }
+        });
+        
+        if (newFeatures.length > 0) {
+          newFeatures.forEach(feature => {
+            currentLayerGeoJSON.features.push(feature);
+          });
+        }
+        
+        currentEditingUserLayer.originalData = currentLayerGeoJSON;
+        
+        map.removeLayer(currentEditingUserLayer.layer);
+        if (currentEditingUserLayer.labelLayerGroup) {
+          map.removeLayer(currentEditingUserLayer.labelLayerGroup);
+        }
+        
+        currentEditingUserLayer.layer = L.geoJSON(currentLayerGeoJSON, {
+          pane: 'userLayers',
+          style: function() {
+            return {
+              color: currentEditingUserLayer.defaultColor || '#000000',
+              weight: currentEditingUserLayer.weight || 3,
+              opacity: currentEditingUserLayer.strokeOpacity || 0.75,
+              fillColor: currentEditingUserLayer.fillColor || currentEditingUserLayer.defaultColor || '#000000',
+              fillOpacity: currentEditingUserLayer.fillOpacity || 0.3
+            };
+          },
+          onEachFeature: function(feature, layer) {
+            if (feature.properties) {
+              layer.on('click', function(e) {
+                if (isDrawingActive && activeShapeMode) {
+                } else {
+                  const popupContent = createFeaturePopupContent(feature.properties, currentEditingUserLayer.name);
+                  L.popup()
+                    .setLatLng(e.latlng)
+                    .setContent(popupContent)
+                    .openOn(map);
+                }
+              });
+            }
+          },
+          pointToLayer: function(feature, latlng) {
+            return L.circleMarker(latlng, {
+              radius: 3,
+              fillColor: currentEditingUserLayer.defaultColor || '#000000',
+              color: currentEditingUserLayer.defaultColor || '#000000',
+              weight: 1,
+              opacity: currentEditingUserLayer.strokeOpacity || 0.75,
+              fillOpacity: currentEditingUserLayer.fillOpacity || 0.75
+            });
+          }
+        }).addTo(map);
+        
+        applyUserLayerStyle(currentEditingUserLayer.id);
+        
+        drawFeatureGroup.eachLayer(layer => {
+          if (layer._userLayerId === currentEditingUserLayer.id) {
+            drawFeatureGroup.removeLayer(layer);
+          }
+        });
         
         currentEditingUserLayer.editEnabled = false;
         currentEditingUserLayer = null;
@@ -2260,12 +2412,69 @@ function setupDrawingTools() {
       if (drawFeatureGroup.getLayers().length > 0) {
         const drawnItemsGeoJSON = drawFeatureGroup.toGeoJSON();
         
-        addUserLayer(drawnItemsGeoJSON, name);
+        if (currentEditingUserLayer) {
+          const existingData = currentEditingUserLayer.originalData;
+          
+          drawnItemsGeoJSON.features.forEach(feature => {
+            existingData.features.push(feature);
+          });
+          
+          map.removeLayer(currentEditingUserLayer.layer);
+          if (currentEditingUserLayer.labelLayerGroup) {
+            map.removeLayer(currentEditingUserLayer.labelLayerGroup);
+          }
+          
+          currentEditingUserLayer.layer = L.geoJSON(existingData, {
+            pane: 'userLayers',
+            style: function() {
+              return {
+                color: currentEditingUserLayer.defaultColor || '#000000',
+                weight: currentEditingUserLayer.weight || 3,
+                opacity: currentEditingUserLayer.strokeOpacity || 0.75,
+                fillColor: currentEditingUserLayer.fillColor || currentEditingUserLayer.defaultColor || '#000000',
+                fillOpacity: currentEditingUserLayer.fillOpacity || 0.3
+              };
+            },
+            onEachFeature: function(feature, layer) {
+              if (feature.properties) {
+                layer.on('click', function(e) {
+                  if (isDrawingActive && activeShapeMode) {
+                  } else {
+                    layer.on('click', function(e) {
+                      if (!isDrawingActive) {
+                        L.DomEvent.stopPropagation(e);
+                        const popupContent = createFeaturePopupContent(feature.properties, currentEditingUserLayer.name);
+                        layer.bindPopup(popupContent).openPopup();
+                      }
+                    });
+                  }
+                });
+              }
+            },
+            pointToLayer: function(feature, latlng) {
+              return L.circleMarker(latlng, {
+                radius: 3,
+                fillColor: currentEditingUserLayer.defaultColor || '#000000',
+                color: currentEditingUserLayer.defaultColor || '#000000',
+                weight: 1,
+                opacity: currentEditingUserLayer.strokeOpacity || 0.75,
+                fillOpacity: currentEditingUserLayer.fillOpacity || 0.75
+              });
+            }
+          }).addTo(map);
+          
+          currentEditingUserLayer.originalData = existingData;
+          
+          applyUserLayerStyle(currentEditingUserLayer.id);
+        } else {
+          addUserLayer(drawnItemsGeoJSON, name);
+        }
         
         drawFeatureGroup.clearLayers();
         currentDrawingLayer = null;
         originalLayerState = null;
         hasUnsavedChanges = false;
+        currentEditingUserLayer = null;
         
         resetAllModes();
         if (drawingNameInput) {
@@ -2275,6 +2484,15 @@ function setupDrawingTools() {
           drawingNameInput.style.backgroundColor = '#ffffff';
         }
       } else if (activeActionMode === 'edit' && hasUnsavedChanges) {
+        if (currentEditingUserLayer) {
+          currentEditingUserLayer.layer.eachLayer(layer => {
+            if (layer.editing && layer.editing.enabled()) {
+              layer.editing.disable();
+            }
+          });
+          currentEditingUserLayer.editEnabled = false;
+        }
+        
         resetAllModes();
         if (drawingNameInput) {
           drawingNameInput.value = '';
@@ -2284,6 +2502,7 @@ function setupDrawingTools() {
         }
         hasUnsavedChanges = false;
         originalLayerState = null;
+        currentEditingUserLayer = null;
       } else {
         alert('No features drawn or edited. Please draw or edit something first.');
       }
@@ -2298,15 +2517,20 @@ function setupDrawingTools() {
         restoreOriginalState();
         
         if (activeShapeMode) {
-          resetActionModes();
+          resetShapeModes();
+          activeActionMode = null;
         } else {
           resetAllModes();
         }
       } else if (activeShapeMode) {
         if (hasUnsavedChanges) {
-          drawFeatureGroup.clearLayers();
+          if (confirm('Discard unsaved changes?')) {
+            drawFeatureGroup.clearLayers();
+            resetAllModes();
+          }
+        } else {
+          resetAllModes();
         }
-        resetAllModes();
       }
       
       if (!activeShapeMode) {
@@ -2329,6 +2553,8 @@ function setupDrawingTools() {
     let initialAttributes = {...defaultAttributes};
     
     if (currentEditingUserLayer) {
+      layer._userLayerId = currentEditingUserLayer.id;
+      
       const existingFeatures = currentEditingUserLayer.layer.getLayers();
       if (existingFeatures.length > 0) {
         const lastFeature = existingFeatures[existingFeatures.length - 1];
@@ -2348,6 +2574,27 @@ function setupDrawingTools() {
     layer.feature = feature;
     
     currentDrawingLayer = layer;
+    
+    if (activeActionMode === 'edit' && currentEditingUserLayer) {
+      if (layer.setStyle) {
+        layer.setStyle({
+          color: currentEditingUserLayer.defaultColor || '#000000',
+          weight: currentEditingUserLayer.weight || 3,
+          opacity: currentEditingUserLayer.strokeOpacity || 0.75,
+          fillColor: currentEditingUserLayer.fillColor || currentEditingUserLayer.defaultColor || '#000000',
+          fillOpacity: currentEditingUserLayer.fillOpacity || 0.3
+        });
+      } else if (layer.setRadius) {
+        layer.setStyle({
+          radius: 3,
+          fillColor: currentEditingUserLayer.defaultColor || '#000000',
+          color: currentEditingUserLayer.defaultColor || '#000000',
+          weight: 1,
+          opacity: currentEditingUserLayer.strokeOpacity || 0.75,
+          fillOpacity: currentEditingUserLayer.fillOpacity || 0.75
+        });
+      }
+    }
     
     drawFeatureGroup.addLayer(layer);
     
@@ -2372,6 +2619,11 @@ function setupDrawingTools() {
           drawingNameInput.disabled = false;
           drawingNameInput.style.opacity = '1';
           drawingNameInput.style.backgroundColor = '#ffffff';
+        } else if (drawingNameInput && currentEditingUserLayer) {
+          drawingNameInput.value = currentEditingUserLayer.name || '';
+          drawingNameInput.disabled = true;
+          drawingNameInput.style.opacity = '0.6';
+          drawingNameInput.style.backgroundColor = '#f0f0f0';
         }
       });
     }
@@ -2692,13 +2944,11 @@ function detectAndFixProjection(data) {
       }
       
       if (coord) {
-        // Check if coordinates are likely in British National Grid
         if (coord[0] > 100000 && coord[0] < 700000 && 
             coord[1] > 0 && coord[1] < 1300000) {
           console.log("Detected likely British National Grid coordinates:", coord);
           return 'EPSG:27700';
         }
-        // Check if coordinates are likely in Web Mercator
         else if (Math.abs(coord[0]) > 180 || Math.abs(coord[1]) > 90) {
           console.log("Detected likely Web Mercator coordinates:", coord);
           return 'EPSG:3857';
@@ -2713,7 +2963,6 @@ function detectAndFixProjection(data) {
   if (projectionType) {
     console.log(`Reprojecting from ${projectionType} to WGS84`);
     
-    // Use Leaflet's CRS system to transform coordinates
     const sourceCrs = projectionType === 'EPSG:27700' 
       ? new L.Proj.CRS('EPSG:27700', '+proj=tmerc +lat_0=49 +lon_0=-2 +k=0.9996012717 +x_0=400000 +y_0=-100000 +ellps=airy +towgs84=446.448,-125.157,542.060,0.1502,0.2470,0.8421,-20.4894 +units=m +no_defs')
       : L.CRS.EPSG3857;
@@ -2760,12 +3009,36 @@ function detectAndFixProjection(data) {
   return result;
 }
 
+
 function removeUserLayer(layerId) {
-  // console.log('Removing user layer...');
   const layerIndex = userLayers.findIndex(l => l.id === layerId);
   if (layerIndex > -1) {
     const layer = userLayers[layerIndex];
+    
     map.removeLayer(layer.layer);
+    
+    if (layer.labelLayerGroup) {
+      map.removeLayer(layer.labelLayerGroup);
+    }
+    
+    drawFeatureGroup.eachLayer(drawLayer => {
+      if (drawLayer._userLayerId === layerId) {
+        drawFeatureGroup.removeLayer(drawLayer);
+      }
+    });
+    
+    const layerGeoJSON = layer.layer.toGeoJSON();
+    if (layerGeoJSON && layerGeoJSON.features) {
+      layerGeoJSON.features.forEach(feature => {
+        drawFeatureGroup.eachLayer(drawLayer => {
+          const drawLayerGeoJSON = drawLayer.toGeoJSON();
+          if (JSON.stringify(drawLayerGeoJSON.geometry) === JSON.stringify(feature.geometry)) {
+            drawFeatureGroup.removeLayer(drawLayer);
+          }
+        });
+      });
+    }
+    
     userLayers.splice(layerIndex, 1);
     
     const layerElement = document.querySelector(`.user-layer-item button[data-id="${layerId}"]`).closest('.user-layer-item');
@@ -3422,7 +3695,6 @@ function findNearbyInfrastructure(latlng, maxPixelDistance = 10, targetLayer = n
             }
           }
         }
-        // Handle polygons
         else if (geojson.geometry.type === 'Polygon' || geojson.geometry.type === 'MultiPolygon') {
           const coords = geojson.geometry.coordinates;
           const flattenCoords = coords.flat(geojson.geometry.type === 'MultiPolygon' ? 2 : 1);
@@ -3458,7 +3730,6 @@ function findNearbyInfrastructure(latlng, maxPixelDistance = 10, targetLayer = n
       }
     });
     
-    // Sort features by distance
     results.features.sort((a, b) => a.distance - b.distance);
     return results;
   }
