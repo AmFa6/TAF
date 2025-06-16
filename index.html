@@ -484,52 +484,6 @@
   .layer-zoom-btn:hover, .layer-remove-btn:hover, .layer-style-btn:hover {
     color: #4CAF50;
   }
-  .style-section {
-    margin-bottom: 15px;
-    border: 1px solid #eee;
-    padding: 10px;
-    border-radius: 4px;
-  }
-  .style-section h4 {
-    margin-top: 0;
-    margin-bottom: 10px;
-    font-size: 14px;
-  }
-  .color-picker-row {
-    display: flex;
-    align-items: center;
-    margin-bottom: 8px;
-  }
-  .color-picker-row label {
-    flex: 1;
-    margin-bottom: 0 !important;
-  }
-  .color-picker-row input[type="color"] {
-    width: 40px !important;
-    height: 25px;
-    padding: 0;
-    border: 1px solid #ddd;
-  }
-  .style-tabs {
-    display: flex;
-    border-bottom: 1px solid #ccc;
-    margin-bottom: 10px;
-  }
-  .style-tab {
-    padding: 5px 10px;
-    cursor: pointer;
-    background: #f5f5f5;
-    border: 1px solid #ccc;
-    border-bottom: none;
-    border-radius: 4px 4px 0 0;
-    margin-right: 5px;
-  }
-  .style-tab.active {
-    background: white;
-    border-bottom: 1px solid white;
-    margin-bottom: -1px;
-    font-weight: bold;
-  }
   .tab-content {
     display: none;
   }
@@ -573,8 +527,6 @@
   #legend.collapsed #toggle-legend:after {
     content: '\25B6';
   }
-  
-  /* Styles for User Layer Features */
   .legend-file-upload-label {
     display: inline-block;
     padding: 4px 8px;
@@ -584,7 +536,6 @@
     border-radius: 4px;
     font-size: 0.9em;
   }
-  
   .legend-btn {
     padding: 4px 8px;
     background-color: #4CAF50;
@@ -596,34 +547,97 @@
     display: block;
     width: 100%;
   }
-  
   .legend-btn:disabled {
     background-color: #ccc;
     cursor: not-allowed;
   }
-  
   #userLayersContainer {
     max-height: 150px;
     overflow-y: auto;
     margin-top: 5px;
   }
-  
   .user-layer-item {
     padding: 3px 0;
     font-size: 0.9em;
   }
-  
+  .style-value-display {
+    font-size: 12px;
+    width: 35px;
+  }
+  .style-section {
+    margin-bottom: 15px;
+    border: 1px solid #eee;
+    padding: 10px;
+    border-radius: 4px;
+    background-color: #f9f9f9;
+  }
+  .style-section h4 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 14px;
+    color: #333;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 5px;
+  }
+  .opacity-slider {
+    display: flex;
+    align-items: center;
+    margin-left: 10px;
+  }
+  .opacity-slider label {
+    margin-right: 5px;
+    font-size: 0.85em;
+    white-space: nowrap;
+  }
+  .opacity-slider input[type="range"] {
+    width: 80px;
+    margin-right: 5px;
+  }
+  .opacity-slider span {
+    font-size: 12px;
+    width: 35px;
+  }
+  .color-picker-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+  .color-picker-row label {
+    min-width: 70px;
+    margin-bottom: 0 !important;
+    font-size: 0.85em;
+  }
+  .color-picker-row input[type="color"] {
+    width: 40px !important;
+    height: 25px;
+    padding: 0;
+    border: 1px solid #ddd;
+  }
+  .style-option {
+    margin-bottom: 12px;
+  }
+  .style-sub-option {
+    margin-top: 8px;
+    margin-left: 10px;
+  }
+  .style-sub-option label {
+    font-size: 0.85em;
+  }
+  .style-option label {
+    font-size: 0.85em;
+  }
+  #style-dialog .modal-body {
+    padding-bottom: 5px;
+  }
   .layer-controls button {
     padding: 2px;
     font-size: 0.85em;
   }
-  
   #legend {
     max-height: 80vh;
     overflow-y: auto;
   }
-  
-  /* Style Dialog CSS */
   .modal-dialog {
     position: fixed;
     left: 50%;
@@ -636,12 +650,10 @@
     max-width: 90%;
     width: 400px;
   }
-  
   .modal-content {
     display: flex;
     flex-direction: column;
   }
-  
   .modal-header {
     display: flex;
     justify-content: space-between;
@@ -649,18 +661,15 @@
     padding: 10px 15px;
     border-bottom: 1px solid #eee;
   }
-  
   .modal-header h3 {
     margin: 0;
     font-size: 18px;
   }
-  
   .modal-body {
     padding: 15px;
     max-height: 400px;
     overflow-y: auto;
   }
-  
   .modal-footer {
     padding: 10px 15px;
     border-top: 1px solid #eee;
@@ -668,34 +677,9 @@
     justify-content: flex-end;
     gap: 10px;
   }
-  
-  .style-option {
-    margin-bottom: 15px;
-  }
-  
-  .style-option label {
-    display: block;
-    margin-bottom: 5px;
-    font-weight: bold;
-  }
-  
-  .style-option select,
-  .style-option input[type="color"] {
-    width: 100%;
-    padding: 5px;
-    border-radius: 4px;
-    border: 1px solid #ccc;
-  }
-  
-  .style-sub-option {
-    margin-top: 10px;
-    margin-left: 15px;
-  }
-  
   .slider {
     width: 100%;
   }
-  
   #apply-style,
   #cancel-style {
     padding: 8px 15px;
@@ -703,32 +687,25 @@
     border-radius: 4px;
     cursor: pointer;
   }
-  
   #apply-style {
     background-color: #4CAF50;
     color: white;
   }
-  
   #apply-style:hover {
     background-color: #45a049;
   }
-  
   #cancel-style {
     background-color: #f44336;
     color: white;
   }
-  
   #cancel-style:hover {
     background-color: #d32f2f;
   }
-  
-  /* Drawing Tools Styles */
   .draw-buttons {
     display: flex;
     gap: 5px;
     margin-bottom: 8px;
   }
-
   .draw-button {
     flex: 1;
     padding: 6px;
@@ -737,16 +714,13 @@
     border-radius: 4px;
     cursor: pointer;
   }
-
   .draw-button:hover {
     background-color: #e8e8e8;
   }
-
   .draw-button.active {
     background-color: #4CAF50;
     color: white;
   }
-
   .leaflet-draw-tooltip {
     background: rgba(0, 0, 0, 0.7);
     border: 1px solid #000;
@@ -756,7 +730,6 @@
     font-size: 12px;
     white-space: nowrap;
   }
-
   .leaflet-draw-actions {
     display: none;
   }
@@ -765,23 +738,34 @@
     border-collapse: collapse;
     margin-top: 10px;
   }
-
   #amenities-table th, #amenities-table td {
     border: 1px solid #ccc;
     padding: 5px;
     text-align: left;
   }
-
   #amenities-table th {
     background-color: #f2f2f2;
   }
-
   #amenities-table .total-row {
     background-color: #f5f5f5;
   }
-
   #amenities-table tr:hover {
     background-color: #f9f9f9;
+  }
+  .user-layer-label {
+    background: transparent !important;
+    border: none !important;
+    font-family: 'Trebuchet MS', sans-serif;
+    font-weight: bold;
+    pointer-events: none;
+    white-space: nowrap;
+    text-align: center;
+  }
+  #style-dialog {
+    z-index: 1001;
+  }
+  .label-field-row {
+    margin-bottom: 10px;
   }
   </style>
 </head>
@@ -1125,7 +1109,6 @@
             </div>
             <button id="uploadButton" class="btn" disabled style="margin-bottom: 8px;">Upload</button>
           </div>
-          
           <div class="drawing-tools" style="margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px;">
             <div style="margin-bottom: 5px; font-weight: bold;">Draw on Map</div>
             <div class="draw-buttons">
@@ -1137,12 +1120,6 @@
               </button>
               <button class="draw-button" id="drawPolygonBtn" title="Draw Polygons">
                 <i class="fas fa-draw-polygon"></i>
-              </button>
-              <button class="draw-button" id="editLayerBtn" title="Edit Drawings">
-                <i class="fas fa-edit"></i>
-              </button>
-              <button class="draw-button" id="deleteLayerBtn" title="Delete Drawing">
-                <i class="fas fa-trash-alt"></i>
               </button>
             </div>
             <div style="margin-top: 5px;">
@@ -1245,7 +1222,6 @@
           </tr>
         </tbody>
       </table>
-
       <div id="amenities-summary" style="margin-top: 15px;">
         <table id="amenities-table">
           <thead>
@@ -1303,6 +1279,9 @@
         <button class="layer-style-btn" data-id="" title="Style layer">
           <i class="fas fa-palette"></i>
         </button>
+        <button class="layer-edit-btn" data-id="" title="Edit layer">
+          <i class="fas fa-edit"></i>
+        </button>
         <button class="layer-zoom-btn" data-id="" title="Zoom to layer">
           <i class="fas fa-search-plus"></i>
         </button>
@@ -1336,12 +1315,67 @@
           <h3 id="style-dialog-title">Style: Layer Name</h3>
         </div>
         <div class="modal-body">
-          <div class="style-option">
-            <div class="color-picker-row">
-              <label>Color:</label>
-              <input type="color" id="style-color" value="#000000">
+          <div class="style-section">
+            <h4>Feature Style</h4>
+            <div class="style-option">
+              <div class="color-picker-row">
+                <label>Colour:</label>
+                <input type="color" id="feature-color" value="#000000">
+                <div class="opacity-slider">
+                  <label>Opacity:</label>
+                  <input type="range" id="feature-opacity" min="0" max="100" value="75" class="slider">
+                  <span id="feature-opacity-value">75%</span>
+                </div>
+              </div>
+            </div>
+            <div class="style-option">
+              <div class="style-sub-option">
+                <label>Weight/Size:</label>
+                <input type="range" id="feature-size" min="1" max="10" value="3" class="slider">
+                <span id="feature-size-value" class="style-value-display">3</span>
+              </div>
+              <div class="style-sub-option fill-options">
+                <div class="color-picker-row">
+                  <label>Fill Colour:</label>
+                  <input type="color" id="feature-fill-color" value="#000000">
+                  <div class="opacity-slider">
+                    <label>Fill Opacity:</label>
+                    <input type="range" id="feature-fill-opacity" min="0" max="100" value="30" class="slider">
+                    <span id="feature-fill-opacity-value">30%</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
+          <div class="style-section">
+            <h4>Label Style</h4>
+            <div class="style-option">
+              <label>Set from Attribute:</label>
+              <select id="label-field" class="small-font">
+                <option value="">None</option>
+              </select>
+              <div class="style-sub-option">
+                <div class="color-picker-row">
+                  <label>Colour:</label>
+                  <input type="color" id="label-color" value="#000000">
+                  <div class="opacity-slider">
+                    <label>Opacity:</label>
+                    <input type="range" id="label-opacity" min="0" max="100" value="100" class="slider">
+                    <span id="label-opacity-value">100%</span>
+                  </div>
+                </div>
+                <div class="style-sub-option">
+                  <label>Size:</label>
+                  <input type="range" id="label-size" min="8" max="24" value="12" class="slider">
+                  <span id="label-size-value" class="style-value-display">12px</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="cancel-style" class="btn">Cancel</button>
+          <button id="apply-style" class="btn">Apply</button>
         </div>
       </div>
     </div>
