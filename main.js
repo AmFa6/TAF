@@ -1533,20 +1533,27 @@ function applyUserLayerStyle(layerId) {
     userLayer.labelLayerGroup = null;
   }
   
+  userLayer.labelLayerGroup = L.layerGroup().addTo(map);
+  
   userLayer.layer.eachLayer(layer => {
     if (layer.setStyle) {
-      layer.setStyle({
-        color: userLayer.defaultColor || '#000000',
-        weight: userLayer.weight || 3,
-        opacity: userLayer.strokeOpacity || 0.75,
-        fillColor: userLayer.fillColor || userLayer.defaultColor || '#000000',
-        fillOpacity: userLayer.fillOpacity || 0.3
-      });
+      if (layer._customStyle) {
+        layer.setStyle(layer._customStyle);
+      } else {
+        layer.setStyle({
+          color: userLayer.defaultColor || '#000000',
+          weight: userLayer.weight || 3,
+          opacity: userLayer.strokeOpacity || 0.75,
+          fillColor: userLayer.fillColor || userLayer.defaultColor || '#000000',
+          fillOpacity: userLayer.fillOpacity || 0.3
+        });
+      }
     } else if (layer.setIcon) {
       const markerElement = layer.getElement();
       if (markerElement) {
       }
     }
+    applyFeatureLabelStyle(layer, userLayer);
   });
   
   if (userLayer.labelField && userLayer.labelField !== '') {
@@ -1771,6 +1778,16 @@ function showFeatureContextMenu(latlng, layer, userLayer) {
   editButton.style.textAlign = 'left';
   editButton.style.cursor = 'pointer';
   
+  const styleButton = document.createElement('button');
+  styleButton.textContent = 'Style Feature';
+  styleButton.style.display = 'block';
+  styleButton.style.width = '100%';
+  styleButton.style.padding = '6px 12px';
+  styleButton.style.backgroundColor = 'transparent';
+  styleButton.style.border = 'none';
+  styleButton.style.textAlign = 'left';
+  styleButton.style.cursor = 'pointer';
+  
   const deleteButton = document.createElement('button');
   deleteButton.textContent = 'Delete Feature';
   deleteButton.style.display = 'block';
@@ -1792,11 +1809,17 @@ function showFeatureContextMenu(latlng, layer, userLayer) {
   };
   
   addHoverEffect(editButton);
+  addHoverEffect(styleButton);
   addHoverEffect(deleteButton);
   
   editButton.addEventListener('click', () => {
     document.body.removeChild(contextMenu);
     editFeatureAttributes(layer, userLayer);
+  });
+  
+  styleButton.addEventListener('click', () => {
+    document.body.removeChild(contextMenu);
+    openFeatureStyleDialog(layer, userLayer);
   });
   
   deleteButton.addEventListener('click', () => {
@@ -1805,6 +1828,7 @@ function showFeatureContextMenu(latlng, layer, userLayer) {
   });
   
   contextMenu.appendChild(editButton);
+  contextMenu.appendChild(styleButton);
   contextMenu.appendChild(deleteButton);
   
   document.body.appendChild(contextMenu);
@@ -1819,6 +1843,189 @@ function showFeatureContextMenu(latlng, layer, userLayer) {
       }
     });
   }, 0);
+}
+
+function openFeatureStyleDialog(layer, userLayer) {
+  const existingModal = document.getElementById('style-dialog');
+  if (existingModal) {
+    document.body.removeChild(existingModal);
+  }
+
+  const template = document.getElementById('style-dialog-template');
+  const dialog = document.importNode(template.content, true).querySelector('#style-dialog');
+  
+  dialog.querySelector('#style-dialog-title').textContent = `Style Feature`;
+  
+  let hasPolygons = false;
+  
+  if (layer.feature && layer.feature.geometry) {
+    const geomType = layer.feature.geometry.type;
+    if (geomType === 'Polygon' || geomType === 'MultiPolygon') {
+      hasPolygons = true;
+    }
+  }
+  
+  const currentStyle = layer.options || {};
+  const featureColor = dialog.querySelector('#feature-color');
+  featureColor.value = currentStyle.color || userLayer.defaultColor || '#000000';
+  
+  const featureOpacity = dialog.querySelector('#feature-opacity');
+  featureOpacity.value = (currentStyle.opacity !== undefined ? currentStyle.opacity : userLayer.strokeOpacity || 0.75) * 100;
+  dialog.querySelector('#feature-opacity-value').textContent = `${featureOpacity.value}%`;
+  
+  const featureSize = dialog.querySelector('#feature-size');
+  featureSize.value = currentStyle.weight || userLayer.weight || 3;
+  dialog.querySelector('#feature-size-value').textContent = featureSize.value;
+  
+  const fillOptions = dialog.querySelector('.fill-options');
+  if (fillOptions) {
+    fillOptions.style.display = hasPolygons ? 'block' : 'none';
+  }
+  
+  const featureFillColor = dialog.querySelector('#feature-fill-color');
+  featureFillColor.value = currentStyle.fillColor || userLayer.fillColor || userLayer.defaultColor || '#000000';
+  
+  const featureFillOpacity = dialog.querySelector('#feature-fill-opacity');
+  featureFillOpacity.value = (currentStyle.fillOpacity !== undefined ? currentStyle.fillOpacity : userLayer.fillOpacity || 0.3) * 100;
+  dialog.querySelector('#feature-fill-opacity-value').textContent = `${featureFillOpacity.value}%`;
+  
+  const labelField = dialog.querySelector('#label-field');
+  if (userLayer.fieldNames) {
+    labelField.innerHTML = '<option value="">None</option>';
+    userLayer.fieldNames.forEach(field => {
+      const option = document.createElement('option');
+      option.value = field;
+      option.textContent = field;
+      if (layer._customLabelField && layer._customLabelField === field) {
+        option.selected = true;
+      } else if (userLayer.labelField === field && !layer._customLabelField) {
+        option.selected = true;
+      }
+      labelField.appendChild(option);
+    });
+  }
+  
+  const labelColor = dialog.querySelector('#label-color');
+  labelColor.value = layer._customLabelColor || userLayer.labelColor || '#000000';
+  
+  const labelOpacity = dialog.querySelector('#label-opacity');
+  labelOpacity.value = (layer._customLabelOpacity !== undefined ? layer._customLabelOpacity : userLayer.labelOpacity || 1) * 100;
+  dialog.querySelector('#label-opacity-value').textContent = `${labelOpacity.value}%`;
+  
+  const labelSize = dialog.querySelector('#label-size');
+  labelSize.value = layer._customLabelSize || userLayer.labelSize || 12;
+  dialog.querySelector('#label-size-value').textContent = `${labelSize.value}px`;
+  
+  featureOpacity.addEventListener('input', function() {
+    dialog.querySelector('#feature-opacity-value').textContent = `${this.value}%`;
+  });
+  
+  featureSize.addEventListener('input', function() {
+    dialog.querySelector('#feature-size-value').textContent = this.value;
+  });
+  
+  featureFillOpacity.addEventListener('input', function() {
+    dialog.querySelector('#feature-fill-opacity-value').textContent = `${this.value}%`;
+  });
+  
+  labelOpacity.addEventListener('input', function() {
+    dialog.querySelector('#label-opacity-value').textContent = `${this.value}%`;
+  });
+  
+  labelSize.addEventListener('input', function() {
+    dialog.querySelector('#label-size-value').textContent = `${this.value}px`;
+  });
+  
+  dialog.querySelector('#apply-style').addEventListener('click', function() {
+    const styleOptions = {
+      color: featureColor.value,
+      weight: parseInt(featureSize.value),
+      opacity: featureOpacity.value / 100
+    };
+    
+    if (hasPolygons) {
+      styleOptions.fillColor = featureFillColor.value;
+      styleOptions.fillOpacity = featureFillOpacity.value / 100;
+    }
+    
+    layer._customStyle = styleOptions;
+    layer.setStyle(styleOptions);
+    
+    layer._customLabelField = labelField.value;
+    layer._customLabelColor = labelColor.value;
+    layer._customLabelOpacity = labelOpacity.value / 100;
+    layer._customLabelSize = parseInt(labelSize.value);
+    
+    applyFeatureLabelStyle(layer, userLayer);
+    
+    hasUnsavedChanges = true;
+    document.body.removeChild(dialog);
+  });
+  
+  dialog.querySelector('#cancel-style').addEventListener('click', function() {
+    document.body.removeChild(dialog);
+  });
+  
+  document.body.appendChild(dialog);
+}
+
+function applyFeatureLabelStyle(layer, userLayer) {
+  if (layer._labelMarker && map.hasLayer(layer._labelMarker)) {
+    map.removeLayer(layer._labelMarker);
+    layer._labelMarker = null;
+  }
+  
+  const labelField = layer._customLabelField || userLayer.labelField;
+  
+  if (labelField && labelField !== '' && layer.feature && 
+      layer.feature.properties && layer.feature.properties[labelField] !== undefined) {
+    
+    const labelValue = layer.feature.properties[labelField];
+    
+    let labelPosition;
+    if (layer.getLatLng) {
+      labelPosition = layer.getLatLng();
+    } else if (layer.getCenter) {
+      labelPosition = layer.getCenter();
+    } else {
+      const geojsonFeature = layer.toGeoJSON();
+      if (geojsonFeature) {
+        const centroid = turf.center(geojsonFeature);
+        labelPosition = L.latLng(centroid.geometry.coordinates[1], centroid.geometry.coordinates[0]);
+      }
+    }
+    
+    if (labelPosition) {
+      const color = layer._customLabelColor || userLayer.labelColor || '#000000';
+      const opacity = layer._customLabelOpacity !== undefined ? 
+                      layer._customLabelOpacity : 
+                      (userLayer.labelOpacity !== undefined ? userLayer.labelOpacity : 1);
+      const size = layer._customLabelSize || userLayer.labelSize || 12;
+      
+      const labelIcon = L.divIcon({
+        className: 'user-layer-label',
+        html: `<div style="color:${color}; opacity:${opacity}; font-size:${size}px; 
+               text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff;">
+               ${labelValue}</div>`,
+        iconSize: [100, 40],
+        iconAnchor: [50, 20]
+      });
+      
+      const labelMarker = L.marker(labelPosition, {
+        icon: labelIcon,
+        interactive: false,
+        pane: 'userLayers'
+      });
+      
+      if (!userLayer.labelLayerGroup) {
+        userLayer.labelLayerGroup = L.layerGroup().addTo(map);
+      }
+      
+      userLayer.labelLayerGroup.addLayer(labelMarker);
+      
+      layer._labelMarker = labelMarker;
+    }
+  }
 }
 
 function editFeatureAttributes(layer, userLayer) {
@@ -2326,18 +2533,46 @@ function setupDrawingTools() {
         
         const currentLayerGeoJSON = currentEditingUserLayer.layer.toGeoJSON();
         
+        currentEditingUserLayer.layer.eachLayer(layer => {
+          const featureIndex = currentLayerGeoJSON.features.findIndex(f => 
+            JSON.stringify(f.geometry) === JSON.stringify(layer.toGeoJSON().geometry));
+          
+          if (featureIndex !== -1 && layer._customStyle) {
+            currentLayerGeoJSON.features[featureIndex].properties._customStyle = layer._customStyle;
+            currentLayerGeoJSON.features[featureIndex].properties._customLabelField = layer._customLabelField;
+            currentLayerGeoJSON.features[featureIndex].properties._customLabelColor = layer._customLabelColor;
+            currentLayerGeoJSON.features[featureIndex].properties._customLabelOpacity = layer._customLabelOpacity;
+            currentLayerGeoJSON.features[featureIndex].properties._customLabelSize = layer._customLabelSize;
+          }
+        });
+
         const newFeatures = [];
         drawFeatureGroup.eachLayer(layer => {
           if (layer._userLayerId === currentEditingUserLayer.id) {
-            const feature = layer.toGeoJSON();
-            newFeatures.push(feature);
+            const featureGeoJSON = layer.toGeoJSON();
+            
+            if (layer._customStyle) {
+              featureGeoJSON.properties._customStyle = layer._customStyle;
+            }
+            if (layer._customLabelField) {
+              featureGeoJSON.properties._customLabelField = layer._customLabelField;
+            }
+            if (layer._customLabelColor) {
+              featureGeoJSON.properties._customLabelColor = layer._customLabelColor;
+            }
+            if (layer._customLabelOpacity !== undefined) {
+              featureGeoJSON.properties._customLabelOpacity = layer._customLabelOpacity;
+            }
+            if (layer._customLabelSize) {
+              featureGeoJSON.properties._customLabelSize = layer._customLabelSize;
+            }
+            
+            newFeatures.push(featureGeoJSON);
           }
         });
         
         if (newFeatures.length > 0) {
-          newFeatures.forEach(feature => {
-            currentLayerGeoJSON.features.push(feature);
-          });
+          currentLayerGeoJSON.features = [...currentLayerGeoJSON.features, ...newFeatures];
         }
         
         currentEditingUserLayer.originalData = currentLayerGeoJSON;
@@ -2349,7 +2584,11 @@ function setupDrawingTools() {
         
         currentEditingUserLayer.layer = L.geoJSON(currentLayerGeoJSON, {
           pane: 'userLayers',
-          style: function() {
+          style: function(feature) {
+            if (feature.properties && feature.properties._customStyle) {
+              return feature.properties._customStyle;
+            }
+            
             return {
               color: currentEditingUserLayer.defaultColor || '#000000',
               weight: currentEditingUserLayer.weight || 3,
@@ -2360,9 +2599,26 @@ function setupDrawingTools() {
           },
           onEachFeature: function(feature, layer) {
             if (feature.properties) {
+              if (feature.properties._customStyle) {
+                layer._customStyle = feature.properties._customStyle;
+              }
+              if (feature.properties._customLabelField) {
+                layer._customLabelField = feature.properties._customLabelField;
+              }
+              if (feature.properties._customLabelColor) {
+                layer._customLabelColor = feature.properties._customLabelColor;
+              }
+              if (feature.properties._customLabelOpacity !== undefined) {
+                layer._customLabelOpacity = feature.properties._customLabelOpacity;
+              }
+              if (feature.properties._customLabelSize) {
+                layer._customLabelSize = feature.properties._customLabelSize;
+              }
+              
               layer.on('click', function(e) {
                 if (isDrawingActive && activeShapeMode) {
                 } else {
+                  L.DomEvent.stopPropagation(e);
                   const popupContent = createFeaturePopupContent(feature.properties, currentEditingUserLayer.name);
                   L.popup()
                     .setLatLng(e.latlng)
@@ -2373,14 +2629,16 @@ function setupDrawingTools() {
             }
           },
           pointToLayer: function(feature, latlng) {
-            return L.circleMarker(latlng, {
+            const style = feature.properties._customStyle || {
               radius: 3,
               fillColor: currentEditingUserLayer.defaultColor || '#000000',
               color: currentEditingUserLayer.defaultColor || '#000000',
               weight: 1,
               opacity: currentEditingUserLayer.strokeOpacity || 0.75,
               fillOpacity: currentEditingUserLayer.fillOpacity || 0.75
-            });
+            };
+            
+            return L.circleMarker(latlng, style);
           }
         }).addTo(map);
         
