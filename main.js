@@ -20,7 +20,7 @@ function convertMultiPolygonToPolygons(geoJson) {
   const featureCounts = {};
   
   geoJson.features.forEach(feature => {
-    const name = feature.properties.LAD24NM || feature.properties.WD24NM || feature.properties.LSOA21NM || feature.properties.name || 'Unknown';
+    const name = feature.properties.LAD24NM || feature.properties.WD24NM || feature.properties.LSOA21NM || feature.properties.name || feature.properties.Name || 'Unknown';
     featureCounts[name] = (featureCounts[name] || 0) + 1;
     
     if (feature.geometry.type === 'MultiPolygon') {      
@@ -277,7 +277,7 @@ fetch('https://AmFa6.github.io/TAF_test/westlink.geojson')
       pane: 'boundaryLayers',
       style: function (feature, layer) {
         const featureIndex = convertedData.features.findIndex(f => 
-          f.properties.name === feature.properties.name
+          f.properties.Name === feature.properties.Name
         );
         const colorIndex = featureIndex % colors.length;
         return {
@@ -5440,7 +5440,7 @@ function updateFilterValues() {
     }
   } else if (currentFilterType === 'WestLinkZone') {
     if (WestLinkZonesLayer) {
-      options = WestLinkZonesLayer.getLayers().map(layer => layer.feature.properties.name).sort();
+      options = WestLinkZonesLayer.getLayers().map(layer => layer.feature.properties.Name).sort();
     }
   } else if (currentFilterType === 'LA') {
     options = ['MCA', 'LEP'];
@@ -5887,7 +5887,7 @@ function applyGeographicFilter(features, filterType, filterValue) {
       if (!WestLinkZonesLayer) return null;
 
       const WestLinkZoneLayer = WestLinkZonesLayer.getLayers().find(layer =>
-        layer.feature.properties.name === filterValue
+        layer.feature.properties.Name === filterValue
       );
       polygon = WestLinkZoneLayer?.toGeoJSON();
     } else if (filterType === 'LA') {
@@ -6332,7 +6332,7 @@ function highlightSelectedArea() {
     if (!WestLinkZonesLayer) return;
     
     selectedValues.forEach(filterValue => {
-      const WestLinkZoneLayers = WestLinkZonesLayer.getLayers().filter(layer => layer.feature.properties.name === filterValue);
+      const WestLinkZoneLayers = WestLinkZonesLayer.getLayers().filter(layer => layer.feature.properties.Name === filterValue);
       selectedPolygons = [...selectedPolygons, ...WestLinkZoneLayers.map(layer => layer.toGeoJSON())];
     });
   } else if (filterType === 'LA') {
