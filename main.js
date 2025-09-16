@@ -1,7 +1,14 @@
 const map = L.map('map').setView([51.480, -2.591], 11);
 
-const baseLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}.png', {
-  attribution: '&copy; OpenStreetMap contributors & CartoDB, © Crown copyright and database rights 2025 OS 0100059651, Contains OS data © Crown copyright [and database right] 2025.'
+const baseLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/light_nolabels/{z}/{x}/{y}.png', {
+  attribution: '&copy; OpenStreetMap contributors & CartoDB, © Crown copyright and database rights 2025 OS 0100059651, Contains OS data © Crown copyright [and database right] 2025.',
+  pane: 'tilePane' // Explicitly set to the default tile pane to ensure base layer is at the bottom
+}).addTo(map);
+
+// Add road labels only layer on top of the base layer
+const LabelsLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/light_only_labels/{z}/{x}/{y}.png', {
+  opacity: 0.6,
+  pane: 'tooltipPane' // Use highest z-index pane to appear above everything
 }).addTo(map);
 
 let lsoaLookup = {};
@@ -147,6 +154,10 @@ const AmenitiesMode = document.getElementById("modeAmenitiesDropdown");
 const AmenitiesPurpose = document.querySelectorAll('.checkbox-label input[type="checkbox"]');
 const AmenitiesOpacity = document.getElementById("opacityFieldAmenitiesDropdown");
 const AmenitiesOutline = document.getElementById("outlineFieldAmenitiesDropdown");
+const LayerTransparencySliderAmenities = document.getElementById('layerTransparencySliderAmenities');
+const LayerTransparencySliderScores = document.getElementById('layerTransparencySliderScores');
+const LayerTransparencyValueScores = document.getElementById('layerTransparencyValueScores');
+const LayerTransparencyValueAmenities = document.getElementById('layerTransparencyValueAmenities');
 const AmenitiesOpacityRange = document.getElementById('opacityRangeAmenitiesSlider');
 const AmenitiesOutlineRange = document.getElementById('outlineRangeAmenitiesSlider');
 const AmenitiesInverseOpacity = document.getElementById("inverseOpacityScaleAmenitiesButton");
@@ -287,12 +298,12 @@ fetch('https://AmFa6.github.io/TAF_test/simplified_network.geojson')
       pane: 'roadLayers',
       style: function (feature) {
         const roadFunction = feature.properties.roadfunction;
-        let weight = 1;
+        let weight = 0.5;
         
         if (roadFunction === 'Motorway') {
-          weight = 4;
-        } else if (roadFunction === 'A Road') {
           weight = 2;
+        } else if (roadFunction === 'A Road') {
+          weight = 1;
         }
         
         return {
@@ -320,6 +331,14 @@ let isInverseScoresOpacity = false;
 let isInverseScoresOutline = false;
 let isInverseAmenitiesOpacity = false;
 let isInverseAmenitiesOutline = false;
+let layerTransparencyValue = 0.5; // Default to 50% opacity
+let layerTransparencyUpdateTimeout; // For throttling transparency updates
+
+// Throttled function to update layer transparency
+function throttledUpdateLayerTransparency() {
+  clearTimeout(layerTransparencyUpdateTimeout);
+  layerTransparencyUpdateTimeout = setTimeout(updateLayerTransparency, 50); // 50ms throttle
+}
 let isInverseCensusOpacity = false;
 let isInverseCensusOutline = false;
 let GrowthZonesLayer;
@@ -383,6 +402,20 @@ initializeSliders(AmenitiesOpacityRange);
 initializeSliders(AmenitiesOutlineRange);
 initializeSliders(CensusOpacityRange);
 initializeSliders(CensusOutlineRange);
+
+// Try to initialize layer transparency slider, and retry if needed
+setTimeout(() => {
+  if (!initializeLayerTransparencySliderAmenities()) {
+    setTimeout(initializeLayerTransparencySliderAmenities, 1000);
+  }
+}, 100);
+
+// Try to initialize scores layer transparency slider, and retry if needed
+setTimeout(() => {
+  if (!initializeLayerTransparencySliderScores()) {
+    setTimeout(initializeLayerTransparencySliderScores, 1000);
+  }
+}, 100);
 
 ScoresYear.addEventListener("change", () => updateScoresLayer());
 ScoresPurpose.addEventListener("change", () => updateScoresLayer());
@@ -845,7 +878,6 @@ document.addEventListener('DOMContentLoaded', (event) => {
   updateFilterValues();
 
   initialLoadComplete = true;
-
   const fileInput = document.getElementById('fileUpload');
   const fileNameDisplay = document.getElementById('fileNameDisplay');
   const uploadButton = document.getElementById('uploadButton');
@@ -920,6 +952,9 @@ document.addEventListener('DOMContentLoaded', (event) => {
         pane.parentNode.removeChild(pane);
       }
     });
+    
+    // Ensure base layer pane is at the bottom
+    map.getPane('tilePane').style.zIndex = 200;
     
     map.createPane('polygonLayers').style.zIndex = 300;
     map.createPane('boundaryLayers').style.zIndex = 400;
@@ -2026,6 +2061,18 @@ function applyFeatureLabelStyle(layer, userLayer) {
       layer._labelMarker = labelMarker;
     }
   }
+}
+
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
 }
 
 function editFeatureAttributes(layer, userLayer) {
@@ -3554,6 +3601,113 @@ function initializeSliders(sliderElement) {
   configureSlider(sliderElement, false);
 }
 
+function initializeLayerTransparencySliderAmenities() {
+  // Check if the element exists
+  if (!LayerTransparencySliderAmenities) {
+    return false;
+  }
+
+  if (LayerTransparencySliderAmenities.noUiSlider) {
+    LayerTransparencySliderAmenities.noUiSlider.destroy();
+  }
+
+  try {
+    noUiSlider.create(LayerTransparencySliderAmenities, {
+      start: [50], // Start at 50% (middle position)
+      connect: [true, false],
+      range: {
+        'min': 0,
+        'max': 100
+      },
+      step: 5,
+      tooltips: false,
+      format: {
+        to: value => Math.round(value),
+        from: value => Math.round(value)
+      }
+    });
+
+    // Update the transparency value when slider changes
+    LayerTransparencySliderAmenities.noUiSlider.on('update', function (values) {
+      layerTransparencyValue = parseFloat(values[0]) / 100; // Convert to 0-1 range
+      if (LayerTransparencyValueAmenities) {
+        LayerTransparencyValueAmenities.textContent = Math.round(values[0]) + '%';
+      }
+      throttledUpdateLayerTransparency();
+    });
+
+    // Style the slider
+    const connectElements = LayerTransparencySliderAmenities.querySelectorAll('.noUi-connect');
+    if (connectElements.length > 0) {
+      connectElements[0].classList.add('noUi-connect-dark-grey');
+    }
+    return true;
+  } catch (error) {
+    console.error('Error initializing layer transparency slider:', error);
+    return false;
+  }
+}
+
+function updateLayerTransparency() {
+  // Update all layers when layer transparency changes - optimized to only update styling
+  if (ScoresLayer) {
+    applyScoresLayerStyling();
+  }
+  if (AmenitiesCatchmentLayer) {
+    applyAmenitiesCatchmentLayerStyling();
+  }
+  if (CensusLayer) {
+    applyCensusLayerStyling();
+  }
+}
+
+function initializeLayerTransparencySliderScores() {
+  // Check if the element exists
+  if (!LayerTransparencySliderScores) {
+    return false;
+  }
+  
+  if (LayerTransparencySliderScores.noUiSlider) {
+    LayerTransparencySliderScores.noUiSlider.destroy();
+  }
+
+  try {
+    noUiSlider.create(LayerTransparencySliderScores, {
+      start: [50], // Start at 50% (middle position)
+      connect: [true, false],
+      range: {
+        'min': 0,
+        'max': 100
+      },
+      step: 5,
+      tooltips: false,
+      format: {
+        to: value => Math.round(value),
+        from: value => Math.round(value)
+      }
+    });
+
+    // Update the transparency value and display when slider changes
+    LayerTransparencySliderScores.noUiSlider.on('update', function (values) {
+      layerTransparencyValue = parseFloat(values[0]) / 100; // Convert to 0-1 range
+      if (LayerTransparencyValueScores) {
+        LayerTransparencyValueScores.textContent = Math.round(values[0]) + '%';
+      }
+      throttledUpdateLayerTransparency();
+    });
+
+    // Style the slider
+    const connectElements = LayerTransparencySliderScores.querySelectorAll('.noUi-connect');
+    if (connectElements.length > 0) {
+      connectElements[0].classList.add('noUi-connect-dark-grey');
+    }
+    return true;
+  } catch (error) {
+    console.error('Error initializing layer transparency slider for scores:', error);
+    return false;
+  }
+}
+
 function toggleInverseScale(type, scaleType) {
   // console.log('Toggling inverse scale...');
   isUpdatingSliders = true;
@@ -4540,7 +4694,7 @@ function styleScoresFeature(feature, fieldToDisplay, opacityField, outlineField,
 
   let opacity;
   if (opacityField === 'None') {
-    opacity = 0.5;
+    opacity = layerTransparencyValue; // Use layer transparency directly
   } else {
     const opacityValue = feature.properties[opacityField];
     if (opacityValue === 0 || opacityValue === null || opacityValue === undefined || opacityValue === '') {
@@ -4949,7 +5103,7 @@ function applyAmenitiesCatchmentLayerStyling() {
 
     let opacity;
     if (AmenitiesOpacity.value === 'None') {
-      opacity = 0.5;
+      opacity = layerTransparencyValue; // Use layer transparency directly
     } else {
       const opacityValue = feature.properties[AmenitiesOpacity.value];
       if (opacityValue === 0 || opacityValue === null || opacityValue === undefined) {
@@ -5052,7 +5206,7 @@ function applyCensusLayerStyling() {
     
     let opacity;
     if (opacityField === 'None') {
-      opacity = 0.5;
+      opacity = layerTransparencyValue; // Use layer transparency directly
     } else {
       const opacityValue = feature.properties[opacityField];
       if (opacityValue === 0 || opacityValue === null || opacityValue === undefined) {
