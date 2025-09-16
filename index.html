@@ -767,6 +767,17 @@
   .label-field-row {
     margin-bottom: 10px;
   }
+  
+  /* Styles for OpenStreetMap place name labels */
+  .place-name-label {
+    pointer-events: none;
+  }
+  .place-name-label div {
+    font-family: 'Trebuchet MS', sans-serif;
+    font-weight: bold;
+    text-transform: capitalize;
+    pointer-events: none;
+  }
   </style>
 </head>
 <body>
@@ -807,6 +818,18 @@
         </select>
         <button type="button" class="collapsible">Settings</button>
         <div class="collapsible-content">
+          <label for="layerTransparencySliderScores" class="medium-font">Layer Transparency:</label>
+          <div class="field-container">
+            <div>
+              <div id="layerTransparencySliderScores"></div>
+              <div class="slider-labels">
+                <span>0%</span>
+                <span id="layerTransparencyValueScores">50%</span>
+                <span>100%</span>
+              </div>
+            </div>
+          </div>
+          <br>
           <label for="opacityFieldScoresDropdown" class="medium-font">Link Hexagon Transparency to:</label>
           <select id="opacityFieldScoresDropdown" class="small-font">
             <option value="None">-</option>
@@ -897,6 +920,18 @@
         </div>-->
         <button type="button" class="collapsible">Settings</button>
         <div class="collapsible-content">
+          <label for="layerTransparencySliderAmenities" class="medium-font">Layer Transparency:</label>
+          <div class="field-container">
+            <div>
+              <div id="layerTransparencySliderAmenities"></div>
+              <div class="slider-labels">
+                <span>0%</span>
+                <span id="layerTransparencyValueAmenities">50%</span>
+                <span>100%</span>
+              </div>
+            </div>
+          </div>
+          <br>
           <label for="opacityFieldAmenitiesDropdown" class="medium-font">Link Hexagon Transparency to:</label>
           <select id="opacityFieldAmenitiesDropdown" class="small-font">
             <option value="None">-</option>
