@@ -1103,7 +1103,7 @@ map.on('click', function (e) {
     WestLinkZonesLayer.eachLayer(layer => {
       const polygon = turf.polygon(layer.feature.geometry.coordinates);
       if (turf.booleanPointInPolygon(clickedPoint, polygon)) {
-        popupContent.Geographies.push(`<strong>WESTlink Zone:</strong> ${layer.feature.properties.name}`);
+        popupContent.Geographies.push(`<strong>WESTlink Zone:</strong> ${layer.feature.properties.Name}`);
       }
     });
   }
