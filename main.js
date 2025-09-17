@@ -105,7 +105,7 @@ fetch('https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Wards_
     }).addTo(map);
   })
 
-fetch('https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/LSOA21_WD24_LAD24_EW_LU/FeatureServer/0/query?outFields=*&where=LAD24CD%20IN%20(%27E06000022%27,%27E06000023%27,%27E06000024%27,%27E06000025%27)&f=geojson')
+fetch(`https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/LSOA21_WD24_LAD24_EW_LU/FeatureServer/0/query?outFields=*&where=LAD24CD%20IN%20(${ladCodesString})&f=geojson`)
   .then(response => response.json())
   .then(data => {
     data.features.forEach(feature => {
@@ -186,31 +186,31 @@ const amenityIcons = {
 const filterTypeDropdown = document.getElementById('filterTypeDropdown');
 const filterValueDropdown = document.getElementById('filterValueDropdown');
 
-fetch('https://AmFa6.github.io/TAF_test/hexes-socioeco.geojson')
-  .then(response => response.json())
-  .then(data => {
-    data.features = data.features.map(adjustSpecialHexCenters);
-    hexes = data;
-    if (initialLoadComplete) {
-      updateSummaryStatistics(hexes.features);
-    }
-  })
-
-fetch('https://AmFa6.github.io/TAF_test/GrowthZones.geojson')
-  .then(response => response.json())
-  .then(data => {
-    GrowthZonesLayer = L.geoJSON(data, {
-      pane: 'boundaryLayers',
-      style: function () {
-        return {
-          color: 'black',
-          weight: 2,
-          fillOpacity: 0,
-          opacity: 0
-        };
-      },
-    }).addTo(map);
-  })
+GeographyFiles.forEach(file => {
+  fetch(file.path)
+    .then(response => response.json())
+    .then(data => {
+      if (file.type === 'Hexes') {
+        data.features = data.features.map(adjustSpecialHexCenters);
+        hexes = data;
+        if (initialLoadComplete) {
+          updateSummaryStatistics(hexes.features);
+        }
+      } else if (file.type === 'GrowthZones') {
+        GrowthZonesLayer = L.geoJSON(data, {
+          pane: 'boundaryLayers',
+          style: function () {
+            return {
+              color: 'black',
+              weight: 2,
+              fillOpacity: 0,
+              opacity: 0
+            };
+          },
+        }).addTo(map);
+      }
+    });
+});
 
 AmenitiesFiles.forEach(file => {
   fetch(file.path)
@@ -221,98 +221,90 @@ AmenitiesFiles.forEach(file => {
     });
 });
 
-fetch('https://AmFa6.github.io/TAF_test/lines.geojson')
-  .then(response => response.json())
-  .then(data => {
-    busLinesLayer = L.geoJSON(data, {
-      pane: 'busLayers',
-      style: function (feature) {
-        const frequency = parseFloat(feature.properties.am_peak_service_frequency) || 0;
-        const opacity = frequency === 0 ? 0.1 : Math.min(0.1 + (frequency / 6) * 0.4, 0.5);
-        
-        return {
-          color: 'green',
-          weight: 2,
-          fillOpacity: 0,
-          opacity: 0,
-          _calculatedOpacity: opacity
-        };
-      },
-    }).addTo(map);
-  });
-
-fetch('https://AmFa6.github.io/TAF_test/stops.geojson')
-  .then(response => response.json())
-  .then(data => {
-    busStopsLayer = L.geoJSON(data, {
-      pane: 'busLayers',
-      pointToLayer: function(feature, latlng) {
-        const frequency = parseFloat(feature.properties.am_peak_combined_frequency) || 0;
-        const fillOpacity = frequency === 0 ? 0 : Math.min(frequency / 12, 1);
-        
-        return L.circleMarker(latlng, {
-          radius: 3,
-          fillColor: 'green',
-          color: 'green',
-          weight: 0.5,
-          opacity: 0,
-          fillOpacity: 0,
-          _calculatedFillOpacity: fillOpacity
-        });
+InfrastructureFiles.forEach(file => {
+  fetch(file.path)
+    .then(response => response.json())
+    .then(data => {
+      if (file.type === 'BusLines') {
+        busLinesLayer = L.geoJSON(data, {
+          pane: 'busLayers',
+          style: function (feature) {
+            const frequency = parseFloat(feature.properties.am_peak_service_frequency) || 0;
+            const opacity = frequency === 0 ? 0.1 : Math.min(0.1 + (frequency / 6) * 0.4, 0.5);
+            
+            return {
+              color: 'green',
+              weight: 2,
+              fillOpacity: 0,
+              opacity: 0,
+              _calculatedOpacity: opacity
+            };
+          },
+        }).addTo(map);
+      } else if (file.type === 'BusStops') {
+        busStopsLayer = L.geoJSON(data, {
+          pane: 'busLayers',
+          pointToLayer: function(feature, latlng) {
+            const frequency = parseFloat(feature.properties.am_peak_combined_frequency) || 0;
+            const fillOpacity = frequency === 0 ? 0 : Math.min(frequency / 12, 1);
+            
+            return L.circleMarker(latlng, {
+              radius: 3,
+              fillColor: 'green',
+              color: 'green',
+              weight: 0.5,
+              opacity: 0,
+              fillOpacity: 0,
+              _calculatedFillOpacity: fillOpacity
+            });
+          }
+        }).addTo(map);
+      } else if (file.type === 'WestLink') {
+        const colors = [
+          '#e41a1c', '#377eb8', '#4daf4a', '#984ea3', '#ff7f00', 
+          '#ffff33', '#a65628', '#f781bf', '#999999', '#66c2a5',
+          '#fc8d62', '#8da0cb', '#e78ac3', '#a6d854', '#ffd92f'
+        ];
+        const convertedData = convertMultiPolygonToPolygons(data);
+        WestLinkZonesLayer = L.geoJSON(convertedData, {
+          pane: 'boundaryLayers',
+          style: function (feature, layer) {
+            const featureIndex = convertedData.features.findIndex(f => 
+              f.properties.Name === feature.properties.Name
+            );
+            const colorIndex = featureIndex % colors.length;
+            return {
+              color: colors[colorIndex],
+              weight: 3,
+              fillColor: 'black',
+              fillOpacity: 0,
+              opacity: 0
+            };
+          },
+        }).addTo(map);
+      } else if (file.type === 'RoadNetwork') {
+        roadNetworkLayer = L.geoJSON(data, {
+          pane: 'roadLayers',
+          style: function (feature) {
+            const roadFunction = feature.properties.roadfunction;
+            let weight = 0.5;
+            
+            if (roadFunction === 'Motorway') {
+              weight = 2;
+            } else if (roadFunction === 'A Road') {
+              weight = 1;
+            }
+            
+            return {
+              color: 'white',
+              weight: weight,
+              opacity: 0,
+            };
+          },
+        }).addTo(map);
       }
-    }).addTo(map);
-  });
-
-fetch('https://AmFa6.github.io/TAF_test/westlink.geojson')
-  .then(response => response.json())
-  .then(data => {
-    const colors = [
-      '#e41a1c', '#377eb8', '#4daf4a', '#984ea3', '#ff7f00', 
-      '#ffff33', '#a65628', '#f781bf', '#999999', '#66c2a5',
-      '#fc8d62', '#8da0cb', '#e78ac3', '#a6d854', '#ffd92f'
-    ];
-    const convertedData = convertMultiPolygonToPolygons(data);
-    WestLinkZonesLayer = L.geoJSON(convertedData, {
-      pane: 'boundaryLayers',
-      style: function (feature, layer) {
-        const featureIndex = convertedData.features.findIndex(f => 
-          f.properties.Name === feature.properties.Name
-        );
-        const colorIndex = featureIndex % colors.length;
-        return {
-          color: colors[colorIndex],
-          weight: 3,
-          fillColor: 'black',
-          fillOpacity: 0,
-          opacity: 0
-        };
-      },
-    }).addTo(map);
-  })
-
-fetch('https://AmFa6.github.io/TAF_test/simplified_network.geojson')
-  .then(response => response.json())
-  .then(data => {
-    roadNetworkLayer = L.geoJSON(data, {
-      pane: 'roadLayers',
-      style: function (feature) {
-        const roadFunction = feature.properties.roadfunction;
-        let weight = 0.5;
-        
-        if (roadFunction === 'Motorway') {
-          weight = 2;
-        } else if (roadFunction === 'A Road') {
-          weight = 1;
-        }
-        
-        return {
-          color: 'white',
-          weight: weight,
-          opacity: 0,
-        };
-      },
-    }).addTo(map);
-  });
+    });
+});
 
 ScoresYear.value = "";
 ScoresOpacity.value = "None";
@@ -4905,7 +4897,8 @@ function updateAmenitiesCatchmentLayer() {
   const cacheKeys = selectedAmenitiesAmenities.map(amenity => `${selectedYear}_${amenity}`);  
   const fetchPromises = cacheKeys.map(cacheKey => {  
     if (!csvDataCache[cacheKey]) {
-      const csvPath = `https://AmFa6.github.io/TAF_test/${cacheKey}_csv.csv`;
+      const [year, amenityType] = cacheKey.split('_');
+      const csvPath = JourneyTimeFiles.getPath(year, amenityType);
       return fetch(csvPath)
         .then(response => response.text())
         .then(csvText => {
