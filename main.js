@@ -2,13 +2,12 @@ const map = L.map('map').setView([51.480, -2.591], 11);
 
 const baseLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/light_nolabels/{z}/{x}/{y}.png', {
   attribution: '&copy; OpenStreetMap contributors & CartoDB, © Crown copyright and database rights 2025 OS 0100059651, Contains OS data © Crown copyright [and database right] 2025.',
-  pane: 'tilePane' // Explicitly set to the default tile pane to ensure base layer is at the bottom
+  pane: 'tilePane'
 }).addTo(map);
 
-// Add road labels only layer on top of the base layer
 const LabelsLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/light_only_labels/{z}/{x}/{y}.png', {
   opacity: 0.6,
-  pane: 'tooltipPane' // Use highest z-index pane to appear above everything
+  pane: 'tooltipPane'
 }).addTo(map);
 
 let lsoaLookup = {};
@@ -331,13 +330,12 @@ let isInverseScoresOpacity = false;
 let isInverseScoresOutline = false;
 let isInverseAmenitiesOpacity = false;
 let isInverseAmenitiesOutline = false;
-let layerTransparencyValue = 0.5; // Default to 50% opacity
-let layerTransparencyUpdateTimeout; // For throttling transparency updates
+let layerTransparencyValue = 0.5;
+let layerTransparencyUpdateTimeout;
 
-// Throttled function to update layer transparency
 function throttledUpdateLayerTransparency() {
   clearTimeout(layerTransparencyUpdateTimeout);
-  layerTransparencyUpdateTimeout = setTimeout(updateLayerTransparency, 50); // 50ms throttle
+  layerTransparencyUpdateTimeout = setTimeout(updateLayerTransparency, 50);
 }
 let isInverseCensusOpacity = false;
 let isInverseCensusOutline = false;
@@ -403,14 +401,12 @@ initializeSliders(AmenitiesOutlineRange);
 initializeSliders(CensusOpacityRange);
 initializeSliders(CensusOutlineRange);
 
-// Try to initialize layer transparency slider, and retry if needed
 setTimeout(() => {
   if (!initializeLayerTransparencySliderAmenities()) {
     setTimeout(initializeLayerTransparencySliderAmenities, 1000);
   }
 }, 100);
 
-// Try to initialize scores layer transparency slider, and retry if needed
 setTimeout(() => {
   if (!initializeLayerTransparencySliderScores()) {
     setTimeout(initializeLayerTransparencySliderScores, 1000);
@@ -953,7 +949,6 @@ document.addEventListener('DOMContentLoaded', (event) => {
       }
     });
     
-    // Ensure base layer pane is at the bottom
     map.getPane('tilePane').style.zIndex = 200;
     
     map.createPane('polygonLayers').style.zIndex = 300;
@@ -1401,7 +1396,7 @@ function addUserLayer(data, fileName) {
             map.fitBounds(userLayer.layer.getBounds());
           }
         } catch (e) {
-          console.error("Error zooming to layer bounds:", e);
+          // console.error("Error zooming to layer bounds:", e);
         }
       });
       
@@ -1415,7 +1410,7 @@ function addUserLayer(data, fileName) {
       try {
         map.fitBounds(layer.getBounds());
       } catch (e) {
-        console.error("Error zooming to layer bounds:", e);
+        // console.error("Error zooming to layer bounds:", e);
       }
       
       updateFilterDropdown();
@@ -1426,7 +1421,7 @@ function addUserLayer(data, fileName) {
     return layer;
   } catch (error) {
     alert('Error adding layer: ' + error.message);
-    console.error("Error details:", error);
+    // console.error("Error details:", error);
     return null;
   }
 }
@@ -3251,11 +3246,11 @@ function detectAndFixProjection(data) {
       if (coord) {
         if (coord[0] > 100000 && coord[0] < 700000 && 
             coord[1] > 0 && coord[1] < 1300000) {
-          console.log("Detected likely British National Grid coordinates:", coord);
+          // console.log("Detected likely British National Grid coordinates:", coord);
           return 'EPSG:27700';
         }
         else if (Math.abs(coord[0]) > 180 || Math.abs(coord[1]) > 90) {
-          console.log("Detected likely Web Mercator coordinates:", coord);
+          // console.log("Detected likely Web Mercator coordinates:", coord);
           return 'EPSG:3857';
         }
       }
@@ -3266,7 +3261,7 @@ function detectAndFixProjection(data) {
   const projectionType = checkSampleCoordinates();
   
   if (projectionType) {
-    console.log(`Reprojecting from ${projectionType} to WGS84`);
+    // console.log(`Reprojecting from ${projectionType} to WGS84`);
     
     const sourceCrs = projectionType === 'EPSG:27700' 
       ? new L.Proj.CRS('EPSG:27700', '+proj=tmerc +lat_0=49 +lon_0=-2 +k=0.9996012717 +x_0=400000 +y_0=-100000 +ellps=airy +towgs84=446.448,-125.157,542.060,0.1502,0.2470,0.8421,-20.4894 +units=m +no_defs')
@@ -3602,7 +3597,6 @@ function initializeSliders(sliderElement) {
 }
 
 function initializeLayerTransparencySliderAmenities() {
-  // Check if the element exists
   if (!LayerTransparencySliderAmenities) {
     return false;
   }
@@ -3613,7 +3607,7 @@ function initializeLayerTransparencySliderAmenities() {
 
   try {
     noUiSlider.create(LayerTransparencySliderAmenities, {
-      start: [50], // Start at 50% (middle position)
+      start: [50],
       connect: [true, false],
       range: {
         'min': 0,
@@ -3627,29 +3621,26 @@ function initializeLayerTransparencySliderAmenities() {
       }
     });
 
-    // Update the transparency value when slider changes
     LayerTransparencySliderAmenities.noUiSlider.on('update', function (values) {
-      layerTransparencyValue = parseFloat(values[0]) / 100; // Convert to 0-1 range
+      layerTransparencyValue = parseFloat(values[0]) / 100;
       if (LayerTransparencyValueAmenities) {
         LayerTransparencyValueAmenities.textContent = Math.round(values[0]) + '%';
       }
       throttledUpdateLayerTransparency();
     });
 
-    // Style the slider
     const connectElements = LayerTransparencySliderAmenities.querySelectorAll('.noUi-connect');
     if (connectElements.length > 0) {
       connectElements[0].classList.add('noUi-connect-dark-grey');
     }
     return true;
   } catch (error) {
-    console.error('Error initializing layer transparency slider:', error);
+    // console.error('Error initializing layer transparency slider:', error);
     return false;
   }
 }
 
 function updateLayerTransparency() {
-  // Update all layers when layer transparency changes - optimized to only update styling
   if (ScoresLayer) {
     applyScoresLayerStyling();
   }
@@ -3662,7 +3653,6 @@ function updateLayerTransparency() {
 }
 
 function initializeLayerTransparencySliderScores() {
-  // Check if the element exists
   if (!LayerTransparencySliderScores) {
     return false;
   }
@@ -3673,7 +3663,7 @@ function initializeLayerTransparencySliderScores() {
 
   try {
     noUiSlider.create(LayerTransparencySliderScores, {
-      start: [50], // Start at 50% (middle position)
+      start: [50],
       connect: [true, false],
       range: {
         'min': 0,
@@ -3687,23 +3677,21 @@ function initializeLayerTransparencySliderScores() {
       }
     });
 
-    // Update the transparency value and display when slider changes
     LayerTransparencySliderScores.noUiSlider.on('update', function (values) {
-      layerTransparencyValue = parseFloat(values[0]) / 100; // Convert to 0-1 range
+      layerTransparencyValue = parseFloat(values[0]) / 100;
       if (LayerTransparencyValueScores) {
         LayerTransparencyValueScores.textContent = Math.round(values[0]) + '%';
       }
       throttledUpdateLayerTransparency();
     });
 
-    // Style the slider
     const connectElements = LayerTransparencySliderScores.querySelectorAll('.noUi-connect');
     if (connectElements.length > 0) {
       connectElements[0].classList.add('noUi-connect-dark-grey');
     }
     return true;
   } catch (error) {
-    console.error('Error initializing layer transparency slider for scores:', error);
+    // console.error('Error initializing layer transparency slider for scores:', error);
     return false;
   }
 }
@@ -4694,7 +4682,7 @@ function styleScoresFeature(feature, fieldToDisplay, opacityField, outlineField,
 
   let opacity;
   if (opacityField === 'None') {
-    opacity = layerTransparencyValue; // Use layer transparency directly
+    opacity = layerTransparencyValue;
   } else {
     const opacityValue = feature.properties[opacityField];
     if (opacityValue === 0 || opacityValue === null || opacityValue === undefined || opacityValue === '') {
@@ -5103,7 +5091,7 @@ function applyAmenitiesCatchmentLayerStyling() {
 
     let opacity;
     if (AmenitiesOpacity.value === 'None') {
-      opacity = layerTransparencyValue; // Use layer transparency directly
+      opacity = layerTransparencyValue;
     } else {
       const opacityValue = feature.properties[AmenitiesOpacity.value];
       if (opacityValue === 0 || opacityValue === null || opacityValue === undefined) {
@@ -5206,7 +5194,7 @@ function applyCensusLayerStyling() {
     
     let opacity;
     if (opacityField === 'None') {
-      opacity = layerTransparencyValue; // Use layer transparency directly
+      opacity = layerTransparencyValue;
     } else {
       const opacityValue = feature.properties[opacityField];
       if (opacityValue === 0 || opacityValue === null || opacityValue === undefined) {
