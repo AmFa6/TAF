@@ -1,15 +1,17 @@
 // West of England Connectivity Tool - Configuration Data
 
 const ScoresFiles = [
-  { year: '2024', path: 'https://AmFa6.github.io/TAF_test/ConnectScores/2024_connectscore.csv' },
-  { year: '2023', path: 'https://AmFa6.github.io/TAF_test/ConnectScores/2023_connectscore.csv' },
-  { year: '2022', path: 'https://AmFa6.github.io/TAF_test/ConnectScores/2022_connectscore.csv' },
-  { year: '2019', path: 'https://AmFa6.github.io/TAF_test/ConnectScores/2019_connectscore.csv' },
-  { year: '2023-2024', path: 'https://AmFa6.github.io/TAF_test/ConnectScores/2023-2024_connectscore.csv' },
-  { year: '2019-2024', path: 'https://AmFa6.github.io/TAF_test/ConnectScores/2019-2024_connectscore.csv' },
-  { year: '2022-2023', path: 'https://AmFa6.github.io/TAF_test/ConnectScores/2022-2023_connectscore.csv' },
-  { year: '2019-2023', path: 'https://AmFa6.github.io/TAF_test/ConnectScores/2019-2023_connectscore.csv' }, 
-  { year: '2019-2022', path: 'https://AmFa6.github.io/TAF_test/ConnectScores/2019-2022_connectscore.csv' }
+  { year: '2024 - MCA', path: 'https://AmFa6.github.io/TAF_test/ConnectScores/2024_connectscore.csv' },
+  { year: '2023 - MCA', path: 'https://AmFa6.github.io/TAF_test/ConnectScores/2023_connectscore.csv' },
+  { year: '2022 - MCA', path: 'https://AmFa6.github.io/TAF_test/ConnectScores/2022_connectscore.csv' },
+  { year: '2019 - MCA', path: 'https://AmFa6.github.io/TAF_test/ConnectScores/2019_connectscore.csv' },
+  { year: '2024 - DfT', path: 'https://AmFa6.github.io/TAF_test/ConnectScores/grid_dft_scores.csv', isDfT: true },
+  { year: '2024 - MCA - DfT', path: null, isComparison: true },
+  { year: '2023-2024 - MCA', path: 'https://AmFa6.github.io/TAF_test/ConnectScores/2023-2024_connectscore.csv' },
+  { year: '2019-2024 - MCA', path: 'https://AmFa6.github.io/TAF_test/ConnectScores/2019-2024_connectscore.csv' },
+  { year: '2022-2023 - MCA', path: 'https://AmFa6.github.io/TAF_test/ConnectScores/2022-2023_connectscore.csv' },
+  { year: '2019-2023 - MCA', path: 'https://AmFa6.github.io/TAF_test/ConnectScores/2019-2023_connectscore.csv' }, 
+  { year: '2019-2022 - MCA', path: 'https://AmFa6.github.io/TAF_test/ConnectScores/2019-2022_connectscore.csv' }
 ];
 
 const AmenitiesFiles = [
@@ -34,7 +36,7 @@ const InfrastructureFiles = [
 ];
 
 const GeographyFiles = [
-  { type: 'Hexes', path: 'https://AmFa6.github.io/TAF_test/Geographies/hexes-socioeco.geojson' },
+  { type: 'Hexes', path: 'https://AmFa6.github.io/TAF_test/Geographies/hexes800-socioeco.geojson' },
   { type: 'GrowthZones', path: 'https://AmFa6.github.io/TAF_test/Geographies/GrowthZones.geojson' }
 ];
 
@@ -49,6 +51,20 @@ const purposeToAmenitiesMap = {
   HSt: ['CitCtr', 'MajCtr', 'DisCtr'],
   Hth: ['GP', 'Hos'],
   All: ['PriSch', 'SecSch', 'FurEd', 'Em500', 'Em5000', 'StrEmp', 'CitCtr', 'MajCtr', 'DisCtr', 'GP', 'Hos']
+};
+
+// DfT purposes don't have specific amenity breakdowns
+const dftPurposes = ['Education', 'Employment', 'Health', 'Shopping', 'Leisure', 'Residential', 'All'];
+
+// Mapping from DfT purpose display names to field prefixes
+const dftPurposeFieldMap = {
+  'Education': 'Edu',
+  'Employment': 'Emp',
+  'Health': 'Hth',
+  'Shopping': 'Shp',
+  'Leisure': 'Lei',
+  'Residential': 'Res',
+  'All': 'All'
 };
 
 const ladCodes = ['E06000022', 'E06000023', 'E06000024', 'E06000025'];

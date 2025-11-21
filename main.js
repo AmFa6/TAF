@@ -1,3 +1,4 @@
+
 const map = L.map('map').setView([51.480, -2.591], 11);
 
 const baseLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/light_nolabels/{z}/{x}/{y}.png', {
@@ -405,7 +406,93 @@ setTimeout(() => {
   }
 }, 100);
 
-ScoresYear.addEventListener("change", () => updateScoresLayer());
+function updatePurposeDropdown() {
+  const selectedYear = ScoresYear.value;
+  const currentPurpose = ScoresPurpose.value;
+  const isDfT = selectedYear === '2024 - DfT';
+  const isComparison = selectedYear === '2024 - MCA - DfT';
+  
+  // Clear existing options
+  ScoresPurpose.innerHTML = '';
+  
+  if (isDfT) {
+    // DfT purposes
+    const dftOptions = [
+      { value: 'All', label: 'All' },
+      { value: 'Education', label: 'Education' },
+      { value: 'Employment', label: 'Employment' },
+      { value: 'Health', label: 'Health' },
+      { value: 'Shopping', label: 'Shopping' },
+      { value: 'Leisure', label: 'Leisure' },
+      { value: 'Residential', label: 'Residential' }
+    ];
+    dftOptions.forEach(opt => {
+      const option = document.createElement('option');
+      option.value = opt.value;
+      option.textContent = opt.label;
+      ScoresPurpose.appendChild(option);
+    });
+    // Try to keep similar purpose selected if possible
+    if (currentPurpose === 'Education' || currentPurpose === 'Edu') {
+      ScoresPurpose.value = 'Education';
+    } else if (currentPurpose === 'Employment' || currentPurpose === 'Emp') {
+      ScoresPurpose.value = 'Employment';
+    } else if (currentPurpose === 'Health' || currentPurpose === 'Hth') {
+      ScoresPurpose.value = 'Health';
+    } else {
+      ScoresPurpose.value = 'All';
+    }
+  } else if (isComparison) {
+    // Comparison purposes (MCA purposes)
+    const mcaOptions = [
+      { value: 'All', label: 'All Amenities' },
+      { value: 'Edu', label: 'Education' },
+      { value: 'Emp', label: 'Employment' },
+      { value: 'HSt', label: 'High Street' },
+      { value: 'Hth', label: 'Health' }
+    ];
+    mcaOptions.forEach(opt => {
+      const option = document.createElement('option');
+      option.value = opt.value;
+      option.textContent = opt.label;
+      ScoresPurpose.appendChild(option);
+    });
+    // Default to All
+    ScoresPurpose.value = 'All';
+  } else {
+    // MCA purposes (original)
+    const mcaOptions = [
+      { value: 'All', label: 'All Amenities' },
+      { value: 'Edu', label: 'Education' },
+      { value: 'Emp', label: 'Employment' },
+      { value: 'HSt', label: 'High Street' },
+      { value: 'Hth', label: 'Health' }
+    ];
+    mcaOptions.forEach(opt => {
+      const option = document.createElement('option');
+      option.value = opt.value;
+      option.textContent = opt.label;
+      ScoresPurpose.appendChild(option);
+    });
+    // Try to restore previous value
+    if (['All', 'Edu', 'Emp', 'HSt', 'Hth'].includes(currentPurpose)) {
+      ScoresPurpose.value = currentPurpose;
+    } else if (currentPurpose === 'Education') {
+      ScoresPurpose.value = 'Edu';
+    } else if (currentPurpose === 'Employment') {
+      ScoresPurpose.value = 'Emp';
+    } else if (currentPurpose === 'Health') {
+      ScoresPurpose.value = 'Hth';
+    } else {
+      ScoresPurpose.value = 'All';
+    }
+  }
+}
+
+ScoresYear.addEventListener("change", () => {
+  updatePurposeDropdown();
+  updateScoresLayer();
+});
 ScoresPurpose.addEventListener("change", () => updateScoresLayer());
 ScoresMode.addEventListener("change", () => updateScoresLayer());
 AmenitiesYear.addEventListener("change", () => {
@@ -1105,17 +1192,45 @@ map.on('click', function (e) {
           const selectedYear = ScoresYear.value;
           const selectedPurpose = ScoresPurpose.value;
           const selectedMode = ScoresMode.value;
-          const fieldToDisplay = selectedYear.includes('-') ? `${selectedPurpose}_${selectedMode}` : `${selectedPurpose}_${selectedMode}_100`;
+          const isDfT = selectedYear === '2024 - DfT';
+          const isComparison = selectedYear === '2024 - MCA - DfT';
+          
+          let fieldToDisplay;
+          if (isDfT) {
+            const purposePrefix = dftPurposeFieldMap[selectedPurpose] || selectedPurpose;
+            fieldToDisplay = `dft_${purposePrefix}_${selectedMode}`;
+          } else if (isComparison) {
+            fieldToDisplay = `${selectedPurpose}_${selectedMode}_100`;
+          } else {
+            fieldToDisplay = selectedYear.includes('-') ? `${selectedPurpose}_${selectedMode}` : `${selectedPurpose}_${selectedMode}_100`;
+          }
 
           const scoreValue = properties[fieldToDisplay];
-          const score = selectedYear.includes('-') ? `${(scoreValue * 100).toFixed(1)}%` : formatValue(scoreValue, 1);
-          const percentile = formatValue(properties[`${selectedPurpose}_${selectedMode}_100`], 1);
+          let score, percentile, scoreLabel;
+          
+          if (isComparison) {
+            score = `${scoreValue >= 0 ? '+' : ''}${scoreValue.toFixed(1)}`;
+            scoreLabel = 'MCA - DfT Difference';
+            percentile = 'N/A';
+          } else if (isDfT) {
+            score = formatValue(scoreValue, 0.01);
+            scoreLabel = 'DfT Score';
+            percentile = 'N/A';
+          } else if (selectedYear.includes('-')) {
+            score = `${(scoreValue * 100).toFixed(1)}%`;
+            scoreLabel = 'Score Difference';
+            percentile = formatValue(properties[`${selectedPurpose}_${selectedMode}_100`], 1);
+          } else {
+            score = formatValue(scoreValue, 1);
+            scoreLabel = 'Score';
+            percentile = formatValue(properties[`${selectedPurpose}_${selectedMode}_100`], 1);
+          }
+          
           const population = formatValue(properties.pop, 10);
           const imdScore = formatValue(properties.IMDScore, 0.1);
           const imdDecile = formatValue(properties.IMD_Decile, 1);
           const carAvailability = formatValue(properties.car_availability, 0.01);
           const growthPop = formatValue(properties.pop_growth, 10);
-          const scoreLabel = selectedYear.includes('-') ? 'Score Difference' : 'Score';
 
           popupContent.Hexagon.push(`
             <strong>Hex_ID:</strong> ${properties.Hex_ID}<br>
@@ -3301,7 +3416,6 @@ function detectAndFixProjection(data) {
   return result;
 }
 
-
 function removeUserLayer(layerId) {
   const layerIndex = userLayers.findIndex(l => l.id === layerId);
   if (layerIndex > -1) {
@@ -3840,9 +3954,20 @@ function updateFeatureVisibility() {
   if (AmenitiesCatchmentLayer) {
     updateLayerVisibility(AmenitiesCatchmentLayer, feature => hexTimeMap[feature.properties.Hex_ID], selectedYear, 'time');
   } else if (ScoresLayer) {
-    const fieldToDisplay = selectedYear.includes('-') 
-      ? `${ScoresPurpose.value}_${ScoresMode.value}` 
-      : `${ScoresPurpose.value}_${ScoresMode.value}_100`;
+    const isDfT = selectedYear === '2024 - DfT';
+    const isComparison = selectedYear === '2024 - MCA - DfT';
+    
+    let fieldToDisplay;
+    if (isDfT) {
+      const purposePrefix = dftPurposeFieldMap[ScoresPurpose.value] || ScoresPurpose.value;
+      fieldToDisplay = `dft_${purposePrefix}_${ScoresMode.value}`;
+    } else if (isComparison) {
+      fieldToDisplay = `${ScoresPurpose.value}_${ScoresMode.value}_100`;
+    } else {
+      fieldToDisplay = selectedYear.includes('-') 
+        ? `${ScoresPurpose.value}_${ScoresMode.value}` 
+        : `${ScoresPurpose.value}_${ScoresMode.value}_100`;
+    }
     updateLayerVisibility(ScoresLayer, feature => feature.properties[fieldToDisplay], selectedYear, fieldToDisplay);
   }
   
@@ -4507,13 +4632,137 @@ function updateScoresLayer() {
     return;
   }
 
-  const fieldToDisplay = selectedYear.includes('-') ? 
-    `${selectedPurpose}_${selectedMode}` : 
-    `${selectedPurpose}_${selectedMode}_100`;
+  const isDfT = selectedYear === '2024 - DfT';
+  const isComparison = selectedYear === '2024 - MCA - DfT';
+  
+  // Determine field name based on data type
+  let fieldToDisplay;
+  if (isDfT) {
+    // DfT data: dft_Purpose_Mode format
+    const purposePrefix = dftPurposeFieldMap[selectedPurpose] || selectedPurpose;
+    fieldToDisplay = `dft_${purposePrefix}_${selectedMode}`;
+  } else if (isComparison) {
+    // Comparison data will be calculated, use MCA format as base
+    fieldToDisplay = selectedYear.includes('-') && !isComparison ? 
+      `${selectedPurpose}_${selectedMode}` : 
+      `${selectedPurpose}_${selectedMode}_100`;
+  } else {
+    // MCA data: standard format
+    fieldToDisplay = selectedYear.includes('-') ? 
+      `${selectedPurpose}_${selectedMode}` : 
+      `${selectedPurpose}_${selectedMode}_100`;
+  }
 
-  if (!scoreLayers[selectedYear]) {
+  // Handle comparison dataset - need both MCA and DfT data
+  if (isComparison) {
+    const mcaYear = '2024 - MCA';
+    const dftYear = '2024 - DfT';
+    
+    // Load MCA data if not already loaded
+    if (!scoreLayers[mcaYear]) {
+      const mcaFile = ScoresFiles.find(file => file.year === mcaYear);
+      if (mcaFile) {
+        fetch(mcaFile.path)
+          .then(response => response.text())
+          .then(csvData => {
+            const parsedData = Papa.parse(csvData, { header: true }).data;
+            scoreLayers[mcaYear] = parsedData;
+            updateScoresLayer();
+          });
+        return;
+      }
+    }
+    
+    // Load DfT data if not already loaded
+    if (!scoreLayers[dftYear]) {
+      const dftFile = ScoresFiles.find(file => file.year === dftYear);
+      if (dftFile) {
+        fetch(dftFile.path)
+          .then(response => response.text())
+          .then(csvData => {
+            const parsedData = Papa.parse(csvData, { header: true }).data;
+            // Map hex_id to Hex_ID for DfT data
+            parsedData.forEach(row => {
+              if (row.hex_id) {
+                row.Hex_ID = row.hex_id;
+              }
+            });
+            scoreLayers[dftYear] = parsedData;
+            updateScoresLayer();
+          });
+        return;
+      }
+    }
+    
+    // Calculate comparison if both datasets are loaded
+    if (scoreLayers[mcaYear] && scoreLayers[dftYear]) {
+      const mcaData = scoreLayers[mcaYear];
+      const dftData = scoreLayers[dftYear];
+      
+      // Create lookups
+      const mcaLookup = {};
+      mcaData.forEach(row => {
+        if (row.Hex_ID) {
+          mcaLookup[row.Hex_ID] = row;
+        }
+      });
+      
+      const dftLookup = {};
+      dftData.forEach(row => {
+        if (row.Hex_ID) {
+          dftLookup[row.Hex_ID] = row;
+        }
+      });
+      
+      // Calculate comparison scores
+      const comparisonData = [];
+      Object.keys(mcaLookup).forEach(hexId => {
+        if (dftLookup[hexId]) {
+          const mcaRow = mcaLookup[hexId];
+          const dftRow = dftLookup[hexId];
+          const comparisonRow = { Hex_ID: hexId };
+          
+          // For each mode, calculate MCA - DfT
+          ['Wa', 'Cy', 'PT', 'Ca', 'To'].forEach(mode => {
+            // Handle High Street special case - average DfT Shopping and Leisure
+            if (selectedPurpose === 'HSt') {
+              const mcaField = `HSt_${mode}_100`;
+              const dftShpField = `dft_Shp_${mode}`;
+              const dftLeiField = `dft_Lei_${mode}`;
+              
+              const mcaValue = parseFloat(mcaRow[mcaField]);
+              const dftShpValue = parseFloat(dftRow[dftShpField]);
+              const dftLeiValue = parseFloat(dftRow[dftLeiField]);
+              
+              if (!isNaN(mcaValue) && !isNaN(dftShpValue) && !isNaN(dftLeiValue)) {
+                const dftAvg = (dftShpValue + dftLeiValue) / 2;
+                comparisonRow[`HSt_${mode}_100`] = mcaValue - dftAvg;
+              }
+            } else {
+              // Standard purposes
+              const mcaField = `${selectedPurpose}_${mode}_100`;
+              const purposePrefix = selectedPurpose === 'All' ? 'All' : (dftPurposeFieldMap[selectedPurpose] || selectedPurpose);
+              const dftField = `dft_${purposePrefix}_${mode}`;
+              
+              const mcaValue = parseFloat(mcaRow[mcaField]);
+              const dftValue = parseFloat(dftRow[dftField]);
+              
+              if (!isNaN(mcaValue) && !isNaN(dftValue)) {
+                comparisonRow[mcaField] = mcaValue - dftValue;
+              }
+            }
+          });
+          
+          comparisonData.push(comparisonRow);
+        }
+      });
+      
+      scoreLayers[selectedYear] = comparisonData;
+    }
+  } else if (!scoreLayers[selectedYear]) {
+    // Load regular data (MCA or DfT)
     const scoreFile = ScoresFiles.find(file => file.year === selectedYear);
-    if (scoreFile) {
+    if (scoreFile && scoreFile.path) {
       fetch(scoreFile.path)
         .then(response => {
           if (!response.ok) {
@@ -4523,6 +4772,14 @@ function updateScoresLayer() {
         })
         .then(csvData => {
           const parsedData = Papa.parse(csvData, { header: true }).data;
+          // Map hex_id to Hex_ID for DfT data
+          if (isDfT) {
+            parsedData.forEach(row => {
+              if (row.hex_id) {
+                row.Hex_ID = row.hex_id;
+              }
+            });
+          }
           scoreLayers[selectedYear] = parsedData;
           updateScoresLayer();
         })
@@ -4577,8 +4834,16 @@ function updateScoresLayer() {
 
   applyScoresLayerStyling();
   
-  selectedScoresAmenities = purposeToAmenitiesMap[selectedPurpose];
-  drawSelectedAmenities(selectedScoresAmenities);
+  // Only show amenities for MCA data (not for DfT or comparison)
+  if (!isDfT && !isComparison) {
+    selectedScoresAmenities = purposeToAmenitiesMap[selectedPurpose];
+    drawSelectedAmenities(selectedScoresAmenities);
+  } else {
+    // Clear amenities for DfT/comparison data
+    selectedScoresAmenities = [];
+    drawSelectedAmenities([]);
+  }
+  
   updateLegend();
   updateFeatureVisibility();
   updateFilterDropdown();
@@ -4597,9 +4862,21 @@ function applyScoresLayerStyling() {
   const opacityField = ScoresOpacity.value;
   const outlineField = ScoresOutline.value;
   
-  const fieldToDisplay = selectedYear.includes('-') ? 
-    `${selectedPurpose}_${selectedMode}` : 
-    `${selectedPurpose}_${selectedMode}_100`;
+  const isDfT = selectedYear === '2024 - DfT';
+  const isComparison = selectedYear === '2024 - MCA - DfT';
+  
+  // Determine field name based on data type
+  let fieldToDisplay;
+  if (isDfT) {
+    const purposePrefix = dftPurposeFieldMap[selectedPurpose] || selectedPurpose;
+    fieldToDisplay = `dft_${purposePrefix}_${selectedMode}`;
+  } else if (isComparison) {
+    fieldToDisplay = `${selectedPurpose}_${selectedMode}_100`;
+  } else {
+    fieldToDisplay = selectedYear.includes('-') ? 
+      `${selectedPurpose}_${selectedMode}` : 
+      `${selectedPurpose}_${selectedMode}_100`;
+  }
     
   let minOpacity = ScoresOpacityRange && ScoresOpacityRange.noUiSlider ? 
     parseFloat(ScoresOpacityRange.noUiSlider.get()[0]) : 0;
@@ -4642,7 +4919,13 @@ function styleScoresFeature(feature, fieldToDisplay, opacityField, outlineField,
       return 'transparent';
     }
   
-    if (selectedYear.includes('-')) {
+    // Check if this is a comparison dataset
+    const isComparison = selectedYear === '2024 - MCA - DfT';
+    const isDfT = selectedYear === '2024 - DfT';
+    const isMCAChange = selectedYear.includes('-') && !isDfT && !isComparison;
+    
+    if (isComparison || isMCAChange) {
+      // Comparison/change colors (red = worse, green = better)
       if (value <= -0.2) {
         return '#FF0000';
       } else if (value > -0.2 && value <= -0.1) {
@@ -4659,6 +4942,7 @@ function styleScoresFeature(feature, fieldToDisplay, opacityField, outlineField,
         return '#38A800';
       }
     } else {
+      // Single year data (MCA percentiles or DfT scores) - use percentile colors
       return value > 90 ? '#fde725' :
              value > 80 ? '#b5de2b' :
              value > 70 ? '#6ece58' :
@@ -5778,11 +6062,23 @@ function applyRangeFilter(features, filterValue) {
   // console.log('applyRangeFilter called from:');
   if (ScoresLayer) {
     const selectedYear = ScoresYear.value;
-    const fieldToDisplay = selectedYear.includes('-') ? 
-      `${ScoresPurpose.value}_${ScoresMode.value}` : 
-      `${ScoresPurpose.value}_${ScoresMode.value}_100`;
+    const isDfT = selectedYear === '2024 - DfT';
+    const isComparison = selectedYear === '2024 - MCA - DfT';
     
-    if (selectedYear.includes('-')) {
+    let fieldToDisplay;
+    if (isDfT) {
+      const purposePrefix = dftPurposeFieldMap[ScoresPurpose.value] || ScoresPurpose.value;
+      fieldToDisplay = `dft_${purposePrefix}_${ScoresMode.value}`;
+    } else if (isComparison) {
+      fieldToDisplay = `${ScoresPurpose.value}_${ScoresMode.value}_100`;
+    } else {
+      fieldToDisplay = selectedYear.includes('-') ? 
+        `${ScoresPurpose.value}_${ScoresMode.value}` : 
+        `${ScoresPurpose.value}_${ScoresMode.value}_100`;
+    }
+    
+    const isMCAChange = selectedYear.includes('-') && !isDfT && !isComparison;
+    if (isComparison || isMCAChange) {
       return filterByScoreDifference(features, fieldToDisplay, filterValue);
     } else {
       return filterByPercentileRange(features, fieldToDisplay, filterValue);
@@ -5976,8 +6272,21 @@ function calculateScoreStatistics(features) {
   const selectedYear = ScoresYear.value;
   const selectedPurpose = ScoresPurpose.value;
   const selectedMode = ScoresMode.value;
-  const scoreField = `${selectedPurpose}_${selectedMode}`;
-  const percentileField = `${selectedPurpose}_${selectedMode}_100`;
+  const isDfT = selectedYear === '2024 - DfT';
+  const isComparison = selectedYear === '2024 - MCA - DfT';
+  
+  let scoreField, percentileField;
+  if (isDfT) {
+    const purposePrefix = dftPurposeFieldMap[selectedPurpose] || selectedPurpose;
+    scoreField = `dft_${purposePrefix}_${selectedMode}`;
+    percentileField = null; // DfT doesn't have percentiles
+  } else if (isComparison) {
+    scoreField = `${selectedPurpose}_${selectedMode}_100`;
+    percentileField = null; // Comparison doesn't have separate percentiles
+  } else {
+    scoreField = `${selectedPurpose}_${selectedMode}`;
+    percentileField = `${selectedPurpose}_${selectedMode}_100`;
+  }
   
   const metrics = {
     score: [],
@@ -5988,22 +6297,41 @@ function calculateScoreStatistics(features) {
   features.forEach(feature => {
     const props = feature.properties;
     metrics.score.push(props[scoreField] || 0);
-    metrics.percentile.push(props[percentileField] || 0);
+    if (percentileField) {
+      metrics.percentile.push(props[percentileField] || 0);
+    }
     metrics.population.push(props.pop || 0);
   });
 
-  return {
+  const result = {
     avgScore: calculateWeightedAverage(metrics.score, metrics.population),
     minScore: Math.min(...metrics.score),
     maxScore: Math.max(...metrics.score),
-    avgPercentile: calculateWeightedAverage(metrics.percentile, metrics.population),
-    minPercentile: Math.min(...metrics.percentile, 0),
-    maxPercentile: Math.max(...metrics.percentile, 0),
-    metricRow1: 'Score',
-    metricRow2: 'Score Percentile',
     isScoreLayer: true,
     selectedYear
   };
+  
+  if (percentileField && metrics.percentile.length > 0) {
+    result.avgPercentile = calculateWeightedAverage(metrics.percentile, metrics.population);
+    result.minPercentile = Math.min(...metrics.percentile, 0);
+    result.maxPercentile = Math.max(...metrics.percentile, 0);
+    result.metricRow1 = 'Score';
+    result.metricRow2 = 'Score Percentile';
+  } else if (isDfT) {
+    result.avgPercentile = 0;
+    result.minPercentile = 0;
+    result.maxPercentile = 0;
+    result.metricRow1 = 'DfT Score';
+    result.metricRow2 = '-';
+  } else if (isComparison) {
+    result.avgPercentile = 0;
+    result.minPercentile = 0;
+    result.maxPercentile = 0;
+    result.metricRow1 = 'MCA - DfT Difference';
+    result.metricRow2 = '-';
+  }
+  
+  return result;
 }
 
 function calculateTimeStatistics(features) {
@@ -6089,13 +6417,34 @@ function updateStatisticsUI(stats) {
   document.getElementById('metric-row-2').textContent = stats.metricRow2 || '-';
   
   if (stats.isScoreLayer) {
-    const formatScore = value => stats.selectedYear.includes('-') ? `${(value * 100).toFixed(1)}%` : formatValue(value, 1);
+    const isDfT = stats.selectedYear === '2024 - DfT';
+    const isComparison = stats.selectedYear === '2024 - MCA - DfT';
+    const isMCAChange = stats.selectedYear.includes('-') && !isDfT && !isComparison;
+    
+    let formatScore;
+    if (isComparison) {
+      formatScore = value => `${value >= 0 ? '+' : ''}${value.toFixed(1)}`;
+    } else if (isMCAChange) {
+      formatScore = value => `${(value * 100).toFixed(1)}%`;
+    } else if (isDfT) {
+      formatScore = value => formatValue(value, 0.01);
+    } else {
+      formatScore = value => formatValue(value, 1);
+    }
+    
     document.getElementById('avg-score').textContent = formatScore(stats.avgScore);
     document.getElementById('min-score').textContent = formatScore(stats.minScore);
     document.getElementById('max-score').textContent = formatScore(stats.maxScore);
-    document.getElementById('avg-percentile').textContent = formatValue(stats.avgPercentile, 1);
-    document.getElementById('min-percentile').textContent = formatValue(stats.minPercentile, 1);
-    document.getElementById('max-percentile').textContent = formatValue(stats.maxPercentile, 1);
+    
+    if (stats.metricRow2 !== '-') {
+      document.getElementById('avg-percentile').textContent = formatValue(stats.avgPercentile, 1);
+      document.getElementById('min-percentile').textContent = formatValue(stats.minPercentile, 1);
+      document.getElementById('max-percentile').textContent = formatValue(stats.maxPercentile, 1);
+    } else {
+      document.getElementById('avg-percentile').textContent = '-';
+      document.getElementById('min-percentile').textContent = '-';
+      document.getElementById('max-percentile').textContent = '-';
+    }
   } 
   else if (stats.isTimeLayer) {
     document.getElementById('avg-score').textContent = '-';
