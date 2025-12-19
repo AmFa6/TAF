@@ -71,26 +71,24 @@ html, body {
   align-items: center;
   font-family: 'Trebuchet MS', sans-serif;
   font-weight: normal;
+  border-radius: 5px;
 }
 .collapsible {
   font-size: 1em;
   background: #f0f0f0;
   margin: 10px;
   padding: 7px;
-  border-radius: 5px;
 }
 .panel-header {
   font-size: 1.2em;
   background: white;
   margin-bottom: 10px;
   padding: 10px;
-  border-radius: 5px;
 }
 .legend-category-header {
   font-size: 1.1em;
   margin-bottom: 10px;
   padding: 3px;
-  border-radius: 3px;
 }
 .collapsible:after,
 .panel-header:after,
@@ -214,13 +212,19 @@ html, body {
   justify-content: space-between;
   align-items: center;
 }
-.button-container > button {
-  flex: 1;
+.button-container > button,
+.large-button,
+.small-button,
+.btn {
   cursor: pointer;
   text-align: center;
-  border-radius: 5px;
+  border-radius: 4px;
   font-family: 'Trebuchet MS', sans-serif;
   font-weight: normal;
+}
+.button-container > button {
+  flex: 1;
+  border-radius: 5px;
 }
 .large-button {
   font-size: 1em;
@@ -238,8 +242,6 @@ html, body {
   background-color: #4CAF50;
   color: white;
   border: none;
-  border-radius: 4px;
-  cursor: pointer;
 }
 .btn:disabled {
   background-color: #ccc;
@@ -423,13 +425,18 @@ html, body {
 .file-upload-container {
   margin-bottom: 15px;
 }
-.file-upload-label {
+.file-upload-label,
+.legend-file-upload-label {
   display: inline-block;
   padding: 6px 12px;
   cursor: pointer;
   background-color: #f0f0f0;
   border: 1px solid #ddd;
   border-radius: 4px;
+}
+.legend-file-upload-label {
+  padding: 4px 8px;
+  font-size: 0.9em;
 }
 .file-upload-label input[type="file"] {
   display: none;
@@ -456,13 +463,19 @@ html, body {
 .layer-controls {
   display: flex;
 }
-.layer-zoom-btn, .layer-remove-btn, .layer-style-btn {
+.layer-zoom-btn, 
+.layer-remove-btn, 
+.layer-style-btn,
+.layer-edit-btn {
   background: none;
   border: none;
   cursor: pointer;
   padding: 5px;
 }
-.layer-zoom-btn:hover, .layer-remove-btn:hover, .layer-style-btn:hover {
+.layer-zoom-btn:hover, 
+.layer-remove-btn:hover, 
+.layer-style-btn:hover,
+.layer-edit-btn:hover {
   color: #4CAF50;
 }
 .tab-content {
@@ -508,15 +521,7 @@ h4.legend-title {
 #legend.collapsed #toggle-legend:after {
   content: '\25B6';
 }
-.legend-file-upload-label {
-  display: inline-block;
-  padding: 4px 8px;
-  cursor: pointer;
-  background-color: #f0f0f0;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 0.9em;
-}
+
 .legend-btn {
   padding: 4px 8px;
   background-color: #4CAF50;
@@ -541,10 +546,7 @@ h4.legend-title {
   padding: 3px 0;
   font-size: 0.9em;
 }
-.style-value-display {
-  font-size: 12px;
-  width: 35px;
-}
+
 .style-section {
   margin-bottom: 15px;
   border: 1px solid #eee;
@@ -574,7 +576,8 @@ h4.legend-title {
   width: 80px;
   margin-right: 5px;
 }
-.opacity-slider span {
+.opacity-slider span,
+.style-value-display {
   font-size: 12px;
   width: 35px;
 }
@@ -657,6 +660,9 @@ h4.legend-title {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+}
+#style-dialog {
+  z-index: 1001;
 }
 .slider {
   width: 100%;
@@ -741,9 +747,6 @@ h4.legend-title {
   pointer-events: none;
   white-space: nowrap;
   text-align: center;
-}
-#style-dialog {
-  z-index: 1001;
 }
 .label-field-row {
   margin-bottom: 10px;

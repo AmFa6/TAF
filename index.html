@@ -18,8 +18,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Turf.js/6.5.0/turf.min.js"></script>
   <script src="https://unpkg.com/@mapbox/togeojson@0.16.0/togeojson.js"></script>
-  <script src="https://unpkg.com/proj4"></script>
-  <script src="https://unpkg.com/proj4leaflet"></script>
 </head>
 <body>
   <div id="map"></div>
@@ -30,6 +28,7 @@
         <label for="yearScoresDropdown" class="large-font">Year:</label>
         <select id="yearScoresDropdown" class="medium-font">
           <option value="2024">2024</option>
+          <option value="2024 (DfT)">2024 (DfT)</option>
           <option value="2023">2023</option>
           <option value="2022">2022</option>
           <option value="2019">2019</option>
@@ -45,8 +44,11 @@
           <option value="All">All Amenities</option>
           <option value="Edu">Education</option>
           <option value="Emp">Employment</option>
-          <option value="HSt">High Street</option>
+          <option value="HSt" class="standard-purpose">High Street</option>
           <option value="Hth">Health</option>
+          <option value="Lei" class="dft-purpose" style="display:none;">Leisure</option>
+          <option value="Shp" class="dft-purpose" style="display:none;">Shopping</option>
+          <option value="Res" class="dft-purpose" style="display:none;">Residential</option>
         </select>
         <br>
         <label for="modeScoresDropdown" class="large-font">Mode of Travel:</label>
@@ -154,11 +156,6 @@
             <label class="checkbox-label"><input type="checkbox" value="Hos"> <span>Hospital</span></label>
           </div>
         </div>
-<!--        <div class="field-container">
-          <div class="button-container">
-            <button id="selectAmenitiesFromMap" class="large-button">Select from Map</button>
-          </div>
-        </div>-->
         <button type="button" class="collapsible">Settings</button>
         <div class="collapsible-content">
           <label for="layerTransparencySliderAmenities" class="medium-font">Layer Transparency:</label>
@@ -223,23 +220,6 @@
         </div>
       </div>
     </div>
-<!--    <div id="Hexagons" class="panel">
-      <button class="panel-header">Journey Time Catchments - Hexagons</button>
-      <div id="panel-hexagons-content">
-        <label for="yearHexagonsDropdown" class="large-font">Year:</label>
-        <select id="yearHexagonsDropdown" class="medium-font">
-          <option value="2024">2024</option>
-        </select>
-        <br>
-        <label for="modeHexagonsDropdown" class="large-font">Mode of Travel:</label>
-        <select id="modeHexagonsDropdown" class="medium-font">
-          <option value="Wa">Walk</option>
-          <option value="Cy">Cycle</option>
-          <option value="PT">Public Transport</option>
-          <option value="Ca">Car</option>
-        </select>
-      </div>
-    </div>-->
     <div id="Census" class="panel">
       <button class="panel-header">Census / Local Plan Data</button>
       <div id="panel-content">
@@ -329,14 +309,14 @@
       </div>
       <div class="legend-category">
         <div class="legend-category-header">
-          <span>Geographies</span>
+          <span>Boundaries</span>
         </div>
         <div class="legend-category-content">
           <div>
-            <input type="checkbox" id="uaBoundariesCheckbox"> <span style="font-size: 1em;">UA Boundaries (2024)</span>
+            <input type="checkbox" id="uaBoundariesCheckbox"> <span style="font-size: 1em;">Unitary Authorities (2024)</span>
           </div>
           <div>
-            <input type="checkbox" id="wardBoundariesCheckbox"> <span style="font-size: 1em;">Ward Boundaries (2024)</span>
+            <input type="checkbox" id="wardBoundariesCheckbox"> <span style="font-size: 1em;">Wards (2024)</span>
           </div>
           <div>
             <input type="checkbox" id="lsoaCheckbox"> <span style="font-size: 1em;">Lower Layer Super Output Areas (LSOA 2021)</span>
@@ -363,8 +343,11 @@
           <div>
             <input type="checkbox" id="WestLinkZonesCheckbox"> <span style="font-size: 1em;">WESTlink Zones</span>
           </div>
-          <div>
-            <input type="checkbox" id="roadNetworkCheckbox"> <span style="font-size: 1em;">Road Network</span>
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <label style="display: flex; align-items: center; margin: 0;">
+              <input type="checkbox" id="roadNetworkCheckbox" style="margin-right: 5px;"> 
+              <span style="font-size: 1em;">Road Network</span>
+            </label>
           </div>
         </div>
       </div>   

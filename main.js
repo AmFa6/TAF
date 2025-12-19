@@ -1,3 +1,19 @@
+// ============================================================================
+// WEST OF ENGLAND CONNECTIVITY TOOL - MAIN APPLICATION
+// ============================================================================
+
+// ============================================================================
+// MAP INITIALIZATION
+// ============================================================================
+
+// ============================================================================
+// WEST OF ENGLAND CONNECTIVITY TOOL - MAIN APPLICATION
+// ============================================================================
+
+// ============================================================================
+// MAP INITIALIZATION
+// ============================================================================
+
 const map = L.map('map').setView([51.480, -2.591], 11);
 
 const baseLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/light_nolabels/{z}/{x}/{y}.png', {
@@ -9,6 +25,319 @@ const LabelsLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/l
   opacity: 0.6,
   pane: 'tooltipPane'
 }).addTo(map);
+
+// ============================================================================
+// ROAD NETWORK MANAGEMENT
+// ============================================================================
+
+let osmRoadLayer = null;
+let simplifiedRoadLayer = null;
+let isLoadingRoads = false;
+let lastLoadedBounds = null;
+let lastLoadedZoom = null;
+let loadRoadsTimeout = null;
+let simplifiedNetworkData = null;
+let usingFallbackNetwork = false;
+
+/**
+ * Load road centerlines from OpenStreetMap Overpass API
+ * Displays as white lines - the "road lace" effect
+ * Note: Motorway, A roads (primary), and B roads (secondary) are always shown from simplified network
+ * This function only loads additional road types at higher zoom levels
+ */
+async function loadOSMRoadSurfaces() {
+  if (isLoadingRoads) return;
+  
+  const currentZoom = map.getZoom();
+  const bounds = map.getBounds();
+  
+  // First, ensure simplified network (Motorway/A/B roads) is always loaded
+  loadSimplifiedNetwork();
+  
+  // At lower zoom levels, we don't need any additional roads from API
+  if (currentZoom < 15) {
+    // Remove OSM layer if it exists since we only need simplified network
+    if (osmRoadLayer) {
+      map.removeLayer(osmRoadLayer);
+      osmRoadLayer = null;
+    }
+    isLoadingRoads = false;
+    return;
+  }
+  
+  // Don't reload if we haven't moved much or changed zoom
+  if (lastLoadedBounds && lastLoadedZoom === currentZoom) {
+    const lastCenter = lastLoadedBounds.getCenter();
+    const currentCenter = bounds.getCenter();
+    const distance = lastCenter.distanceTo(currentCenter);
+    const viewportSize = Math.max(
+      bounds.getNorth() - bounds.getSouth(),
+      bounds.getEast() - bounds.getWest()
+    );
+    
+    // Only reload if moved more than 20% of viewport
+    if (distance < viewportSize * 111000 * 0.2) {
+      return;
+    }
+  }
+  
+  isLoadingRoads = true;
+  
+  const bbox = `${bounds.getSouth()},${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()}`;
+  
+  // Store current view for comparison
+  lastLoadedBounds = bounds;
+  lastLoadedZoom = currentZoom;
+  
+  // Build query based on zoom level - only for additional road types
+  // Motorway, primary (A roads), and secondary (B roads) are always from simplified network
+  let roadTypes;
+  if (currentZoom < 17) {
+    // Zoom 15-16: add tertiary roads only
+    roadTypes = '["highway"~"tertiary"]';
+  } else {
+    // Zoom 17+: add tertiary, unclassified, and residential
+    roadTypes = '["highway"~"tertiary|unclassified|residential"]';
+  }
+  
+  // Overpass QL query for road centerlines
+  const query = `
+    [out:json][timeout:25];
+    (
+      way${roadTypes}(${bbox});
+    );
+    out geom;
+  `;
+  
+  const overpassUrl = 'https://overpass-api.de/api/interpreter';
+  
+  try {
+    console.log(`Fetching roads at zoom ${currentZoom}...`);
+    const response = await fetch(overpassUrl, {
+      method: 'POST',
+      body: query,
+      signal: AbortSignal.timeout(20000) // 20 second timeout
+    });
+    
+    if (!response.ok) {
+      if (response.status === 504 || response.status === 429) {
+        console.warn('Overpass API busy, loading simplified network fallback');
+        loadSimplifiedNetwork();
+        return;
+      }
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    console.log(`Loaded ${data.elements.length} road features`);
+    
+    // Convert OSM data to GeoJSON LineStrings
+    const geojson = osmToGeoJSON(data, currentZoom);
+    
+    // Remove existing layer
+    if (osmRoadLayer) {
+      map.removeLayer(osmRoadLayer);
+    }
+    
+    // Create new layer with white styling
+    osmRoadLayer = L.geoJSON(geojson, {
+      pane: 'roadLayers',
+      style: function(feature) {
+        const highway = feature.properties.highway;
+        
+        // Real-world widths in meters for different road types
+        let roadWidthMeters;
+        if (highway === 'motorway') roadWidthMeters = 12.5;
+        else if (highway === 'trunk') roadWidthMeters = 10;
+        else if (highway === 'primary') roadWidthMeters = 8;
+        else if (highway === 'secondary') roadWidthMeters = 6;
+        else if (highway === 'tertiary') roadWidthMeters = 5;
+        else roadWidthMeters = 4; // residential/unclassified
+        
+        // Calculate meters per pixel at current zoom and latitude
+        // Leaflet uses Web Mercator projection
+        const latitude = map.getCenter().lat;
+        const metersPerPixel = 40075016.686 * Math.abs(Math.cos(latitude * Math.PI / 180)) / Math.pow(2, currentZoom + 8);
+        
+        // Calculate pixel width needed to represent the real-world road width
+        let weight = roadWidthMeters / metersPerPixel;
+        
+        // Ensure minimum visibility at all zoom levels
+        const minWeight = 1.5; // minimum pixel width
+        weight = Math.max(weight, minWeight);
+        
+        return {
+          color: '#ffffff',
+          weight: weight,
+          opacity: 1,
+          lineJoin: 'round',
+          lineCap: 'round'
+        };
+      }
+    }).addTo(map);
+    
+    console.log('Roads added to map');
+    
+  } catch (error) {
+    if (error.name === 'TimeoutError' || error.message.includes('504')) {
+      console.warn('Road loading timed out, loading simplified network fallback');
+      loadSimplifiedNetwork();
+    } else {
+      console.error('Error loading roads:', error);
+      loadSimplifiedNetwork();
+    }
+  } finally {
+    isLoadingRoads = false;
+  }
+}
+
+/**
+ * Load simplified network for Motorway, A roads, and B roads
+ * This is always loaded and shown, not just as a fallback
+ */
+function loadSimplifiedNetwork() {
+  if (simplifiedRoadLayer) return; // Already loaded and displayed
+  
+  if (simplifiedNetworkData) {
+    // Data already loaded, just display it
+    displaySimplifiedNetwork();
+    return;
+  }
+  
+  // Load the simplified network GeoJSON
+  const networkFile = InfrastructureFiles.find(file => file.type === 'RoadNetwork');
+  if (!networkFile) {
+    console.error('Simplified network file not found');
+    return;
+  }
+  
+  fetch(networkFile.path)
+    .then(response => response.json())
+    .then(data => {
+      simplifiedNetworkData = data;
+      displaySimplifiedNetwork();
+    })
+    .catch(error => {
+      console.error('Error loading simplified network:', error);
+    });
+}
+
+/**
+ * Display the simplified network with OSM-style white roads
+ * Shows Motorway, A roads (primary), and B roads (secondary)
+ */
+function displaySimplifiedNetwork() {
+  if (!simplifiedNetworkData) return;
+  if (simplifiedRoadLayer) return; // Already displayed
+    
+  let filteredCount = 0;
+  
+  // Create layer with same styling as OSM roads for major roads only
+  simplifiedRoadLayer = L.geoJSON(simplifiedNetworkData, {
+    pane: 'roadLayers',
+    filter: function(feature) {
+      // Only show Motorway, A roads, and B roads
+      const roadClass = feature.properties.roadclassification || feature.properties.highway || feature.properties.type || '';
+      const shouldShow = roadClass === 'Motorway' || roadClass === 'A Road' || roadClass === 'B Road';
+      if (shouldShow) filteredCount++;
+      return shouldShow;
+    },
+    style: function(feature) {
+      const roadClass = feature.properties.roadclassification || feature.properties.highway || feature.properties.type || '';
+      const currentZoom = map.getZoom();
+      
+      // Real-world widths in meters for different road types
+      let roadWidthMeters;
+      if (roadClass === 'Motorway') roadWidthMeters = 12.5;
+      else if (roadClass === 'A Road') roadWidthMeters = 10;
+      else if (roadClass === 'B Road') roadWidthMeters = 6;
+      else roadWidthMeters = 4;
+      
+      const latitude = map.getCenter().lat;
+      const metersPerPixel = 40075016.686 * Math.abs(Math.cos(latitude * Math.PI / 180)) / Math.pow(2, currentZoom + 8);
+      let weight = roadWidthMeters / metersPerPixel;
+      
+      const minWeight = 1.5;
+      weight = Math.max(weight, minWeight);
+      
+      return {
+        color: '#ffffff',
+        weight: weight,
+        opacity: 1,
+        lineJoin: 'round',
+        lineCap: 'round'
+      };
+    }
+  }).addTo(map);
+}
+
+/**
+ * Update simplified road styling based on current zoom level
+ */
+function updateSimplifiedRoadStyling() {
+  if (!simplifiedRoadLayer) return;
+  
+  const currentZoom = map.getZoom();
+  const latitude = map.getCenter().lat;
+  const metersPerPixel = 40075016.686 * Math.abs(Math.cos(latitude * Math.PI / 180)) / Math.pow(2, currentZoom + 8);
+  
+  simplifiedRoadLayer.eachLayer(function(layer) {
+    const feature = layer.feature;
+    const roadClass = feature.properties.roadclassification || feature.properties.highway || feature.properties.type || '';
+    
+    // Real-world widths in meters for different road types
+    let roadWidthMeters;
+    if (roadClass === 'Motorway') roadWidthMeters = 20;
+    else if (roadClass === 'A Road') roadWidthMeters = 12;
+    else if (roadClass === 'B Road') roadWidthMeters = 8;
+    else roadWidthMeters = 6;
+    
+    // Calculate pixel width
+    let weight = roadWidthMeters / metersPerPixel;
+    const minWeight = 1.5;
+    weight = Math.max(weight, minWeight);
+    
+    // Update the layer style
+    layer.setStyle({
+      weight: weight
+    });
+  });
+}
+
+/**
+ * Convert OSM JSON to GeoJSON (LineStrings for roads)
+ */
+function osmToGeoJSON(osmData, zoom) {
+  const features = [];
+  
+  osmData.elements.forEach(element => {
+    if (element.type === 'way' && element.geometry) {
+      const coordinates = element.geometry.map(node => [node.lon, node.lat]);
+      
+      features.push({
+        type: 'Feature',
+        geometry: {
+          type: 'LineString',
+          coordinates: coordinates
+        },
+        properties: element.tags || {}
+      });
+    }
+  });
+  
+  return {
+    type: 'FeatureCollection',
+    features: features
+  };
+}
+
+// ============================================================================
+// GEOGRAPHY & BOUNDARY DATA
+// ============================================================================
+
+// ============================================================================
+// GEOGRAPHY & BOUNDARY DATA (LAs, Wards, LSOAs, Growth Zones)
+// ============================================================================
 
 let lsoaLookup = {};
 const ladCodesString = ladCodes.map(code => `'${code}'`).join(',');
@@ -136,6 +465,14 @@ fetch(`https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/LSOA21
       },
     }).addTo(map);
   })
+
+// ============================================================================
+// UI CONTROLS & DOM ELEMENTS
+// ============================================================================
+
+// ============================================================================
+// UI CONTROLS & DOM ELEMENT REFERENCES
+// ============================================================================
 
 const layers = {};
 const scoreLayers = {};
@@ -285,23 +622,13 @@ InfrastructureFiles.forEach(file => {
       } else if (file.type === 'RoadNetwork') {
         roadNetworkLayer = L.geoJSON(data, {
           pane: 'roadLayers',
-          style: function (feature) {
-            const roadFunction = feature.properties.roadfunction;
-            let weight = 0.5;
-            
-            if (roadFunction === 'Motorway') {
-              weight = 2;
-            } else if (roadFunction === 'A Road') {
-              weight = 1;
-            }
-            
-            return {
-              color: 'white',
-              weight: weight,
-              opacity: 0,
-            };
-          },
-        }).addTo(map);
+          style: {
+            color: '#666',
+            weight: 1,
+            opacity: 0.6
+          }
+        });
+        // Don't add to map by default - controlled by checkbox
       }
     });
 });
@@ -311,6 +638,10 @@ ScoresOpacity.value = "None";
 ScoresOutline.value = "None";
 AmenitiesOpacity.value = "None";
 AmenitiesOutline.value = "None";
+
+// ============================================================================
+// LAYER STATE & CONFIGURATION
+// ============================================================================
 
 let opacityScoresOrder = 'low-to-high';
 let outlineScoresOrder = 'low-to-high';
@@ -340,6 +671,7 @@ let AmenitiesCatchmentLayer = null;
 let hexTimeMap = {};
 let csvDataCache = {};
 let amenitiesLayerGroup = L.featureGroup();
+
 let selectedScoresAmenities = [];
 let selectedAmenitiesAmenities = [];
 let selectingFromMap = false;
@@ -386,12 +718,13 @@ let previousFilterSelections = {
   Range: null,
 };
 
-initializeSliders(ScoresOpacityRange);
-initializeSliders(ScoresOutlineRange);
-initializeSliders(AmenitiesOpacityRange);
-initializeSliders(AmenitiesOutlineRange);
-initializeSliders(CensusOpacityRange);
-initializeSliders(CensusOutlineRange);
+// ============================================================================
+// INITIALIZATION
+// ============================================================================
+
+// Initialize all range sliders
+[ScoresOpacityRange, ScoresOutlineRange, AmenitiesOpacityRange, 
+ AmenitiesOutlineRange, CensusOpacityRange, CensusOutlineRange].forEach(initializeSliders);
 
 setTimeout(() => {
   if (!initializeLayerTransparencySliderAmenities()) {
@@ -405,8 +738,50 @@ setTimeout(() => {
   }
 }, 100);
 
-ScoresYear.addEventListener("change", () => updateScoresLayer());
+// ============================================================================
+// EVENT LISTENERS
+// ============================================================================
+
+// ============================================================================
+// EVENT LISTENERS
+// ============================================================================
+
+ScoresYear.addEventListener("change", () => {
+  updatePurposeOptions();
+  updateScoresLayer();
+});
 ScoresPurpose.addEventListener("change", () => updateScoresLayer());
+
+function updatePurposeOptions() {
+  const selectedYear = ScoresYear.value;
+  const isDftYear = selectedYear === '2024 (DfT)';
+  const currentPurpose = ScoresPurpose.value;
+  
+  // Get all purpose options
+  const standardPurposes = document.querySelectorAll('#purposeScoresDropdown .standard-purpose');
+  const dftPurposes = document.querySelectorAll('#purposeScoresDropdown .dft-purpose');
+  const hstOption = document.querySelector('#purposeScoresDropdown option[value="HSt"]');
+  
+  if (isDftYear) {
+    // Hide High Street, show DfT purposes
+    if (hstOption) hstOption.style.display = 'none';
+    dftPurposes.forEach(opt => opt.style.display = '');
+    
+    // If current selection is High Street, switch to All
+    if (currentPurpose === 'HSt') {
+      ScoresPurpose.value = 'All';
+    }
+  } else {
+    // Show High Street, hide DfT purposes
+    if (hstOption) hstOption.style.display = '';
+    dftPurposes.forEach(opt => opt.style.display = 'none');
+    
+    // If current selection is a DfT-only purpose, switch to All
+    if (['Lei', 'Shp', 'Res'].includes(currentPurpose)) {
+      ScoresPurpose.value = 'All';
+    }
+  }
+}
 ScoresMode.addEventListener("change", () => updateScoresLayer());
 AmenitiesYear.addEventListener("change", () => {
   updateAmenitiesCatchmentLayer();
@@ -442,57 +817,35 @@ AmenitiesPurpose.forEach(checkbox => {
   });
 });
 
-ScoresOpacity.addEventListener("change", () => {
-  updateSliderRanges('Scores', 'Opacity');
-  if (ScoresLayer) applyScoresLayerStyling();
+// Consolidated layer control event listeners
+const layerControls = [
+  { type: 'Scores', opacity: ScoresOpacity, outline: ScoresOutline, inverseOpacity: ScoresInverseOpacity, inverseOutline: ScoresInverseOutline, layer: () => ScoresLayer, apply: applyScoresLayerStyling },
+  { type: 'Amenities', opacity: AmenitiesOpacity, outline: AmenitiesOutline, inverseOpacity: AmenitiesInverseOpacity, inverseOutline: AmenitiesInverseOutline, layer: () => AmenitiesCatchmentLayer, apply: applyAmenitiesCatchmentLayerStyling },
+  { type: 'Census', opacity: CensusOpacity, outline: CensusOutline, inverseOpacity: CensusInverseOpacity, inverseOutline: CensusInverseOutline, layer: () => CensusLayer, apply: applyCensusLayerStyling }
+];
+
+layerControls.forEach(control => {
+  control.opacity.addEventListener("change", () => {
+    updateSliderRanges(control.type, 'Opacity');
+    if (control.layer()) control.apply();
+  });
+  control.outline.addEventListener("change", () => {
+    updateSliderRanges(control.type, 'Outline');
+    if (control.layer()) control.apply();
+  });
+  control.inverseOpacity.addEventListener("click", () => {
+    toggleInverseScale(control.type, 'Opacity');
+    if (control.layer()) control.apply();
+  });
+  control.inverseOutline.addEventListener("click", () => {
+    toggleInverseScale(control.type, 'Outline');
+    if (control.layer()) control.apply();
+  });
 });
-ScoresOutline.addEventListener("change", () => {
-  updateSliderRanges('Scores', 'Outline');
-  if (ScoresLayer) applyScoresLayerStyling();
-});
-AmenitiesOpacity.addEventListener("change", () => {
-  updateSliderRanges('Amenities', 'Opacity');
-  if (AmenitiesCatchmentLayer) applyAmenitiesCatchmentLayerStyling();
-});
-AmenitiesOutline.addEventListener("change", () => {
-  updateSliderRanges('Amenities', 'Outline');
-  if (AmenitiesCatchmentLayer) applyAmenitiesCatchmentLayerStyling();
-});
+
 baseColorCensus.addEventListener("change", () => {
   if (CensusLayer) applyCensusLayerStyling();
   else updateCensusLayer();
-});
-CensusOpacity.addEventListener("change", () => {
-  updateSliderRanges('Census', 'Opacity');
-  if (CensusLayer) applyCensusLayerStyling();
-});
-CensusOutline.addEventListener("change", () => {
-  updateSliderRanges('Census', 'Outline');
-  if (CensusLayer) applyCensusLayerStyling();
-});
-ScoresInverseOpacity.addEventListener("click", () => {
-  toggleInverseScale('Scores', 'Opacity');
-  if (ScoresLayer) applyScoresLayerStyling();
-});
-ScoresInverseOutline.addEventListener("click", () => {
-  toggleInverseScale('Scores', 'Outline');
-  if (ScoresLayer) applyScoresLayerStyling();
-});
-AmenitiesInverseOpacity.addEventListener("click", () => {
-  toggleInverseScale('Amenities', 'Opacity');
-  if (AmenitiesCatchmentLayer) applyAmenitiesCatchmentLayerStyling();
-});
-AmenitiesInverseOutline.addEventListener("click", () => {
-  toggleInverseScale('Amenities', 'Outline');
-  if (AmenitiesCatchmentLayer) applyAmenitiesCatchmentLayerStyling();
-});
-CensusInverseOpacity.addEventListener("click", () => {
-  toggleInverseScale('Census', 'Opacity');
-  if (CensusLayer) applyCensusLayerStyling();
-});
-CensusInverseOutline.addEventListener("click", () => {
-  toggleInverseScale('Census', 'Outline');
-  if (CensusLayer) applyCensusLayerStyling();
 });
 
 filterTypeDropdown.addEventListener('change', () => {
@@ -815,19 +1168,44 @@ document.addEventListener('DOMContentLoaded', (event) => {
       });
     }
     const roadNetworkCheckbox = document.getElementById('roadNetworkCheckbox');
-      if (roadNetworkCheckbox) {
-        roadNetworkCheckbox.addEventListener('change', () => {
-          if (roadNetworkCheckbox.checked) {
-            roadNetworkLayer.setStyle({
-                opacity: 1,
-              });
-          } else {
-            roadNetworkLayer.setStyle({
-              opacity: 0,
-            });
+    
+    if (roadNetworkCheckbox) {
+      roadNetworkCheckbox.addEventListener('change', () => {
+        if (roadNetworkCheckbox.checked) {
+          loadOSMRoadSurfaces();
+        } else {
+          if (osmRoadLayer) {
+            map.removeLayer(osmRoadLayer);
+            osmRoadLayer = null;
           }
-        });
+          if (simplifiedRoadLayer) {
+            map.removeLayer(simplifiedRoadLayer);
+            simplifiedRoadLayer = null;
+          }
+        }
+      });
+    }
+
+    // Reload road surfaces when map moves (panning/zooming) - if checkbox is checked
+    // Use debouncing to prevent too many API calls
+    map.on('moveend', function() {
+      if (roadNetworkCheckbox && roadNetworkCheckbox.checked) {
+        // Clear any pending load
+        if (loadRoadsTimeout) {
+          clearTimeout(loadRoadsTimeout);
+        }
+        // Wait 1500ms (1.5 seconds) after movement stops before loading
+        loadRoadsTimeout = setTimeout(() => {
+          loadOSMRoadSurfaces();
+        }, 1500);
       }
+    });
+
+    // Auto-load road surfaces on startup
+    if (roadNetworkCheckbox) {
+      roadNetworkCheckbox.checked = true;
+      loadOSMRoadSurfaces();
+    }
   }
   createStaticLegendControls();
 
@@ -866,56 +1244,6 @@ document.addEventListener('DOMContentLoaded', (event) => {
   updateFilterValues();
 
   initialLoadComplete = true;
-  const fileInput = document.getElementById('fileUpload');
-  const fileNameDisplay = document.getElementById('fileNameDisplay');
-  const uploadButton = document.getElementById('uploadButton');
-  
-  fileInput.addEventListener('change', function() {
-    if (this.files.length > 0) {
-      fileNameDisplay.textContent = this.files[0].name;
-      uploadButton.disabled = false;
-    } else {
-      fileNameDisplay.textContent = '';
-      uploadButton.disabled = true;
-    }
-  });
-  
-  uploadButton.addEventListener('click', function() {
-    const file = fileInput.files[0];
-    if (!file) return;
-    
-    const fileExtension = file.name.split('.').pop().toLowerCase();
-    
-    if (fileExtension === 'geojson' || fileExtension === 'json') {
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        try {
-          const layerData = JSON.parse(e.target.result);
-          addUserLayer(layerData, file.name);
-        } catch (error) {
-          alert('Error processing file: ' + error.message);
-        }
-      };
-      reader.readAsText(file);
-    } else if (fileExtension === 'kml') {
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        try {
-          const kml = new DOMParser().parseFromString(e.target.result, 'text/xml');
-          const layerData = toGeoJSON.kml(kml);
-          addUserLayer(layerData, file.name);
-        } catch (error) {
-          alert('Error processing file: ' + error.message);
-        }
-      };
-      reader.readAsText(file);
-    }
-    
-    fileInput.value = '';
-    fileNameDisplay.textContent = '';
-    uploadButton.disabled = true;
-  });
-
   initializeFileUpload();
 
   document.getElementById('add-attribute-field').addEventListener('click', function() {
@@ -945,8 +1273,8 @@ document.addEventListener('DOMContentLoaded', (event) => {
     
     map.createPane('polygonLayers').style.zIndex = 300;
     map.createPane('boundaryLayers').style.zIndex = 400;
-    map.createPane('roadLayers').style.zIndex = 500;
-    map.createPane('busLayers').style.zIndex = 600;
+    map.createPane('busLayers').style.zIndex = 500;
+    map.createPane('roadLayers').style.zIndex = 600;
     map.createPane('userLayers').style.zIndex = 700;
   }
   
@@ -956,6 +1284,9 @@ document.addEventListener('DOMContentLoaded', (event) => {
 map.on('zoomend', () => {
   const currentZoom = map.getZoom();
   const isAboveZoomThreshold = currentZoom >= 14;
+  
+  // Update simplified road styling on zoom
+  updateSimplifiedRoadStyling();
   
   if (isAboveZoomThreshold !== wasAboveZoomThreshold) {
     wasAboveZoomThreshold = isAboveZoomThreshold;
@@ -1040,30 +1371,24 @@ map.on('click', function (e) {
   }
   
   const popupContent = {
-    Geographies: [],
+    Boundaries: [],
     Hexagon: []
   };
 
-  let isWithinLEP = false;
   if (uaBoundariesLayer) {
     uaBoundariesLayer.eachLayer(layer => {
       const polygon = turf.polygon(layer.feature.geometry.coordinates);
       if (turf.booleanPointInPolygon(clickedPoint, polygon)) {
-        isWithinLEP = true;
-        popupContent.Geographies.push(`<strong>Local Authority:</strong> ${layer.feature.properties.LAD24NM}`);
+        popupContent.Boundaries.push(`<strong>Local Authority:</strong> ${layer.feature.properties.LAD24NM}`);
       }
     });
-  }
-
-  if (!isWithinLEP) {
-    return;
   }
 
   if (wardBoundariesLayer) {
     wardBoundariesLayer.eachLayer(layer => {
       const polygon = turf.polygon(layer.feature.geometry.coordinates);
       if (turf.booleanPointInPolygon(clickedPoint, polygon)) {
-        popupContent.Geographies.push(`<strong>Ward:</strong> ${layer.feature.properties.WD24NM}`);
+        popupContent.Boundaries.push(`<strong>Ward:</strong> ${layer.feature.properties.WD24NM}`);
       }
     });
   }
@@ -1072,7 +1397,7 @@ map.on('click', function (e) {
     lsoaBoundariesLayer.eachLayer(layer => {
       const polygon = turf.polygon(layer.feature.geometry.coordinates);
       if (turf.booleanPointInPolygon(clickedPoint, polygon)) {
-        popupContent.Geographies.push(`<strong>LSOA:</strong> ${layer.feature.properties.LSOA21NM}`);
+        popupContent.Boundaries.push(`<strong>LSOA:</strong> ${layer.feature.properties.LSOA21NM}`);
       }
     });
   }
@@ -1081,7 +1406,7 @@ map.on('click', function (e) {
     GrowthZonesLayer.eachLayer(layer => {
       const polygon = turf.polygon(layer.feature.geometry.coordinates);
       if (turf.booleanPointInPolygon(clickedPoint, polygon)) {
-        popupContent.Geographies.push(`<strong>Growth Zone:</strong> ${layer.feature.properties.Name}`);
+        popupContent.Boundaries.push(`<strong>Growth Zone:</strong> ${layer.feature.properties.Name}`);
       }
     });
   }
@@ -1090,7 +1415,7 @@ map.on('click', function (e) {
     WestLinkZonesLayer.eachLayer(layer => {
       const polygon = turf.polygon(layer.feature.geometry.coordinates);
       if (turf.booleanPointInPolygon(clickedPoint, polygon)) {
-        popupContent.Geographies.push(`<strong>WESTlink Zone:</strong> ${layer.feature.properties.Name}`);
+        popupContent.Boundaries.push(`<strong>WESTlink Zone:</strong> ${layer.feature.properties.Name}`);
       }
     });
   }
@@ -1105,11 +1430,24 @@ map.on('click', function (e) {
           const selectedYear = ScoresYear.value;
           const selectedPurpose = ScoresPurpose.value;
           const selectedMode = ScoresMode.value;
-          const fieldToDisplay = selectedYear.includes('-') ? `${selectedPurpose}_${selectedMode}` : `${selectedPurpose}_${selectedMode}_100`;
+          
+          let scoreField, percentileField;
+          if (selectedYear === '2024 (DfT)') {
+            scoreField = `dft_${selectedPurpose}_${selectedMode}`;
+            percentileField = `dft_${selectedPurpose}_${selectedMode}_100`;
+          } else if (selectedYear.includes('-')) {
+            scoreField = `hyb_${selectedPurpose}_${selectedMode}`;
+            percentileField = null; // No percentile for difference years
+          } else {
+            scoreField = `hyb_${selectedPurpose}_${selectedMode}`;
+            percentileField = `hyb_${selectedPurpose}_${selectedMode}_100`;
+          }
 
-          const scoreValue = properties[fieldToDisplay];
-          const score = selectedYear.includes('-') ? `${(scoreValue * 100).toFixed(1)}%` : formatValue(scoreValue, 1);
-          const percentile = formatValue(properties[`${selectedPurpose}_${selectedMode}_100`], 1);
+          const scoreValue = properties[scoreField];
+          const score = selectedYear.includes('-')
+            ? `${(scoreValue * 100).toFixed(1)}%` 
+            : formatValue(scoreValue, 1);
+          const percentile = percentileField ? formatValue(properties[percentileField], 1) : '-';
           const population = formatValue(properties.pop, 10);
           const imdScore = formatValue(properties.IMDScore, 0.1);
           const imdDecile = formatValue(properties.IMD_Decile, 1);
@@ -1172,8 +1510,8 @@ map.on('click', function (e) {
 
   const content = `
     <div>
-      <h4 style="text-decoration: underline;">Geographies</h4>
-      ${popupContent.Geographies.length > 0 ? popupContent.Geographies.join('<br>') : '-'}
+      <h4 style="text-decoration: underline;">Boundaries</h4>
+      ${popupContent.Boundaries.length > 0 ? popupContent.Boundaries.join('<br>') : '-'}
       <h4 style="text-decoration: underline;">Hexagon</h4>
       ${popupContent.Hexagon.length > 0 ? popupContent.Hexagon.join('<br>') : '-'}
     </div>
@@ -1184,6 +1522,14 @@ map.on('click', function (e) {
     .setContent(content)
     .openOn(map);
 });
+
+// ============================================================================
+// USER LAYERS & FILE UPLOAD
+// ============================================================================
+
+// ============================================================================
+// USER LAYERS & FILE UPLOAD MANAGEMENT
+// ============================================================================
 
 function initializeFileUpload() {
   // console.log('Initializing file upload...');
@@ -2050,6 +2396,67 @@ function applyFeatureLabelStyle(layer, userLayer) {
   }
 }
 
+function applyLayerStyle(checkboxId, layer, color, weight, opacity, fillColor, fillOpacity) {
+  if (!layer) return;
+  
+  const style = {
+    color: color,
+    weight: weight,
+    opacity: opacity,
+    fillColor: fillColor,
+    fillOpacity: fillOpacity
+  };
+  
+  // Special handling for different layer types
+  if (checkboxId === 'busStopsCheckbox') {
+    // Bus stops are circle markers
+    layer.eachLayer(l => {
+      l.setStyle({
+        color: color,
+        fillColor: fillColor,
+        weight: weight,
+        opacity: opacity,
+        fillOpacity: l.options._calculatedFillOpacity * fillOpacity
+      });
+    });
+  } else if (checkboxId === 'busLinesCheckbox') {
+    // Bus lines have calculated opacity based on frequency
+    layer.eachLayer(l => {
+      l.setStyle({
+        color: color,
+        weight: weight,
+        opacity: l.options._calculatedOpacity * opacity
+      });
+    });
+  } else if (checkboxId === 'roadNetworkCheckbox') {
+    // Road network - apply to both layers
+    if (osmRoadLayer) {
+      osmRoadLayer.setStyle({
+        color: color,
+        weight: weight,
+        opacity: opacity
+      });
+    }
+    if (simplifiedRoadLayer) {
+      simplifiedRoadLayer.setStyle({
+        color: color,
+        weight: weight,
+        opacity: opacity
+      });
+    }
+  } else if (layer.setStyle) {
+    // Standard layer with setStyle method
+    layer.setStyle(style);
+  } else if (layer.getLayers) {
+    // Layer group - apply to all sublayers
+    layer.eachLayer(l => {
+      if (l.setStyle) {
+        l.setStyle(style);
+      }
+    });
+  }
+}
+
 function debounce(func, wait) {
   let timeout;
   return function executedFunction(...args) {
@@ -2095,6 +2502,10 @@ function addContextMenuStyles() {
     .feature-context-menu button:hover {
       background-color: #f0f0f0;
     }
+// ============================================================================
+// DRAWING TOOLS (Points, Lines, Polygons)
+// ============================================================================
+
   `;
   document.head.appendChild(styleElement);
 }
@@ -3301,7 +3712,6 @@ function detectAndFixProjection(data) {
   return result;
 }
 
-
 function removeUserLayer(layerId) {
   const layerIndex = userLayers.findIndex(l => l.id === layerId);
   if (layerIndex > -1) {
@@ -3357,6 +3767,14 @@ function isPanelOpen(panelName) {
   }
   return false;
 }
+
+// ============================================================================
+// SLIDER UTILITIES
+// ============================================================================
+
+// ============================================================================
+// SLIDER UTILITIES
+// ============================================================================
 
 function configureSlider(sliderElement, isInverse) {
   if (sliderElement.noUiSlider) {
@@ -3738,6 +4156,9 @@ function toggleInverseScale(type, scaleType) {
   rangeElement.noUiSlider.set(currentValues, false);
 
   updateSliderRanges(type, scaleType);
+// ============================================================================
+// UTILITY FUNCTIONS (Scaling, Formatting, Visibility)
+// ============================================================================
 
   isUpdatingSliders = false;
 }
@@ -3748,6 +4169,36 @@ function scaleExp(value, minVal, maxVal, minScale, maxScale, order) {
   const normalizedValue = (value - minVal) / (maxVal - minVal);
   const scaledValue = order === 'low-to-high' ? normalizedValue : 1 - normalizedValue;
   return minScale + scaledValue * (maxScale - minScale);
+}
+
+// Helper functions to reduce duplication in layer styling
+function getSliderRange(sliderElement) {
+  return sliderElement && sliderElement.noUiSlider ? [
+    parseFloat(sliderElement.noUiSlider.get()[0]),
+    parseFloat(sliderElement.noUiSlider.get()[1])
+  ] : [0, 0];
+}
+
+function calculateOpacity(opacityField, feature, minValue, maxValue, order, isInverse) {
+  if (opacityField === 'None') {
+    return layerTransparencyValue;
+  }
+  const opacityValue = feature.properties[opacityField];
+  if (opacityValue === 0 || opacityValue === null || opacityValue === undefined || opacityValue === '') {
+    return isInverse ? 0.5 : 0.1;
+  }
+  return scaleExp(opacityValue, minValue, maxValue, 0.1, 0.8, order);
+}
+
+function calculateOutline(outlineField, feature, minValue, maxValue, order) {
+  if (outlineField === 'None') {
+    return 0;
+  }
+  const outlineValue = feature.properties[outlineField];
+  if (outlineValue === 0 || outlineValue === null || outlineValue === undefined || outlineValue === '') {
+    return 0;
+  }
+  return scaleExp(outlineValue, minValue, maxValue, 0, 4, order);
 }
 
 function formatValue(value, step) {
@@ -3798,8 +4249,16 @@ function isClassVisible(value, selectedYear) {
       } else if (range.includes('>') && !range.includes('<=') && value > parseFloat(range.split('>')[1]) && !isChecked) {
         return false;
       } else if (range.includes('-')) {
-        const [min, max] = range.split('-').map(parseFloat);
-        if (value >= min && value <= max && !isChecked) {
+        const parts = range.split('-');
+        // Handle cases like "0-10 - description"
+        const firstDash = range.indexOf('-');
+        const secondDash = range.indexOf('-', firstDash + 1);
+        let rangeString = range;
+        if (secondDash > 0 && range.includes(' - ')) {
+          rangeString = range.substring(0, range.indexOf(' - '));
+        }
+        const [min, max] = rangeString.split('-').map(parseFloat);
+        if (!isNaN(min) && !isNaN(max) && value >= min && value <= max && !isChecked) {
           return false;
         }
       }
@@ -3840,9 +4299,15 @@ function updateFeatureVisibility() {
   if (AmenitiesCatchmentLayer) {
     updateLayerVisibility(AmenitiesCatchmentLayer, feature => hexTimeMap[feature.properties.Hex_ID], selectedYear, 'time');
   } else if (ScoresLayer) {
-    const fieldToDisplay = selectedYear.includes('-') 
-      ? `${ScoresPurpose.value}_${ScoresMode.value}` 
-      : `${ScoresPurpose.value}_${ScoresMode.value}_100`;
+    const showPercentiles = window.usePercentileClassification !== false;
+    let fieldToDisplay;
+    if (selectedYear === '2024 (DfT)') {
+      fieldToDisplay = showPercentiles ? `dft_${ScoresPurpose.value}_${ScoresMode.value}_100` : `dft_${ScoresPurpose.value}_${ScoresMode.value}`;
+    } else if (selectedYear.includes('-')) {
+      fieldToDisplay = `hyb_${ScoresPurpose.value}_${ScoresMode.value}`;
+    } else {
+      fieldToDisplay = showPercentiles ? `hyb_${ScoresPurpose.value}_${ScoresMode.value}_100` : `hyb_${ScoresPurpose.value}_${ScoresMode.value}`;
+    }
     updateLayerVisibility(ScoresLayer, feature => feature.properties[fieldToDisplay], selectedYear, fieldToDisplay);
   }
   
@@ -3867,7 +4332,7 @@ function updateLegend() {
   const legendCategoryHeader = dataLayerCategory.querySelector('.legend-category-header span');
   if (legendCategoryHeader) {
     if (ScoresLayer) {
-      legendCategoryHeader.textContent = selectedYear.includes('-') ? "Score Difference" : "Population Percentiles";
+      legendCategoryHeader.textContent = selectedYear.includes('-') ? "Score Difference" : "Connectivity Scores";
     } else if (AmenitiesCatchmentLayer) {
       legendCategoryHeader.textContent = "Journey Time Catchment (minutes)";
     } else if (CensusLayer) {
@@ -3898,28 +4363,76 @@ function updateLegend() {
       { range: `> 30`, color: "#440154" }
     ];
   } else if (ScoresLayer) {
-    classes = selectedYear.includes('-') ? [
-      { range: `<= -20%`, color: "#FF0000" },
-      { range: `> -20% and <= -10%`, color: "#FF5500" },
-      { range: `> -10% and < 0`, color: "#FFAA00" },
-      { range: `= 0`, color: "transparent" },
-      { range: `> 0 and <= 10%`, color: "#B0E200" },
-      { range: `>= 10% and < 20%`, color: "#6EC500" },
-      { range: `>= 20%`, color: "#38A800" }
-    ] : [
-      { range: `90-100 - 10% of region's population with best access to amenities`, color: "#fde725" },
-      { range: `80-90`, color: "#b5de2b" },
-      { range: `70-80`, color: "#6ece58" },
-      { range: `60-70`, color: "#35b779" },
-      { range: `50-60`, color: "#1f9e89" },
-      { range: `40-50`, color: "#26828e" },
-      { range: `30-40`, color: "#31688e" },
-      { range: `20-30`, color: "#3e4989" },
-      { range: `10-20`, color: "#482777" },
-      { range: `0-10 - 10% of region's population with worst access to amenities`, color: "#440154" }
-    ];
+    if (selectedYear.includes('-')) {
+      // Score difference classes
+      classes = [
+        { range: `<= -20%`, color: "#FF0000" },
+        { range: `> -20% and <= -10%`, color: "#FF5500" },
+        { range: `> -10% and < 0`, color: "#FFAA00" },
+        { range: `= 0`, color: "transparent" },
+        { range: `> 0 and <= 10%`, color: "#B0E200" },
+        { range: `>= 10% and < 20%`, color: "#6EC500" },
+        { range: `>= 20%`, color: "#38A800" }
+      ];
+    } else {
+      const legendPercentileCheckbox = document.getElementById('legendPercentileCheckbox');
+      const isShowingPercentiles = legendPercentileCheckbox ? legendPercentileCheckbox.checked : (window.usePercentileClassification !== false);
+      
+      if (isShowingPercentiles) {
+        classes = [
+          { range: `90-100 - 10% of region's population with best access to amenities`, color: "#fde725" },
+          { range: `80-90`, color: "#b5de2b" },
+          { range: `70-80`, color: "#6ece58" },
+          { range: `60-70`, color: "#35b779" },
+          { range: `50-60`, color: "#1f9e89" },
+          { range: `40-50`, color: "#26828e" },
+          { range: `30-40`, color: "#31688e" },
+          { range: `20-30`, color: "#3e4989" },
+          { range: `10-20`, color: "#482777" },
+          { range: `0-10 - 10% of region's population with worst access to amenities`, color: "#440154" }
+        ];
+      } else {
+        // When percentiles are off, show simple numeric ranges without population text
+        classes = [
+          { range: `90-100`, color: "#fde725" },
+          { range: `80-90`, color: "#b5de2b" },
+          { range: `70-80`, color: "#6ece58" },
+          { range: `60-70`, color: "#35b779" },
+          { range: `50-60`, color: "#1f9e89" },
+          { range: `40-50`, color: "#26828e" },
+          { range: `30-40`, color: "#31688e" },
+          { range: `20-30`, color: "#3e4989" },
+          { range: `10-20`, color: "#482777" },
+          { range: `0-10`, color: "#440154" }
+        ];
+      }
+    }
   }
 
+  // Add percentile checkbox for Connectivity Scores (non-difference years)
+  if (ScoresLayer && !selectedYear.includes('-')) {
+    const percentileCheckboxDiv = document.createElement("div");
+    
+    // Different label for DfT vs non-DfT scores
+    let checkboxLabel;
+    if (selectedYear === '2024 (DfT)') {
+      checkboxLabel = 'Show population-weighted percentiles';
+    } else {
+      checkboxLabel = 'Show population-weighted percentiles';
+    }
+    
+    percentileCheckboxDiv.innerHTML = `<input type="checkbox" id="legendPercentileCheckbox" ${window.usePercentileClassification !== false ? 'checked' : ''}> <i style="font-size: 1em;">${checkboxLabel}</i>`;
+    percentileCheckboxDiv.style.marginBottom = '8px';
+    legendContent.appendChild(percentileCheckboxDiv);
+    
+    const newLegendPercentileCheckbox = document.getElementById('legendPercentileCheckbox');
+    newLegendPercentileCheckbox.addEventListener('change', () => {
+      window.usePercentileClassification = newLegendPercentileCheckbox.checked;
+      updateScoresLayer();
+      updateLegend();
+    });
+  }
+  
   const masterCheckboxDiv = document.createElement("div");
   masterCheckboxDiv.innerHTML = `<input type="checkbox" id="masterCheckbox" checked> <i>Select/Deselect All</i>`;
   legendContent.appendChild(masterCheckboxDiv);
@@ -4500,6 +5013,7 @@ function updateScoresLayer() {
   const selectedYear = ScoresYear.value;
   const selectedPurpose = ScoresPurpose.value;
   const selectedMode = ScoresMode.value;
+  const showPercentiles = window.usePercentileClassification !== false;
 
   if (!selectedYear) {
     updateLegend();
@@ -4507,9 +5021,23 @@ function updateScoresLayer() {
     return;
   }
 
-  const fieldToDisplay = selectedYear.includes('-') ? 
-    `${selectedPurpose}_${selectedMode}` : 
-    `${selectedPurpose}_${selectedMode}_100`;
+  let fieldToDisplay;
+  let rawFieldForPercentiles = null; // Field to calculate percentiles from (for non-DfT scores)
+  
+  if (selectedYear.includes('-')) {
+    // Difference scores always use base field (no _100 suffix)
+    fieldToDisplay = `hyb_${selectedPurpose}_${selectedMode}`;
+  } else {
+    // All single-year scores (DfT and non-DfT): toggle between _100 field and raw field based on checkbox
+    const prefix = selectedYear === '2024 (DfT)' ? 'dft_' : 'hyb_';
+    const suffix = showPercentiles ? '_100' : '';
+    fieldToDisplay = `${prefix}${selectedPurpose}_${selectedMode}${suffix}`;
+    
+    // For non-DfT raw scores, track the field for percentile-based classification
+    if (!showPercentiles && selectedYear !== '2024 (DfT)') {
+      rawFieldForPercentiles = fieldToDisplay;
+    }
+  }
 
   if (!scoreLayers[selectedYear]) {
     const scoreFile = ScoresFiles.find(file => file.year === selectedYear);
@@ -4538,9 +5066,12 @@ function updateScoresLayer() {
   }
 
   const scoreLookup = {};
+  
   selectedCsvData.forEach(row => {
-    if (row.Hex_ID && row[fieldToDisplay] !== undefined) {
-      scoreLookup[row.Hex_ID] = row;
+    // Handle both Hex_ID (standard) and hex_id (DfT) column names
+    const hexId = row.Hex_ID || row.hex_id;
+    if (hexId && row[fieldToDisplay] !== undefined) {
+      scoreLookup[hexId] = row;
     }
   });
 
@@ -4594,21 +5125,23 @@ function applyScoresLayerStyling() {
   const selectedYear = ScoresYear.value;
   const selectedPurpose = ScoresPurpose.value;
   const selectedMode = ScoresMode.value;
+  const showPercentiles = window.usePercentileClassification !== false;
   const opacityField = ScoresOpacity.value;
   const outlineField = ScoresOutline.value;
   
-  const fieldToDisplay = selectedYear.includes('-') ? 
-    `${selectedPurpose}_${selectedMode}` : 
-    `${selectedPurpose}_${selectedMode}_100`;
+  let fieldToDisplay;
+  if (selectedYear.includes('-')) {
+    // Difference scores always use base field
+    fieldToDisplay = `hyb_${selectedPurpose}_${selectedMode}`;
+  } else {
+    // All single-year scores: toggle between _100 and raw field based on checkbox
+    const prefix = selectedYear === '2024 (DfT)' ? 'dft_' : 'hyb_';
+    const suffix = showPercentiles ? '_100' : '';
+    fieldToDisplay = `${prefix}${selectedPurpose}_${selectedMode}${suffix}`;
+  }
     
-  let minOpacity = ScoresOpacityRange && ScoresOpacityRange.noUiSlider ? 
-    parseFloat(ScoresOpacityRange.noUiSlider.get()[0]) : 0;
-  let maxOpacity = ScoresOpacityRange && ScoresOpacityRange.noUiSlider ? 
-    parseFloat(ScoresOpacityRange.noUiSlider.get()[1]) : 0;
-  let minOutline = ScoresOutlineRange && ScoresOutlineRange.noUiSlider ? 
-    parseFloat(ScoresOutlineRange.noUiSlider.get()[0]) : 0;
-  let maxOutline = ScoresOutlineRange && ScoresOutlineRange.noUiSlider ? 
-    parseFloat(ScoresOutlineRange.noUiSlider.get()[1]) : 0;
+  const [minOpacity, maxOpacity] = getSliderRange(ScoresOpacityRange);
+  const [minOutline, maxOutline] = getSliderRange(ScoresOutlineRange);
   
   ScoresLayer.eachLayer(layer => {
     const style = styleScoresFeature(
@@ -4638,11 +5171,12 @@ function styleScoresFeature(feature, fieldToDisplay, opacityField, outlineField,
   const value = feature.properties[fieldToDisplay];
   
   function getColor(value, selectedYear) {
-    if (!selectedYear) {
+    if (!selectedYear || value === undefined || value === null || value === '') {
       return 'transparent';
     }
   
     if (selectedYear.includes('-')) {
+      // Difference scores
       if (value <= -0.2) {
         return '#FF0000';
       } else if (value > -0.2 && value <= -0.1) {
@@ -4659,6 +5193,7 @@ function styleScoresFeature(feature, fieldToDisplay, opacityField, outlineField,
         return '#38A800';
       }
     } else {
+      // All single-year scores use 0-100 scale classification
       return value > 90 ? '#fde725' :
              value > 80 ? '#b5de2b' :
              value > 70 ? '#6ece58' :
@@ -4672,18 +5207,7 @@ function styleScoresFeature(feature, fieldToDisplay, opacityField, outlineField,
     }
   }
 
-  let opacity;
-  if (opacityField === 'None') {
-    opacity = layerTransparencyValue;
-  } else {
-    const opacityValue = feature.properties[opacityField];
-    if (opacityValue === 0 || opacityValue === null || opacityValue === undefined || opacityValue === '') {
-      opacity = isInverseScoresOpacity ? 0.5 : 0.1;
-    } else {
-      opacity = scaleExp(opacityValue, minOpacityValue, maxOpacityValue, 0.1, 0.8, opacityScoresOrder);
-    }
-  }
-
+  const opacity = calculateOpacity(opacityField, feature, minOpacityValue, maxOpacityValue, opacityScoresOrder, isInverseScoresOpacity);
   let weight;
   if (outlineField === 'None') {
     weight = 0;
@@ -5057,14 +5581,8 @@ function applyAmenitiesCatchmentLayerStyling() {
   // console.log('applyAmenitiesCatchmentLayerStyling called from:');
   if (!AmenitiesCatchmentLayer) return;
 
-  const minOpacityValue = AmenitiesOpacityRange && AmenitiesOpacityRange.noUiSlider ? 
-    parseFloat(AmenitiesOpacityRange.noUiSlider.get()[0]) : 0;
-  const maxOpacityValue = AmenitiesOpacityRange && AmenitiesOpacityRange.noUiSlider ? 
-    parseFloat(AmenitiesOpacityRange.noUiSlider.get()[1]) : 0;
-  const minOutlineValue = AmenitiesOutlineRange && AmenitiesOutlineRange.noUiSlider ? 
-    parseFloat(AmenitiesOutlineRange.noUiSlider.get()[0]) : 0;
-  const maxOutlineValue = AmenitiesOutlineRange && AmenitiesOutlineRange.noUiSlider ? 
-    parseFloat(AmenitiesOutlineRange.noUiSlider.get()[1]) : 0;
+  const [minOpacityValue, maxOpacityValue] = getSliderRange(AmenitiesOpacityRange);
+  const [minOutlineValue, maxOutlineValue] = getSliderRange(AmenitiesOutlineRange);
   
   AmenitiesCatchmentLayer.eachLayer(layer => {
     const feature = layer.feature;
@@ -5082,29 +5600,8 @@ function applyAmenitiesCatchmentLayerStyling() {
       else color = '#440154';
     }
 
-    let opacity;
-    if (AmenitiesOpacity.value === 'None') {
-      opacity = layerTransparencyValue;
-    } else {
-      const opacityValue = feature.properties[AmenitiesOpacity.value];
-      if (opacityValue === 0 || opacityValue === null || opacityValue === undefined) {
-        opacity = isInverseAmenitiesOpacity ? 0.5 : 0.1;
-      } else {
-        opacity = scaleExp(opacityValue, minOpacityValue, maxOpacityValue, 0.1, 0.8, opacityAmenitiesOrder);
-      }
-    }
-    
-    let weight;
-    if (AmenitiesOutline.value === 'None') {
-      weight = 0;
-    } else {
-      const outlineValue = feature.properties[AmenitiesOutline.value];
-      if (outlineValue === 0 || outlineValue === null || outlineValue === undefined || outlineValue === '') {
-        weight = 0;
-      } else {
-        weight = scaleExp(outlineValue, minOutlineValue, maxOutlineValue, 0, 4, outlineAmenitiesOrder);
-      }
-    }
+    const opacity = calculateOpacity(AmenitiesOpacity.value, feature, minOpacityValue, maxOpacityValue, opacityAmenitiesOrder, isInverseAmenitiesOpacity);
+    const weight = calculateOutline(AmenitiesOutline.value, feature, minOutlineValue, maxOutlineValue, outlineAmenitiesOrder);
 
     layer.options._originalStyling = {
       opacity: 1,
@@ -5173,41 +5670,13 @@ function applyCensusLayerStyling() {
   const opacityField = CensusOpacity.value;
   const outlineField = CensusOutline.value;
   
-  const minOpacityValue = CensusOpacityRange && CensusOpacityRange.noUiSlider ? 
-    parseFloat(CensusOpacityRange.noUiSlider.get()[0]) : 0;
-  const maxOpacityValue = CensusOpacityRange && CensusOpacityRange.noUiSlider ? 
-    parseFloat(CensusOpacityRange.noUiSlider.get()[1]) : 0;
-  const minOutlineValue = CensusOutlineRange && CensusOutlineRange.noUiSlider ? 
-    parseFloat(CensusOutlineRange.noUiSlider.get()[0]) : 0;
-  const maxOutlineValue = CensusOutlineRange && CensusOutlineRange.noUiSlider ? 
-    parseFloat(CensusOutlineRange.noUiSlider.get()[1]) : 0;
+  const [minOpacityValue, maxOpacityValue] = getSliderRange(CensusOpacityRange);
+  const [minOutlineValue, maxOutlineValue] = getSliderRange(CensusOutlineRange);
 
   CensusLayer.eachLayer(layer => {
     const feature = layer.feature;
-    
-    let opacity;
-    if (opacityField === 'None') {
-      opacity = layerTransparencyValue;
-    } else {
-      const opacityValue = feature.properties[opacityField];
-      if (opacityValue === 0 || opacityValue === null || opacityValue === undefined) {
-        opacity = isInverseCensusOpacity ? 0.8 : 0.1;
-      } else {
-        opacity = scaleExp(opacityValue, minOpacityValue, maxOpacityValue, 0.1, 0.8, opacityCensusOrder);
-      }
-    }
-
-    let weight;
-    if (outlineField === 'None') {
-      weight = 0;
-    } else {
-      const outlineValue = feature.properties[outlineField];
-      if (outlineValue === 0 || outlineValue === null || outlineValue === undefined || outlineValue === '') {
-        weight = 0;
-      } else {
-        weight = scaleExp(outlineValue, minOutlineValue, maxOutlineValue, 0, 4, outlineCensusOrder);
-      }
-    }
+    const opacity = calculateOpacity(opacityField, feature, minOpacityValue, maxOpacityValue, opacityCensusOrder, isInverseCensusOpacity);
+    const weight = calculateOutline(outlineField, feature, minOutlineValue, maxOutlineValue, outlineCensusOrder);
 
     layer.setStyle({
       fillColor: baseColor,
@@ -5528,6 +5997,14 @@ function updateFilterValues() {
   });
 }
 
+// ============================================================================
+// STATISTICS & SUMMARY CALCULATIONS
+// ============================================================================
+
+// ============================================================================
+// STATISTICS & SUMMARY CALCULATIONS
+// ============================================================================
+
 function updateSummaryStatistics(features) {
   if (isCalculatingStats) return;
   // console.log('updateSummaryStatistics called from:');
@@ -5778,9 +6255,15 @@ function applyRangeFilter(features, filterValue) {
   // console.log('applyRangeFilter called from:');
   if (ScoresLayer) {
     const selectedYear = ScoresYear.value;
-    const fieldToDisplay = selectedYear.includes('-') ? 
-      `${ScoresPurpose.value}_${ScoresMode.value}` : 
-      `${ScoresPurpose.value}_${ScoresMode.value}_100`;
+    const showPercentiles = window.usePercentileClassification !== false;
+    let fieldToDisplay;
+    if (selectedYear === '2024 (DfT)') {
+      fieldToDisplay = showPercentiles ? `dft_${ScoresPurpose.value}_${ScoresMode.value}_100` : `dft_${ScoresPurpose.value}_${ScoresMode.value}`;
+    } else if (selectedYear.includes('-')) {
+      fieldToDisplay = `hyb_${ScoresPurpose.value}_${ScoresMode.value}`;
+    } else {
+      fieldToDisplay = showPercentiles ? `hyb_${ScoresPurpose.value}_${ScoresMode.value}_100` : `hyb_${ScoresPurpose.value}_${ScoresMode.value}`;
+    }
     
     if (selectedYear.includes('-')) {
       return filterByScoreDifference(features, fieldToDisplay, filterValue);
@@ -5918,17 +6401,23 @@ function applyGeographicFilter(features, filterType, filterValue) {
 
 function calculateStatistics(features) {
   // console.log('calculateStatistics called from:');
-  const baseStats = calculateBaseStatistics(features);
+  // Filter to only include hexagons from the four districts (BA, BS, SG, NS) for statistics
+  const fourDistricts = ['BA', 'BS', 'SG', 'NS'];
+  const filteredFeatures = features.filter(feature => 
+    feature.properties && feature.properties.District && fourDistricts.includes(feature.properties.District)
+  );
+  
+  const baseStats = calculateBaseStatistics(filteredFeatures);
   
   let layerStats = {};
   
   if (ScoresLayer) {
-    layerStats = calculateScoreStatistics(features);
+    layerStats = calculateScoreStatistics(filteredFeatures);
   } else if (AmenitiesCatchmentLayer) {
-    layerStats = calculateTimeStatistics(features);
+    layerStats = calculateTimeStatistics(filteredFeatures);
   }
   
-  const amenityCounts = countAmenitiesByType(features);
+  const amenityCounts = countAmenitiesByType(filteredFeatures);
   
   return {...baseStats, ...layerStats, amenityCounts};
 }
@@ -5976,8 +6465,15 @@ function calculateScoreStatistics(features) {
   const selectedYear = ScoresYear.value;
   const selectedPurpose = ScoresPurpose.value;
   const selectedMode = ScoresMode.value;
-  const scoreField = `${selectedPurpose}_${selectedMode}`;
-  const percentileField = `${selectedPurpose}_${selectedMode}_100`;
+  
+  let scoreField, percentileField;
+  if (selectedYear === '2024 (DfT)') {
+    scoreField = `dft_${selectedPurpose}_${selectedMode}`;
+    percentileField = `dft_${selectedPurpose}_${selectedMode}_100`;
+  } else {
+    scoreField = `hyb_${selectedPurpose}_${selectedMode}`;
+    percentileField = `hyb_${selectedPurpose}_${selectedMode}_100`;
+  }
   
   const metrics = {
     score: [],
@@ -5994,11 +6490,11 @@ function calculateScoreStatistics(features) {
 
   return {
     avgScore: calculateWeightedAverage(metrics.score, metrics.population),
-    minScore: Math.min(...metrics.score),
+    minScore: Math.min(...metrics.score.filter(val => val > 0)),
     maxScore: Math.max(...metrics.score),
     avgPercentile: calculateWeightedAverage(metrics.percentile, metrics.population),
-    minPercentile: Math.min(...metrics.percentile, 0),
-    maxPercentile: Math.max(...metrics.percentile, 0),
+    minPercentile: Math.min(...metrics.percentile.filter(val => val > 0)),
+    maxPercentile: Math.max(...metrics.percentile),
     metricRow1: 'Score',
     metricRow2: 'Score Percentile',
     isScoreLayer: true,
