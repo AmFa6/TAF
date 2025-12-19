@@ -508,17 +508,17 @@ const CensusInverseOutline = document.getElementById("inverseOutlineScaleCensusB
 
 const amenityLayers = {};
 const amenityIcons = {
-  PriSch: L.divIcon({ className: 'fa-icon', html: '<div class="pin"><i class="fas fa-school" style="color: grey;"></i></div>', iconSize: [60, 60], iconAnchor: [15, 15] }),
-  SecSch: L.divIcon({ className: 'fa-icon', html: '<div class="pin"><i class="fas fa-school" style="color: grey;"></i></div>', iconSize: [60, 60], iconAnchor: [15, 15] }),
-  FurEd: L.divIcon({ className: 'fa-icon', html: '<div class="pin"><i class="fas fa-university" style="color: grey;"></i></div>', iconSize: [60, 60], iconAnchor: [15, 15] }),
-  Em500: L.divIcon({ className: 'fa-icon', html: '<div class="pin"><i class="fas fa-briefcase" style="color: grey;"></i></div>', iconSize: [60, 60], iconAnchor: [15, 15] }),
-  Em5000: L.divIcon({ className: 'fa-icon', html: '<div class="pin"><i class="fas fa-briefcase" style="color: grey;"></i></div>', iconSize: [60, 60], iconAnchor: [15, 15] }),
-  StrEmp: L.divIcon({ className: 'fa-icon', html: '<div class="pin"><i class="fas fa-briefcase" style="color: grey;"></i></div>', iconSize: [60, 60], iconAnchor: [15, 15] }),
-  CitCtr: L.divIcon({ className: 'fa-icon', html: '<div class="pin"><i class="fas fa-city" style="color: grey;"></i></div>', iconSize: [60, 60], iconAnchor: [15, 15] }),
-  MajCtr: L.divIcon({ className: 'fa-icon', html: '<div class="pin"><i class="fas fa-shopping-bag" style="color: grey;"></i></div>', iconSize: [60, 60], iconAnchor: [15, 15] }),
-  DisCtr: L.divIcon({ className: 'fa-icon', html: '<div class="pin"><i class="fas fa-store" style="color: grey;"></i></div>', iconSize: [60, 60], iconAnchor: [15, 15] }),
-  GP: L.divIcon({ className: 'fa-icon', html: '<div class="pin"><i class="fas fa-stethoscope" style="color: grey;"></i></div>', iconSize: [60, 60], iconAnchor: [15, 15] }),
-  Hos: L.divIcon({ className: 'fa-icon', html: '<div class="pin"><i class="fas fa-hospital" style="color: grey;"></i></div>', iconSize: [60, 60], iconAnchor: [15, 15] })
+  PriSch: L.divIcon({ className: 'fa-icon', html: '<div class="pin"><i class="fas fa-school amenity-icon-pin"></i></div>', iconSize: [60, 60], iconAnchor: [15, 15] }),
+  SecSch: L.divIcon({ className: 'fa-icon', html: '<div class="pin"><i class="fas fa-school amenity-icon-pin"></i></div>', iconSize: [60, 60], iconAnchor: [15, 15] }),
+  FurEd: L.divIcon({ className: 'fa-icon', html: '<div class="pin"><i class="fas fa-university amenity-icon-pin"></i></div>', iconSize: [60, 60], iconAnchor: [15, 15] }),
+  Em500: L.divIcon({ className: 'fa-icon', html: '<div class="pin"><i class="fas fa-briefcase amenity-icon-pin"></i></div>', iconSize: [60, 60], iconAnchor: [15, 15] }),
+  Em5000: L.divIcon({ className: 'fa-icon', html: '<div class="pin"><i class="fas fa-briefcase amenity-icon-pin"></i></div>', iconSize: [60, 60], iconAnchor: [15, 15] }),
+  StrEmp: L.divIcon({ className: 'fa-icon', html: '<div class="pin"><i class="fas fa-briefcase amenity-icon-pin"></i></div>', iconSize: [60, 60], iconAnchor: [15, 15] }),
+  CitCtr: L.divIcon({ className: 'fa-icon', html: '<div class="pin"><i class="fas fa-city amenity-icon-pin"></i></div>', iconSize: [60, 60], iconAnchor: [15, 15] }),
+  MajCtr: L.divIcon({ className: 'fa-icon', html: '<div class="pin"><i class="fas fa-shopping-bag amenity-icon-pin"></i></div>', iconSize: [60, 60], iconAnchor: [15, 15] }),
+  DisCtr: L.divIcon({ className: 'fa-icon', html: '<div class="pin"><i class="fas fa-store amenity-icon-pin"></i></div>', iconSize: [60, 60], iconAnchor: [15, 15] }),
+  GP: L.divIcon({ className: 'fa-icon', html: '<div class="pin"><i class="fas fa-stethoscope amenity-icon-pin"></i></div>', iconSize: [60, 60], iconAnchor: [15, 15] }),
+  Hos: L.divIcon({ className: 'fa-icon', html: '<div class="pin"><i class="fas fa-hospital amenity-icon-pin"></i></div>', iconSize: [60, 60], iconAnchor: [15, 15] })
 };
 const filterTypeDropdown = document.getElementById('filterTypeDropdown');
 const filterValueDropdown = document.getElementById('filterValueDropdown');
@@ -764,8 +764,8 @@ function updatePurposeOptions() {
   
   if (isDftYear) {
     // Hide High Street, show DfT purposes
-    if (hstOption) hstOption.style.display = 'none';
-    dftPurposes.forEach(opt => opt.style.display = '');
+    if (hstOption) hstOption.classList.add('hidden');
+    dftPurposes.forEach(opt => opt.classList.remove('hidden'));
     
     // If current selection is High Street, switch to All
     if (currentPurpose === 'HSt') {
@@ -773,8 +773,8 @@ function updatePurposeOptions() {
     }
   } else {
     // Show High Street, hide DfT purposes
-    if (hstOption) hstOption.style.display = '';
-    dftPurposes.forEach(opt => opt.style.display = 'none');
+    if (hstOption) hstOption.classList.remove('hidden');
+    dftPurposes.forEach(opt => opt.classList.add('hidden'));
     
     // If current selection is a DfT-only purpose, switch to All
     if (['Lei', 'Shp', 'Res'].includes(currentPurpose)) {
@@ -1245,6 +1245,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
   initialLoadComplete = true;
   initializeFileUpload();
+  initializeLayerStorage();
 
   document.getElementById('add-attribute-field').addEventListener('click', function() {
     addAttributeField();
@@ -1532,25 +1533,18 @@ map.on('click', function (e) {
 // ============================================================================
 
 function initializeFileUpload() {
-  // console.log('Initializing file upload...');
   const fileInput = document.getElementById('fileUpload');
-  const fileNameDisplay = document.getElementById('fileNameDisplay');
-  const uploadButton = document.getElementById('uploadButton');
+  const uploadFromFileBtn = document.getElementById('uploadFromFileBtn');
   
-  if (!fileInput || !uploadButton) return;
+  if (!fileInput || !uploadFromFileBtn) return;
   
-  fileInput.addEventListener('change', function() {
-    if (this.files.length > 0) {
-      fileNameDisplay.textContent = this.files[0].name;
-      uploadButton.disabled = false;
-    } else {
-      fileNameDisplay.textContent = '';
-      uploadButton.disabled = true;
-    }
+  // Trigger file input when button is clicked
+  uploadFromFileBtn.addEventListener('click', function() {
+    fileInput.click();
   });
   
-  uploadButton.addEventListener('click', function() {
-    const file = fileInput.files[0];
+  fileInput.addEventListener('change', function() {
+    const file = this.files[0];
     if (!file) return;
     
     const fileExtension = file.name.split('.').pop().toLowerCase();
@@ -1580,10 +1574,19 @@ function initializeFileUpload() {
       reader.readAsText(file);
     }
     
+    // Reset the input so the same file can be uploaded again if needed
     fileInput.value = '';
-    fileNameDisplay.textContent = '';
-    uploadButton.disabled = true;
   });
+}
+
+function initializeLayerStorage() {
+  const loadLayersBtn = document.getElementById('loadLayersBtn');
+  
+  if (loadLayersBtn) {
+    loadLayersBtn.addEventListener('click', function() {
+      showLoadLayerDialog();
+    });
+  }
 }
 
 function createFeaturePopupContent(properties, layerName) {
@@ -1692,13 +1695,11 @@ function addUserLayer(data, fileName) {
       const checkbox = layerControl.querySelector('input[type="checkbox"]');
       checkbox.id = `${layerId}_check`;
       
-      const layerNameSpan = layerControl.querySelector('span');
+      const layerNameSpan = layerControl.querySelector('.layer-name');
       layerNameSpan.textContent = layerName.length > 15 ? layerName.substring(0, 15) + '...' : layerName;
       layerNameSpan.title = layerName;
       
-      layerControl.querySelectorAll('button').forEach(button => {
-        button.setAttribute('data-id', layerId);
-      });
+      layerControl.setAttribute('data-id', layerId);
       
       userLayersContainer.appendChild(layerControl);
       
@@ -1716,34 +1717,29 @@ function addUserLayer(data, fileName) {
         }
       });
       
-      layerControl.querySelector('.layer-style-btn').addEventListener('click', function() {
-        const layerId = this.getAttribute('data-id');
-        openStyleDialog(layerId);
+      // Prevent checkbox from triggering context menu on itself
+      checkbox.addEventListener('contextmenu', function(e) {
+        e.stopPropagation();
       });
       
-      layerControl.querySelector('.layer-edit-btn').addEventListener('click', function() {
+      // Context menu on right-click
+      layerControl.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
         const layerId = this.getAttribute('data-id');
-        startEditingLayer(layerId);
+        showLayerContextMenu(e, layerId);
       });
       
-      layerControl.querySelector('.layer-zoom-btn').addEventListener('click', function() {
-        try {
-          const layerId = this.getAttribute('data-id');
-          const userLayer = userLayers.find(l => l.id === layerId);
-          if (userLayer && userLayer.layer) {
-            map.fitBounds(userLayer.layer.getBounds());
-          }
-        } catch (e) {
-          // console.error("Error zooming to layer bounds:", e);
-        }
+      // Also add context menu to layer name for easier access
+      layerNameSpan.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const layerId = layerControl.getAttribute('data-id');
+        showLayerContextMenu(e, layerId);
       });
       
-      layerControl.querySelector('.layer-remove-btn').addEventListener('click', function() {
-        const layerId = this.getAttribute('data-id');
-        removeUserLayer(layerId);
-        updateFilterDropdown();
-        updateFilterValues();
-      });
+      // Drag and drop functionality
+      setupLayerDragDrop(layerControl, layerId);
       
       try {
         map.fitBounds(layer.getBounds());
@@ -2005,8 +2001,7 @@ function startEditingLayer(layerId) {
   if (drawingNameInput) {
     drawingNameInput.value = userLayer.name || '';
     drawingNameInput.disabled = true;
-    drawingNameInput.style.opacity = '0.6';
-    drawingNameInput.style.backgroundColor = '#f0f0f0';
+    drawingNameInput.classList.add('disabled-input');
   }
   
   const instructions = document.getElementById('drawing-instructions');
@@ -2015,7 +2010,7 @@ function startEditingLayer(layerId) {
     instructions.style.display = 'block';
   }
   
-  map.getContainer().style.cursor = 'pointer';
+  map.getContainer().classList.add('cursor-pointer');
 }
 
 function resetAllModes() {
@@ -2125,12 +2120,6 @@ function showFeatureContextMenu(latlng, layer, userLayer) {
   const contextMenu = document.createElement('div');
   contextMenu.id = 'feature-context-menu';
   contextMenu.className = 'feature-context-menu';
-  contextMenu.style.position = 'absolute';
-  contextMenu.style.zIndex = '1000';
-  contextMenu.style.backgroundColor = 'white';
-  contextMenu.style.boxShadow = '0 1px 5px rgba(0,0,0,0.4)';
-  contextMenu.style.borderRadius = '4px';
-  contextMenu.style.padding = '6px 0';
   
   const point = map.latLngToContainerPoint(latlng);
   contextMenu.style.left = `${point.x}px`;
@@ -2138,41 +2127,20 @@ function showFeatureContextMenu(latlng, layer, userLayer) {
   
   const editButton = document.createElement('button');
   editButton.textContent = 'Edit Attributes';
-  editButton.style.display = 'block';
-  editButton.style.width = '100%';
-  editButton.style.padding = '6px 12px';
-  editButton.style.backgroundColor = 'transparent';
-  editButton.style.border = 'none';
-  editButton.style.textAlign = 'left';
-  editButton.style.cursor = 'pointer';
   
   const styleButton = document.createElement('button');
   styleButton.textContent = 'Style Feature';
-  styleButton.style.display = 'block';
-  styleButton.style.width = '100%';
-  styleButton.style.padding = '6px 12px';
-  styleButton.style.backgroundColor = 'transparent';
-  styleButton.style.border = 'none';
-  styleButton.style.textAlign = 'left';
-  styleButton.style.cursor = 'pointer';
   
   const deleteButton = document.createElement('button');
   deleteButton.textContent = 'Delete Feature';
-  deleteButton.style.display = 'block';
-  deleteButton.style.width = '100%';
-  deleteButton.style.padding = '6px 12px';
-  deleteButton.style.backgroundColor = 'transparent';
-  deleteButton.style.border = 'none';
-  deleteButton.style.textAlign = 'left';
-  deleteButton.style.cursor = 'pointer';
-  deleteButton.style.color = '#d32f2f';
+  deleteButton.classList.add('delete-btn');
   
   const addHoverEffect = (button) => {
     button.addEventListener('mouseover', () => {
-      button.style.backgroundColor = '#f0f0f0';
+      button.classList.add('hover');
     });
     button.addEventListener('mouseout', () => {
-      button.style.backgroundColor = 'transparent';
+      button.classList.remove('hover');
     });
   };
   
@@ -3712,6 +3680,28 @@ function detectAndFixProjection(data) {
   return result;
 }
 
+function renameUserLayer(layerId) {
+  const userLayer = userLayers.find(l => l.id === layerId);
+  if (!userLayer) return;
+  
+  const newName = prompt('Enter new name for layer:', userLayer.name);
+  if (newName && newName.trim() !== '' && newName !== userLayer.name) {
+    userLayer.name = newName.trim();
+    
+    // Update the layer name in the UI
+    const layerElement = document.querySelector(`.user-layer-item[data-id="${layerId}"]`);
+    if (layerElement) {
+      const layerNameSpan = layerElement.querySelector('.layer-name');
+      if (layerNameSpan) {
+        layerNameSpan.textContent = userLayer.name;
+      }
+    }
+    
+    // Update filter dropdown if this layer is selected
+    updateFilterDropdown();
+  }
+}
+
 function removeUserLayer(layerId) {
   const layerIndex = userLayers.findIndex(l => l.id === layerId);
   if (layerIndex > -1) {
@@ -3743,7 +3733,7 @@ function removeUserLayer(layerId) {
     
     userLayers.splice(layerIndex, 1);
     
-    const layerElement = document.querySelector(`.user-layer-item button[data-id="${layerId}"]`).closest('.user-layer-item');
+    const layerElement = document.querySelector(`.user-layer-item[data-id="${layerId}"]`);
     if (layerElement) {
       layerElement.remove();
     }
@@ -3755,6 +3745,513 @@ function removeUserLayer(layerId) {
       updateFilterValues();
     }
   }
+}
+
+// ============================================================================
+// LOCAL STORAGE FOR USER LAYERS
+// ============================================================================
+
+function saveUserLayerToLocalStorage(layerId) {
+  try {
+    const userLayer = userLayers.find(l => l.id === layerId);
+    if (!userLayer) {
+      alert('Layer not found.');
+      return false;
+    }
+    
+    const layerData = {
+      name: userLayer.name,
+      fileName: userLayer.fileName,
+      defaultColor: userLayer.defaultColor,
+      strokeOpacity: userLayer.strokeOpacity,
+      weight: userLayer.weight,
+      fillColor: userLayer.fillColor,
+      fillOpacity: userLayer.fillOpacity,
+      labelField: userLayer.labelField,
+      labelColor: userLayer.labelColor,
+      labelOpacity: userLayer.labelOpacity,
+      labelSize: userLayer.labelSize,
+      originalData: userLayer.originalData,
+      timestamp: new Date().toISOString()
+    };
+    
+    // Get existing saved layers
+    const savedLayersObj = JSON.parse(localStorage.getItem('taf_saved_layers') || '{}');
+    
+    // Generate unique key for this layer
+    const storageKey = `${userLayer.name}_${Date.now()}`;
+    savedLayersObj[storageKey] = layerData;
+    
+    localStorage.setItem('taf_saved_layers', JSON.stringify(savedLayersObj));
+    
+    alert(`Layer "${userLayer.name}" saved to browser storage.`);
+    return true;
+  } catch (error) {
+    console.error('Error saving layer to local storage:', error);
+    if (error.name === 'QuotaExceededError') {
+      alert('Storage quota exceeded. Try exporting the layer as a file instead.');
+    } else {
+      alert('Error saving layer: ' + error.message);
+    }
+    return false;
+  }
+}
+
+function showLoadLayerDialog() {
+  try {
+    const savedLayersObj = JSON.parse(localStorage.getItem('taf_saved_layers') || '{}');
+    const savedLayerKeys = Object.keys(savedLayersObj);
+    
+    if (savedLayerKeys.length === 0) {
+      alert('No saved layers found in browser storage.');
+      return;
+    }
+    
+    // Create dialog
+    const existingDialog = document.getElementById('load-layer-dialog');
+    if (existingDialog) {
+      document.body.removeChild(existingDialog);
+    }
+    
+    const dialog = document.createElement('div');
+    dialog.id = 'load-layer-dialog';
+    dialog.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      z-index: 10000;
+      max-width: 500px;
+      max-height: 70vh;
+      overflow-y: auto;
+      min-width: 350px;
+    `;
+    
+    dialog.innerHTML = `
+      <h3 style="margin: 0 0 15px 0; padding-bottom: 10px; border-bottom: 2px solid #007bff;">Load Saved Layer</h3>
+      <div style="margin-bottom: 15px; color: #666; font-size: 0.9em;">
+        Select a layer to load from browser storage:
+      </div>
+      <div id="saved-layers-list" style="margin-bottom: 15px;"></div>
+      <div style="display: flex; justify-content: flex-end; gap: 10px; padding-top: 10px; border-top: 1px solid #ddd;">
+        <button id="cancel-load-btn" class="btn" style="background-color: #6c757d;">Cancel</button>
+      </div>
+    `;
+    
+    const layersList = dialog.querySelector('#saved-layers-list');
+    
+    // Sort by timestamp (newest first)
+    savedLayerKeys.sort((a, b) => {
+      const timeA = new Date(savedLayersObj[a].timestamp).getTime();
+      const timeB = new Date(savedLayersObj[b].timestamp).getTime();
+      return timeB - timeA;
+    });
+    
+    savedLayerKeys.forEach(key => {
+      const layerData = savedLayersObj[key];
+      const layerItem = document.createElement('div');
+      layerItem.style.cssText = `
+        padding: 12px;
+        margin-bottom: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      `;
+      
+      layerItem.onmouseover = function() {
+        this.style.backgroundColor = '#f0f8ff';
+        this.style.borderColor = '#007bff';
+      };
+      layerItem.onmouseout = function() {
+        this.style.backgroundColor = 'white';
+        this.style.borderColor = '#ddd';
+      };
+      
+      const timestamp = new Date(layerData.timestamp);
+      const timeStr = timestamp.toLocaleString();
+      
+      layerItem.innerHTML = `
+        <div>
+          <div style="font-weight: bold; margin-bottom: 4px;">${layerData.name}</div>
+          <div style="font-size: 0.85em; color: #666;">Saved: ${timeStr}</div>
+        </div>
+        <div style="display: flex; gap: 5px;">
+          <button class="load-layer-btn" data-key="${key}" style="padding: 5px 12px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+            Load
+          </button>
+          <button class="delete-saved-layer-btn" data-key="${key}" style="padding: 5px 12px; background-color: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">
+            Delete
+          </button>
+        </div>
+      `;
+      
+      layersList.appendChild(layerItem);
+    });
+    
+    // Add event listeners for load buttons
+    dialog.querySelectorAll('.load-layer-btn').forEach(btn => {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const key = this.getAttribute('data-key');
+        loadUserLayerFromStorage(key);
+        document.body.removeChild(dialog);
+      });
+    });
+    
+    // Add event listeners for delete buttons
+    dialog.querySelectorAll('.delete-saved-layer-btn').forEach(btn => {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const key = this.getAttribute('data-key');
+        const layerData = savedLayersObj[key];
+        if (confirm(`Delete saved layer "${layerData.name}"?`)) {
+          delete savedLayersObj[key];
+          localStorage.setItem('taf_saved_layers', JSON.stringify(savedLayersObj));
+          document.body.removeChild(dialog);
+          showLoadLayerDialog(); // Refresh the dialog
+        }
+      });
+    });
+    
+    dialog.querySelector('#cancel-load-btn').addEventListener('click', function() {
+      document.body.removeChild(dialog);
+    });
+    
+    document.body.appendChild(dialog);
+    
+  } catch (error) {
+    console.error('Error showing load dialog:', error);
+    alert('Error accessing saved layers: ' + error.message);
+  }
+}
+
+function loadUserLayerFromStorage(storageKey) {
+  try {
+    const savedLayersObj = JSON.parse(localStorage.getItem('taf_saved_layers') || '{}');
+    const savedLayer = savedLayersObj[storageKey];
+    
+    if (!savedLayer) {
+      alert('Saved layer not found.');
+      return false;
+    }
+    
+    // Add the layer
+    addUserLayer(savedLayer.originalData, savedLayer.fileName);
+    
+    // Apply saved styles
+    const newLayer = userLayers[userLayers.length - 1];
+    if (newLayer) {
+      newLayer.defaultColor = savedLayer.defaultColor;
+      newLayer.strokeOpacity = savedLayer.strokeOpacity;
+      newLayer.weight = savedLayer.weight;
+      newLayer.fillColor = savedLayer.fillColor;
+      newLayer.fillOpacity = savedLayer.fillOpacity;
+      newLayer.labelField = savedLayer.labelField;
+      newLayer.labelColor = savedLayer.labelColor;
+      newLayer.labelOpacity = savedLayer.labelOpacity;
+      newLayer.labelSize = savedLayer.labelSize;
+      applyUserLayerStyle(newLayer.id);
+    }
+    
+    alert(`Layer "${savedLayer.name}" loaded successfully.`);
+    return true;
+  } catch (error) {
+    console.error('Error loading layer from storage:', error);
+    alert('Error loading layer: ' + error.message);
+    return false;
+  }
+}
+
+function exportUserLayers() {
+  if (userLayers.length === 0) {
+    alert('No layers to export.');
+    return;
+  }
+  
+  try {
+    const layersToExport = userLayers.map(layer => ({
+      name: layer.name,
+      fileName: layer.fileName,
+      defaultColor: layer.defaultColor,
+      strokeOpacity: layer.strokeOpacity,
+      weight: layer.weight,
+      fillColor: layer.fillColor,
+      fillOpacity: layer.fillOpacity,
+      labelField: layer.labelField,
+      labelColor: layer.labelColor,
+      labelOpacity: layer.labelOpacity,
+      labelSize: layer.labelSize,
+      originalData: layer.originalData
+    }));
+    
+    const dataStr = JSON.stringify(layersToExport, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `TAF_layers_export_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Error exporting layers:', error);
+    alert('Error exporting layers: ' + error.message);
+  }
+}
+
+function showLayerContextMenu(event, layerId) {
+  // Remove existing context menu if any
+  const existingMenu = document.getElementById('layer-context-menu');
+  if (existingMenu) {
+    document.body.removeChild(existingMenu);
+  }
+  
+  const menu = document.createElement('div');
+  menu.id = 'layer-context-menu';
+  menu.className = 'layer-context-menu';
+  
+  const userLayer = userLayers.find(l => l.id === layerId);
+  if (!userLayer) return;
+  
+  menu.innerHTML = `
+    <div class="layer-context-menu-item" data-action="rename">
+      <i class="fas fa-i-cursor"></i>
+      <span>Rename Layer</span>
+    </div>
+    <div class="layer-context-menu-divider"></div>
+    <div class="layer-context-menu-item" data-action="save">
+      <i class="fas fa-save"></i>
+      <span>Save to Library</span>
+    </div>
+    <div class="layer-context-menu-item" data-action="export">
+      <i class="fas fa-download"></i>
+      <span>Export Layer</span>
+    </div>
+    <div class="layer-context-menu-divider"></div>
+    <div class="layer-context-menu-item" data-action="style">
+      <i class="fas fa-palette"></i>
+      <span>Style Layer</span>
+    </div>
+    <div class="layer-context-menu-item" data-action="edit">
+      <i class="fas fa-edit"></i>
+      <span>Edit Layer</span>
+    </div>
+    <div class="layer-context-menu-item" data-action="zoom">
+      <i class="fas fa-search-plus"></i>
+      <span>Zoom to Layer</span>
+    </div>
+    <div class="layer-context-menu-divider"></div>
+    <div class="layer-context-menu-item" data-action="remove">
+      <i class="fas fa-trash"></i>
+      <span>Remove Layer</span>
+    </div>
+  `;
+  
+  // Position menu and prevent overflow
+  document.body.appendChild(menu);
+  const menuRect = menu.getBoundingClientRect();
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  
+  let left = event.clientX;
+  let top = event.clientY;
+  
+  // Prevent horizontal overflow
+  if (left + menuRect.width > viewportWidth) {
+    left = viewportWidth - menuRect.width - 5;
+  }
+  
+  // Prevent vertical overflow
+  if (top + menuRect.height > viewportHeight) {
+    top = viewportHeight - menuRect.height - 5;
+  }
+  
+  menu.style.left = left + 'px';
+  menu.style.top = top + 'px';
+  
+  // Add click handlers for menu items
+  menu.querySelectorAll('.layer-context-menu-item').forEach(item => {
+    item.addEventListener('click', function() {
+      const action = this.getAttribute('data-action');
+      handleLayerContextAction(action, layerId);
+      document.body.removeChild(menu);
+    });
+  });
+  
+  // Close menu when clicking elsewhere
+  setTimeout(() => {
+    document.addEventListener('click', function closeMenu() {
+      const menuElement = document.getElementById('layer-context-menu');
+      if (menuElement) {
+        document.body.removeChild(menuElement);
+      }
+      document.removeEventListener('click', closeMenu);
+    });
+  }, 100);
+}
+
+function handleLayerContextAction(action, layerId) {
+  const userLayer = userLayers.find(l => l.id === layerId);
+  if (!userLayer) return;
+  
+  switch(action) {
+    case 'rename':
+      renameUserLayer(layerId);
+      break;
+    case 'save':
+      saveUserLayerToLocalStorage(layerId);
+      break;
+    case 'export':
+      exportSingleLayer(layerId);
+      break;
+    case 'style':
+      openStyleDialog(layerId);
+      break;
+    case 'edit':
+      startEditingLayer(layerId);
+      break;
+    case 'zoom':
+      try {
+        if (userLayer.layer) {
+          map.fitBounds(userLayer.layer.getBounds());
+        }
+      } catch (e) {
+        console.error("Error zooming to layer bounds:", e);
+      }
+      break;
+    case 'remove':
+      removeUserLayer(layerId);
+      updateFilterDropdown();
+      updateFilterValues();
+      break;
+  }
+}
+
+function exportSingleLayer(layerId) {
+  const userLayer = userLayers.find(l => l.id === layerId);
+  if (!userLayer) return;
+  
+  try {
+    // Export as GeoJSON format
+    const dataStr = JSON.stringify(userLayer.originalData, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/geo+json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${userLayer.name}_${new Date().toISOString().split('T')[0]}.geojson`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Error exporting layer:', error);
+    alert('Error exporting layer: ' + error.message);
+  }
+}
+
+function setupLayerDragDrop(layerElement, layerId) {
+  layerElement.addEventListener('dragstart', function(e) {
+    this.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', layerId);
+  });
+  
+  layerElement.addEventListener('dragend', function(e) {
+    this.classList.remove('dragging');
+    document.querySelectorAll('.user-layer-item').forEach(item => {
+      item.classList.remove('drag-over');
+    });
+  });
+  
+  layerElement.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    
+    const draggingElement = document.querySelector('.dragging');
+    if (draggingElement && draggingElement !== this) {
+      this.classList.add('drag-over');
+    }
+  });
+  
+  layerElement.addEventListener('dragleave', function(e) {
+    this.classList.remove('drag-over');
+  });
+  
+  layerElement.addEventListener('drop', function(e) {
+    e.preventDefault();
+    this.classList.remove('drag-over');
+    
+    const draggedLayerId = e.dataTransfer.getData('text/plain');
+    const targetLayerId = this.getAttribute('data-id');
+    
+    if (draggedLayerId !== targetLayerId) {
+      reorderUserLayers(draggedLayerId, targetLayerId);
+    }
+  });
+}
+
+function reorderUserLayers(draggedLayerId, targetLayerId) {
+  const draggedIndex = userLayers.findIndex(l => l.id === draggedLayerId);
+  const targetIndex = userLayers.findIndex(l => l.id === targetLayerId);
+  
+  if (draggedIndex === -1 || targetIndex === -1) return;
+  
+  // Reorder the array
+  const draggedLayer = userLayers[draggedIndex];
+  userLayers.splice(draggedIndex, 1);
+  userLayers.splice(targetIndex, 0, draggedLayer);
+  
+  // Update UI
+  const userLayersContainer = document.getElementById('userLayersContainer');
+  const layerElements = Array.from(userLayersContainer.querySelectorAll('.user-layer-item'));
+  
+  // Clear container
+  userLayersContainer.innerHTML = '';
+  
+  // Re-add in new order
+  userLayers.forEach(layer => {
+    const element = layerElements.find(el => el.getAttribute('data-id') === layer.id);
+    if (element) {
+      userLayersContainer.appendChild(element);
+    }
+  });
+  
+  // Update z-index on map
+  updateLayerZIndices();
+}
+
+function updateLayerZIndices() {
+  // Update z-index based on order in userLayers array
+  // Lower index = lower z-index (drawn first, appears below)
+  userLayers.forEach((userLayer, index) => {
+    if (userLayer.layer && userLayer.layer.setZIndex) {
+      userLayer.layer.setZIndex(700 + index);
+    } else if (userLayer.layer) {
+      // For layers without setZIndex, remove and re-add in order
+      const wasVisible = map.hasLayer(userLayer.layer);
+      map.removeLayer(userLayer.layer);
+      if (wasVisible) {
+        map.addLayer(userLayer.layer);
+      }
+      
+      if (userLayer.labelLayerGroup) {
+        const wasLabelVisible = map.hasLayer(userLayer.labelLayerGroup);
+        map.removeLayer(userLayer.labelLayerGroup);
+        if (wasLabelVisible) {
+          map.addLayer(userLayer.labelLayerGroup);
+        }
+      }
+    }
+  });
 }
 
 function isPanelOpen(panelName) {
