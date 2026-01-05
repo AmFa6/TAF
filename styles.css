@@ -357,17 +357,16 @@ html, body {
 #summary-table {
   width: 100%;
   border-collapse: collapse;
+  background-color: transparent;
 }
 #summary-table th, #summary-table td {
-  border: none;
+  border: 1px solid #ccc;
   padding: 5px;
   text-align: center;
+  background-color: white;
 }
 #summary-table th {
   background-color: #f2f2f2;
-}
-#summary-table td {
-  background-color: transparent;
 }
 .leaflet-popup-content {
   font-family: 'Trebuchet MS', sans-serif;
@@ -765,17 +764,16 @@ h4.legend-title {
   width: 100%;
   border-collapse: collapse;
   margin-top: 10px;
+  background-color: transparent;
 }
 #amenities-table th, #amenities-table td {
-  border: none;
+  border: 1px solid #ccc;
   padding: 5px;
   text-align: left;
+  background-color: white;
 }
 #amenities-table th {
   background-color: #f2f2f2;
-}
-#amenities-table td {
-  background-color: transparent;
 }
 #amenities-table .total-row {
   background-color: #f5f5f5;
