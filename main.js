@@ -6938,7 +6938,7 @@ function calculateBaseStatistics(features) {
     metrics.growthpop.push(props.pop_growth || 0);
   });
 
-  return {
+  const stats = {
     totalPopulation: metrics.population.reduce((a, b) => a + b, 0),
     minPopulation: Math.min(...metrics.population.filter(val => val > 0), Infinity) || 0,
     maxPopulation: Math.max(...metrics.population, 0),
@@ -6955,6 +6955,31 @@ function calculateBaseStatistics(features) {
     mingrowthpop: Math.min(...metrics.growthpop, 0),
     maxgrowthpop: Math.max(...metrics.growthpop, 0)
   };
+  
+  // Calculate stats for dynamically added metrics
+  Object.keys(availableMetrics).forEach(metricKey => {
+    const metric = availableMetrics[metricKey];
+    const values = [];
+    
+    features.forEach(feature => {
+      const val = feature.properties[metric.dataField] || 0;
+      values.push(val);
+    });
+    
+    if (values.length > 0) {
+      if (metric.aggregation === 'total') {
+        stats[`total_${metricKey}`] = values.reduce((a, b) => a + b, 0);
+        stats[`min_${metricKey}`] = Math.min(...values.filter(v => v > 0), Infinity) || 0;
+        stats[`max_${metricKey}`] = Math.max(...values, 0);
+      } else {
+        stats[`avg_${metricKey}`] = calculateWeightedAverage(values, metrics.population);
+        stats[`min_${metricKey}`] = Math.min(...values.filter((v, i) => v > 0 && metrics.population[i] > 0), Infinity) || 0;
+        stats[`max_${metricKey}`] = Math.max(...values, 0);
+      }
+    }
+  });
+  
+  return stats;
 }
 
 function calculateScoreStatistics(features) {
@@ -7098,6 +7123,36 @@ function updateStatisticsUI(stats) {
     document.getElementById('min-percentile').textContent = formatValue(stats.minTime, 1);
     document.getElementById('max-percentile').textContent = formatValue(stats.maxTime, 1);
   }
+  
+  // Update dynamic metrics
+  const tableRows = document.querySelectorAll('#summary-table-body .metric-row[data-metric-key]');
+  tableRows.forEach(row => {
+    const metricKey = row.dataset.metricKey;
+    const metric = availableMetrics[metricKey];
+    if (!metric) return;
+    
+    if (metric.aggregation === 'total') {
+      const totalElem = document.getElementById(`total-${metricKey}`);
+      const minElem = document.getElementById(`min-${metricKey}`);
+      const maxElem = document.getElementById(`max-${metricKey}`);
+      const avgElem = document.getElementById(`avg-${metricKey}`);
+      
+      if (totalElem) totalElem.textContent = formatValue(stats[`total_${metricKey}`] || 0, 10);
+      if (minElem) minElem.textContent = formatValue(stats[`min_${metricKey}`] || 0, 10);
+      if (maxElem) maxElem.textContent = formatValue(stats[`max_${metricKey}`] || 0, 10);
+      if (avgElem) avgElem.textContent = '-';
+    } else {
+      const avgElem = document.getElementById(`avg-${metricKey}`);
+      const minElem = document.getElementById(`min-${metricKey}`);
+      const maxElem = document.getElementById(`max-${metricKey}`);
+      const totalElem = document.getElementById(`total-${metricKey}`);
+      
+      if (avgElem) avgElem.textContent = formatValue(stats[`avg_${metricKey}`] || 0, 0.1);
+      if (minElem) minElem.textContent = formatValue(stats[`min_${metricKey}`] || 0, 0.1);
+      if (maxElem) maxElem.textContent = formatValue(stats[`max_${metricKey}`] || 0, 0.1);
+      if (totalElem) totalElem.textContent = '-';
+    }
+  });
   else {
     document.getElementById('avg-score').textContent = '-';
     document.getElementById('min-score').textContent = '-';
@@ -7349,4 +7404,164 @@ function highlightSelectedArea() {
       }
     }).addTo(map);
   }
+}
+
+// ============================================================================
+// METRICS TABLE MANAGEMENT
+// ============================================================================
+
+const availableMetrics = {
+  // Population & Demographics
+  'pop': { name: 'Population (Current)', dataField: 'pop', aggregation: 'total' },
+  'pop_2021': { name: 'Population (2021)', dataField: 'pop_2021', aggregation: 'total' },
+  'pop_growth': { name: 'Population Growth', dataField: 'pop_growth', aggregation: 'total' },
+  'pop_fut': { name: 'Population (Future)', dataField: 'pop_fut', aggregation: 'total' },
+  'pop16plus_2021': { name: 'Population 16+ (2021)', dataField: 'pop16plus_2021', aggregation: 'total' },
+  'pop16plus': { name: 'Population 16+ (Current)', dataField: 'pop16plus', aggregation: 'average' },
+  
+  // Employment & Jobs
+  'jobs': { name: 'Jobs (Current)', dataField: 'jobs', aggregation: 'total' },
+  'jobs_2021': { name: 'Jobs (2021)', dataField: 'jobs_2021', aggregation: 'total' },
+  'jobs_growth': { name: 'Jobs Growth', dataField: 'jobs_growth', aggregation: 'total' },
+  'jobs_fut': { name: 'Jobs (Future)', dataField: 'jobs_fut', aggregation: 'total' },
+  'popemp': { name: 'Employed Population (Current)', dataField: 'popemp', aggregation: 'total' },
+  'popemp_2021': { name: 'Employed Population (2021)', dataField: 'popemp_2021', aggregation: 'total' },
+  'workpop_wp001': { name: 'Working Population', dataField: 'workpop_wp001', aggregation: 'total' },
+  
+  // Housing
+  'hh': { name: 'Households (Current)', dataField: 'hh', aggregation: 'total' },
+  'hh_growth': { name: 'Household Growth', dataField: 'hh_growth', aggregation: 'total' },
+  'hh_fut': { name: 'Households (Future)', dataField: 'hh_fut', aggregation: 'total' },
+  
+  // Socioeconomic
+  'imd_score': { name: 'Index of Multiple Deprivation - Score', dataField: 'IMDScore', aggregation: 'average' },
+  'imd_decile': { name: 'Index of Multiple Deprivation - Decile', dataField: 'IMDDecile', aggregation: 'average' },
+  'car_availability': { name: 'Car Availability', dataField: 'car_availability', aggregation: 'average' },
+  
+  // Growth & Planning
+  'emp_ha_growth': { name: 'Employment Land Growth (Ha)', dataField: 'emp_ha_growth', aggregation: 'total' },
+};
+
+let activeMetrics = ['Score', 'Score Percentile', 'Population', 'IMD Score', 'IMD Decile', 'Car Availability', 'Population Growth'];
+
+/**
+ * Initialize the metrics dropdown with available options
+ */
+function initializeMetricsDropdown() {
+  const dropdown = document.getElementById('add-metric-dropdown');
+  if (!dropdown) return;
+  
+  // Clear existing options except the first one
+  while (dropdown.options.length > 1) {
+    dropdown.remove(1);
+  }
+  
+  // Add available metrics that aren't already displayed
+  Object.keys(availableMetrics).forEach(key => {
+    const metric = availableMetrics[key];
+    const isActive = activeMetrics.includes(metric.name);
+    
+    if (!isActive) {
+      const option = document.createElement('option');
+      option.value = key;
+      option.textContent = metric.name;
+      dropdown.appendChild(option);
+    }
+  });
+}
+
+/**
+ * Handle adding a new metric row
+ */
+document.addEventListener('DOMContentLoaded', () => {
+  const dropdown = document.getElementById('add-metric-dropdown');
+  if (dropdown) {
+    dropdown.addEventListener('change', function() {
+      if (this.value) {
+        addMetricRow(this.value);
+        this.value = '';
+        initializeMetricsDropdown();
+      }
+    });
+  }
+  
+  // Initialize dropdown on load
+  initializeMetricsDropdown();
+});
+
+/**
+ * Add a new metric row to the table
+ */
+function addMetricRow(metricKey) {
+  const metric = availableMetrics[metricKey];
+  if (!metric) return;
+  
+  const tableBody = document.getElementById('summary-table-body');
+  if (!tableBody) return;
+  
+  // Create new row
+  const newRow = document.createElement('tr');
+  newRow.className = 'metric-row';
+  newRow.dataset.metricKey = metricKey;
+  
+  const cellContents = `
+    <td>${metric.name}</td>
+    <td id="avg-${metricKey}">-</td>
+    <td id="total-${metricKey}">-</td>
+    <td id="min-${metricKey}">-</td>
+    <td id="max-${metricKey}">-</td>
+    <td><button class="delete-metric-btn" onclick="deleteMetricRow(this)">✕</button></td>
+  `;
+  newRow.innerHTML = cellContents;
+  
+  // Insert before the "Add Metric" row
+  const addMetricRow = document.getElementById('add-metric-row');
+  if (addMetricRow) {
+    tableBody.insertBefore(newRow, addMetricRow);
+  } else {
+    tableBody.appendChild(newRow);
+  }
+  
+  // Add to active metrics
+  activeMetrics.push(metric.name);
+  
+  // Update summary statistics
+  updateSummaryStatistics(getCurrentFeatures());
+}
+
+/**
+ * Delete a metric row from the table
+ */
+function deleteMetricRow(button) {
+  const row = button.closest('tr');
+  if (!row) return;
+  
+  const metricName = row.querySelector('td').textContent;
+  const metricKey = row.dataset.metricKey;
+  
+  // Remove from active metrics
+  activeMetrics = activeMetrics.filter(m => m !== metricName);
+  
+  // Remove the row
+  row.remove();
+  
+  // Refresh dropdown options
+  initializeMetricsDropdown();
+}
+
+/**
+ * Get current features for statistics calculation
+ */
+function getCurrentFeatures() {
+  let features = [];
+  
+  if (HexesLayer) {
+    HexesLayer.eachLayer(layer => {
+      if (layer.feature) {
+        features.push(layer.feature);
+      }
+    });
+  }
+  
+  return features;
 }
