@@ -1246,6 +1246,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
   initialLoadComplete = true;
   initializeFileUpload();
   initializeLayerStorage();
+  setupAmenitiesToggle();
 
   document.getElementById('add-attribute-field').addEventListener('click', function() {
     addAttributeField();
@@ -7473,19 +7474,28 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   
   // Initialize amenities table collapse toggle
+  setupAmenitiesToggle();
+  
+  // Initialize dropdown on load
+  initializeMetricsDropdown();
+});
+
+/**
+ * Setup amenities table toggle
+ */
+function setupAmenitiesToggle() {
   const toggleAmenitiesBtn = document.getElementById('toggle-amenities-table');
   const amenitiesContent = document.getElementById('amenities-content');
+  
   if (toggleAmenitiesBtn && amenitiesContent) {
-    toggleAmenitiesBtn.addEventListener('click', function() {
+    toggleAmenitiesBtn.addEventListener('click', function(e) {
+      e.preventDefault();
       const isOpen = amenitiesContent.style.display !== 'none';
       amenitiesContent.style.display = isOpen ? 'none' : 'block';
       this.textContent = isOpen ? 'Amenities in Area ▶' : 'Amenities in Area ▼';
     });
   }
-  
-  // Initialize dropdown on load
-  initializeMetricsDropdown();
-});
+}
 
 /**
  * Add a new metric row to the table
