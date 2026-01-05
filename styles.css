@@ -357,25 +357,22 @@ html, body {
 #summary-table {
   width: 100%;
   border-collapse: collapse;
-  table-layout: fixed;
   display: block;
-  max-height: 400px;
-  overflow-y: auto;
 }
 #summary-table thead {
-  display: table;
+  display: block;
   width: 100%;
-  table-layout: fixed;
 }
 #summary-table tbody {
   display: block;
-  overflow-y: auto;
-  max-height: 350px;
   width: 100%;
+  max-height: 400px;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 #summary-table tr {
-  display: table;
   width: 100%;
+  display: table;
   table-layout: fixed;
 }
 #summary-table th, #summary-table td {
