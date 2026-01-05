@@ -394,7 +394,7 @@
     </div>
   </div>
   <div id="summary-panel">
-    <button id="toggle-summary-panel" class="panel-header summary-header">Statistics Summary</button>
+    <button id="toggle-summary-panel" class="panel-header summary-header">Summary</button>
     <div id="summary-content" class="panel">
       <div>
         <label for="filterTypeDropdown">Area Type:</label>
@@ -417,17 +417,21 @@
       </div>
       <select id="filterValueDropdown" class="small-font" style="width: 100%; margin-bottom: 10px; margin-top: 2px;"></select>  
       <div style="margin-bottom: 15px;"></div>
-      <table id="summary-table">
-        <thead>
-          <tr style="background-color: #f2f2f2;">
-            <th id="metric-header">Metric</th>
-            <th>Average</th>
-            <th>Total</th>
-            <th>Minimum</th>
-            <th>Maximum</th>
-            <th style="width: 30px;"></th>
-          </tr>
-        </thead>
+      
+      <!-- Statistics table collapsible section -->
+      <button id="toggle-statistics-table" class="collapsible-small" style="width: 100%; text-align: left; padding: 8px; background-color: #f9f9f9; border: 1px solid #ddd; cursor: pointer; font-size: 0.95em; font-weight: bold; margin-bottom: 8px;">Statistics table ▼</button>
+      <div id="statistics-content" class="collapsible-content" style="display: block;">
+        <table id="summary-table">
+          <thead>
+            <tr style="background-color: #f2f2f2;">
+              <th id="metric-header">Metric</th>
+              <th>Average</th>
+              <th>Total</th>
+              <th>Minimum</th>
+              <th>Maximum</th>
+              <th style="width: 30px;"></th>
+            </tr>
+          </thead>
         <tbody id="summary-table-body">
           <tr class="metric-row">
             <td id="metric-row-1">Score</td>
@@ -478,8 +482,11 @@
           </tr>
         </tbody>
       </table>
+      </div>
+      
+      <!-- Amenities within Area collapsible section -->
       <div id="amenities-summary" style="margin-top: 15px;">
-        <button id="toggle-amenities-table" class="collapsible" style="width: 100%; text-align: left; padding: 10px; background-color: #f2f2f2; border: 1px solid #ddd; cursor: pointer;">Amenities in Area ▼</button>
+        <button id="toggle-amenities-table" class="collapsible-small" style="width: 100%; text-align: left; padding: 8px; background-color: #f9f9f9; border: 1px solid #ddd; cursor: pointer; font-size: 0.95em; font-weight: bold; margin-bottom: 8px;">Amenities within Area ▼</button>
         <div id="amenities-content" class="collapsible-content" style="display: block;">
           <table id="amenities-table">
             <thead>

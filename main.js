@@ -7492,7 +7492,19 @@ function setupAmenitiesToggle() {
       e.preventDefault();
       const isOpen = amenitiesContent.style.display !== 'none';
       amenitiesContent.style.display = isOpen ? 'none' : 'block';
-      this.textContent = isOpen ? 'Amenities in Area ▶' : 'Amenities in Area ▼';
+      this.textContent = isOpen ? 'Amenities within Area ▶' : 'Amenities within Area ▼';
+    });
+  }
+  
+  const toggleStatisticsBtn = document.getElementById('toggle-statistics-table');
+  const statisticsContent = document.getElementById('statistics-content');
+  
+  if (toggleStatisticsBtn && statisticsContent) {
+    toggleStatisticsBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      const isOpen = statisticsContent.style.display !== 'none';
+      statisticsContent.style.display = isOpen ? 'none' : 'block';
+      this.textContent = isOpen ? 'Statistics table ▶' : 'Statistics table ▼';
     });
   }
 }
