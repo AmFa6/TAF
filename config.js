@@ -2,7 +2,7 @@
 // Automatically detects environment and uses appropriate paths
 
 const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-const BASE_PATH = isLocal ? '../TAF_Test' : 'https://AmFa6.github.io/TAF_test';
+const BASE_PATH = isLocal ? '../TAF_test' : 'https://AmFa6.github.io/TAF_test';
 
 const ScoresFiles = [
   { year: '2024', path: `${BASE_PATH}/ConnectScores/2024_connectscore.csv` },
