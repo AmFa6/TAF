@@ -6544,10 +6544,8 @@ function displayEmptyStatistics() {
   // console.log('displayEmptyStatistics called from:');
   const statisticIds = [
     'total-population', 'min-population', 'max-population',
-    'avg-imd-score', 'min-imd-score', 'max-imd-score',
     'avg-imd-decile', 'min-imd-decile', 'max-imd-decile',
     'avg-car-availability', 'min-car-availability', 'max-car-availability',
-    'total-growth-pop', 'min-growth-pop', 'max-growth-pop',
     'avg-score', 'min-score', 'max-score',
     'avg-percentile', 'min-percentile', 'max-percentile',
     'metric-row-1', 'metric-row-2'
@@ -7090,18 +7088,12 @@ function updateStatisticsUI(stats) {
   document.getElementById('total-population').textContent = formatValue(stats.totalPopulation, 10);
   document.getElementById('min-population').textContent = formatValue(stats.minPopulation, 10);
   document.getElementById('max-population').textContent = formatValue(stats.maxPopulation, 10);
-  document.getElementById('avg-imd-score').textContent = formatValue(stats.avgImdScore, 0.1);
-  document.getElementById('min-imd-score').textContent = formatValue(stats.minImdScore, 0.1);
-  document.getElementById('max-imd-score').textContent = formatValue(stats.maxImdScore, 0.1);
   document.getElementById('avg-imd-decile').textContent = formatValue(stats.avgImdDecile, 1);
   document.getElementById('min-imd-decile').textContent = formatValue(stats.minImdDecile, 1);
   document.getElementById('max-imd-decile').textContent = formatValue(stats.maxImdDecile, 1);
   document.getElementById('avg-car-availability').textContent = formatValue(stats.avgCarAvailability, 0.01);
   document.getElementById('min-car-availability').textContent = formatValue(stats.minCarAvailability, 0.01);
   document.getElementById('max-car-availability').textContent = formatValue(stats.maxCarAvailability, 0.01);
-  document.getElementById('total-growth-pop').textContent = formatValue(stats.totalgrowthpop, 10);
-  document.getElementById('min-growth-pop').textContent = formatValue(stats.mingrowthpop, 10);
-  document.getElementById('max-growth-pop').textContent = formatValue(stats.maxgrowthpop, 10);
 
   document.getElementById('metric-row-1').textContent = stats.metricRow1 || '-';
   document.getElementById('metric-row-2').textContent = stats.metricRow2 || '-';
@@ -7477,6 +7469,17 @@ document.addEventListener('DOMContentLoaded', () => {
         this.value = '';
         initializeMetricsDropdown();
       }
+    });
+  }
+  
+  // Initialize amenities table collapse toggle
+  const toggleAmenitiesBtn = document.getElementById('toggle-amenities-table');
+  const amenitiesContent = document.getElementById('amenities-content');
+  if (toggleAmenitiesBtn && amenitiesContent) {
+    toggleAmenitiesBtn.addEventListener('click', function() {
+      const isOpen = amenitiesContent.style.display !== 'none';
+      amenitiesContent.style.display = isOpen ? 'none' : 'block';
+      this.textContent = isOpen ? 'Amenities in Area ▶' : 'Amenities in Area ▼';
     });
   }
   
