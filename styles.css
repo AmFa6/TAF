@@ -357,6 +357,7 @@ html, body {
 #summary-table {
   width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;
   display: block;
   max-height: 400px;
   overflow-y: auto;
@@ -370,6 +371,12 @@ html, body {
   display: block;
   overflow-y: auto;
   max-height: 350px;
+  width: 100%;
+}
+#summary-table tr {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
 }
 #summary-table th, #summary-table td {
   border: 1px solid #ccc;
