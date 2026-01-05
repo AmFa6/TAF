@@ -7413,26 +7413,20 @@ function highlightSelectedArea() {
 
 const availableMetrics = {
   // Population & Demographics
-  'pop': { name: 'Population (Current)', dataField: 'pop', aggregation: 'total' },
-  'pop_2021': { name: 'Population (2021)', dataField: 'pop_2021', aggregation: 'total' },
+  'pop': { name: 'Population (2025)', dataField: 'pop', aggregation: 'total' },
   'pop_growth': { name: 'Population Growth', dataField: 'pop_growth', aggregation: 'total' },
-  'pop_fut': { name: 'Population (Future)', dataField: 'pop_fut', aggregation: 'total' },
-  'pop16plus_2021': { name: 'Population 16+ (2021)', dataField: 'pop16plus_2021', aggregation: 'total' },
-  'pop16plus': { name: 'Population 16+ (Current)', dataField: 'pop16plus', aggregation: 'average' },
+  'pop_fut': { name: 'Population (with Local Plan growth)', dataField: 'pop_fut', aggregation: 'total' },
   
   // Employment & Jobs
-  'jobs': { name: 'Jobs (Current)', dataField: 'jobs', aggregation: 'total' },
-  'jobs_2021': { name: 'Jobs (2021)', dataField: 'jobs_2021', aggregation: 'total' },
+  'jobs': { name: 'Jobs (2025)', dataField: 'jobs', aggregation: 'total' },
   'jobs_growth': { name: 'Jobs Growth', dataField: 'jobs_growth', aggregation: 'total' },
-  'jobs_fut': { name: 'Jobs (Future)', dataField: 'jobs_fut', aggregation: 'total' },
-  'popemp': { name: 'Employed Population (Current)', dataField: 'popemp', aggregation: 'total' },
-  'popemp_2021': { name: 'Employed Population (2021)', dataField: 'popemp_2021', aggregation: 'total' },
-  'workpop_wp001': { name: 'Working Population', dataField: 'workpop_wp001', aggregation: 'total' },
+  'jobs_fut': { name: 'Jobs (with Local Plan growth)', dataField: 'jobs_fut', aggregation: 'total' },
+  'popemp': { name: 'Population in Employment (2025)', dataField: 'popemp', aggregation: 'total' },
   
   // Housing
-  'hh': { name: 'Households (Current)', dataField: 'hh', aggregation: 'total' },
+  'hh': { name: 'Households (2025)', dataField: 'hh', aggregation: 'total' },
   'hh_growth': { name: 'Household Growth', dataField: 'hh_growth', aggregation: 'total' },
-  'hh_fut': { name: 'Households (Future)', dataField: 'hh_fut', aggregation: 'total' },
+  'hh_fut': { name: 'Households (with Local Plan growth)', dataField: 'hh_fut', aggregation: 'total' },
   
   // Socioeconomic
   'imd_score': { name: 'Index of Multiple Deprivation - Score', dataField: 'IMDScore', aggregation: 'average' },
@@ -7443,7 +7437,7 @@ const availableMetrics = {
   'emp_ha_growth': { name: 'Employment Land Growth (Ha)', dataField: 'emp_ha_growth', aggregation: 'total' },
 };
 
-let activeMetrics = ['Score', 'Score Percentile', 'Population', 'IMD Score', 'IMD Decile', 'Car Availability', 'Population Growth'];
+let activeMetrics = ['Score', 'Score Percentile', 'Population', 'IMD Decile', 'Car Availability'];
 
 /**
  * Initialize the metrics dropdown with available options
