@@ -7488,8 +7488,13 @@ function setupAmenitiesToggle() {
   const amenitiesContent = document.getElementById('amenities-content');
   
   if (toggleAmenitiesBtn && amenitiesContent) {
-    toggleAmenitiesBtn.addEventListener('click', function(e) {
+    // Remove existing listeners to avoid duplicates
+    const newAmenitiesBtn = toggleAmenitiesBtn.cloneNode(true);
+    toggleAmenitiesBtn.parentNode.replaceChild(newAmenitiesBtn, toggleAmenitiesBtn);
+    
+    newAmenitiesBtn.addEventListener('click', function(e) {
       e.preventDefault();
+      e.stopPropagation();
       const isOpen = amenitiesContent.style.display !== 'none';
       amenitiesContent.style.display = isOpen ? 'none' : 'block';
       this.textContent = isOpen ? 'Amenities within Area ▶' : 'Amenities within Area ▼';
@@ -7500,8 +7505,13 @@ function setupAmenitiesToggle() {
   const statisticsContent = document.getElementById('statistics-content');
   
   if (toggleStatisticsBtn && statisticsContent) {
-    toggleStatisticsBtn.addEventListener('click', function(e) {
+    // Remove existing listeners to avoid duplicates
+    const newStatisticsBtn = toggleStatisticsBtn.cloneNode(true);
+    toggleStatisticsBtn.parentNode.replaceChild(newStatisticsBtn, toggleStatisticsBtn);
+    
+    newStatisticsBtn.addEventListener('click', function(e) {
       e.preventDefault();
+      e.stopPropagation();
       const isOpen = statisticsContent.style.display !== 'none';
       statisticsContent.style.display = isOpen ? 'none' : 'block';
       this.textContent = isOpen ? 'Statistics table ▶' : 'Statistics table ▼';
