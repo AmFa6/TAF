@@ -7153,7 +7153,8 @@ function updateStatisticsUI(stats) {
       if (totalElem) totalElem.textContent = '-';
     }
   });
-  else {
+
+  if (!stats.isScoreLayer && !stats.isTimeLayer) {
     document.getElementById('avg-score').textContent = '-';
     document.getElementById('min-score').textContent = '-';
     document.getElementById('max-score').textContent = '-';
