@@ -6967,12 +6967,14 @@ function calculateBaseStatistics(features) {
     
     if (values.length > 0) {
       if (metric.aggregation === 'total') {
+        const nonZeroValues = values.filter(v => v > 0);
         stats[`total_${metricKey}`] = values.reduce((a, b) => a + b, 0);
-        stats[`min_${metricKey}`] = Math.min(...values.filter(v => v > 0), Infinity) || 0;
+        stats[`min_${metricKey}`] = nonZeroValues.length > 0 ? Math.min(...nonZeroValues) : 0;
         stats[`max_${metricKey}`] = Math.max(...values, 0);
       } else {
+        const validValues = values.filter((v, i) => v > 0 && metrics.population[i] > 0);
         stats[`avg_${metricKey}`] = calculateWeightedAverage(values, metrics.population);
-        stats[`min_${metricKey}`] = Math.min(...values.filter((v, i) => v > 0 && metrics.population[i] > 0), Infinity) || 0;
+        stats[`min_${metricKey}`] = validValues.length > 0 ? Math.min(...validValues) : 0;
         stats[`max_${metricKey}`] = Math.max(...values, 0);
       }
     }
@@ -7422,15 +7424,14 @@ const availableMetrics = {
   'hh_fut': { name: 'Households (with Local Plan growth)', dataField: 'hh_fut', aggregation: 'total' },
   
   // Socioeconomic
-  'imd_score': { name: 'Index of Multiple Deprivation - Score', dataField: 'IMDScore', aggregation: 'average' },
-  'imd_decile': { name: 'Index of Multiple Deprivation - Decile', dataField: 'IMDDecile', aggregation: 'average' },
+  'imd_decile': { name: 'IMD Decile', dataField: 'IMDDecile', aggregation: 'average' },
   'car_availability': { name: 'Car Availability', dataField: 'car_availability', aggregation: 'average' },
   
   // Growth & Planning
   'emp_ha_growth': { name: 'Employment Land Growth (Ha)', dataField: 'emp_ha_growth', aggregation: 'total' },
 };
 
-let activeMetrics = ['Score', 'Score Percentile', 'Population', 'IMD Decile', 'Car Availability'];
+let activeMetrics = ['Score', 'Score Percentile', 'Population (2025)', 'IMD Decile', 'Car Availability'];
 
 /**
  * Initialize the metrics dropdown with available options
