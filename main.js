@@ -7556,12 +7556,19 @@ function deleteMetricRow(button) {
 function getCurrentFeatures() {
   let features = [];
   
-  if (HexesLayer) {
-    HexesLayer.eachLayer(layer => {
-      if (layer.feature) {
-        features.push(layer.feature);
-      }
-    });
+  // Try to get features from active layers
+  if (ScoresLayer) {
+    const geoJson = ScoresLayer.toGeoJSON();
+    features = geoJson.features || [];
+  } else if (AmenitiesCatchmentLayer) {
+    const geoJson = AmenitiesCatchmentLayer.toGeoJSON();
+    features = geoJson.features || [];
+  } else if (CensusLayer) {
+    const geoJson = CensusLayer.toGeoJSON();
+    features = geoJson.features || [];
+  } else if (hexes) {
+    // Fallback to hexes data
+    features = hexes.features || [];
   }
   
   return features;
