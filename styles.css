@@ -357,6 +357,19 @@ html, body {
 #summary-table {
   width: 100%;
   border-collapse: collapse;
+  display: block;
+  max-height: 400px;
+  overflow-y: auto;
+}
+#summary-table thead {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+}
+#summary-table tbody {
+  display: block;
+  overflow-y: auto;
+  max-height: 350px;
 }
 #summary-table th, #summary-table td {
   border: 1px solid #ccc;
