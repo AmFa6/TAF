@@ -14,8 +14,6 @@
 // MAP INITIALIZATION
 // ============================================================================
 
-// fix journey times
-
 const map = L.map('map').setView([51.480, -2.591], 11);
 
 const baseLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/light_nolabels/{z}/{x}/{y}.png', {
