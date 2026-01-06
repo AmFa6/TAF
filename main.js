@@ -14,6 +14,9 @@
 // MAP INITIALIZATION
 // ============================================================================
 
+// rename metrics
+// fix journey times
+
 const map = L.map('map').setView([51.480, -2.591], 11);
 
 const baseLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/light_nolabels/{z}/{x}/{y}.png', {
@@ -528,8 +531,9 @@ GeographyFiles.forEach(file => {
     .then(response => response.json())
     .then(data => {
       if (file.type === 'Hexes') {
-        data.features = data.features.map(adjustSpecialHexCenters);
-        hexes = data;
+        const convertedData = convertMultiPolygonToPolygons(data);
+        convertedData.features = convertedData.features.map(adjustSpecialHexCenters);
+        hexes = convertedData;
         if (initialLoadComplete) {
           updateSummaryStatistics(hexes.features);
         }
@@ -638,10 +642,12 @@ ScoresOpacity.value = "None";
 ScoresOutline.value = "None";
 AmenitiesOpacity.value = "None";
 AmenitiesOutline.value = "None";
+CensusOpacity.value = "None";
+CensusOutline.value = "None";
 
 // ============================================================================
 // LAYER STATE & CONFIGURATION
-// ============================================================================
+// ===========================================================================default=
 
 let opacityScoresOrder = 'low-to-high';
 let outlineScoresOrder = 'low-to-high';
@@ -827,6 +833,9 @@ const layerControls = [
 layerControls.forEach(control => {
   control.opacity.addEventListener("change", () => {
     updateSliderRanges(control.type, 'Opacity');
+    if (control.type === 'Scores' || control.type === 'Amenities') {
+      setTransparencySliderState(control.type);
+    }
     if (control.layer()) control.apply();
   });
   control.outline.addEventListener("change", () => {
@@ -1452,34 +1461,32 @@ map.on('click', function (e) {
           const percentile = percentileField ? formatValue(properties[percentileField], 1) : '-';
           const population = formatValue(properties.pop, 10);
           const imdScore = formatValue(properties.IMDScore, 0.1);
-          const imdDecile = formatValue(properties.IMD_Decile, 1);
-          const carAvailability = formatValue(properties.car_availability, 0.01);
+          const imdDecile = formatValue(properties.imd_decile_mhclg, 1);
+          const carAvailability = formatValue(properties.hh_caravail_ts045, 0.01);
           const growthPop = formatValue(properties.pop_growth, 10);
           const scoreLabel = selectedYear.includes('-') ? 'Score Difference' : 'Score';
 
           popupContent.Hexagon.push(`
-            <strong>Hex_ID:</strong> ${properties.Hex_ID}<br>
+            <strong>Hex_ID:</strong> ${properties.hex_id}<br>
             <strong>${scoreLabel}:</strong> ${score}<br>
             <strong>Percentile:</strong> ${percentile}<br>
             <strong>Population:</strong> ${population}<br>
-            <strong>IMD Score:</strong> ${imdScore}<br>
             <strong>IMD Decile:</strong> ${imdDecile}<br>
             <strong>Car Availability:</strong> ${carAvailability}<br>
             <strong>Population Growth:</strong> ${growthPop}
           `);
         } else if (AmenitiesCatchmentLayer) {
-          const time = formatValue(hexTimeMap[properties.Hex_ID], 1);
+          const time = formatValue(hexTimeMap[properties.hex_id], 1);
           const population = formatValue(properties.pop, 10);
           const imdScore = formatValue(properties.IMDScore, 0.1);
-          const imdDecile = formatValue(properties.IMD_Decile, 1);
-          const carAvailability = formatValue(properties.car_availability, 0.01);
+          const imdDecile = formatValue(properties.imd_decile_mhclg, 1);
+          const carAvailability = formatValue(properties.hh_caravail_ts045, 0.01);
           const growthPop = formatValue(properties.pop_growth, 10);
 
           popupContent.Hexagon.push(`
-            <strong>Hex_ID:</strong> ${properties.Hex_ID}<br>
+            <strong>Hex_ID:</strong> ${properties.hex_id}<br>
             <strong>Journey Time:</strong> ${time} minutes<br>
             <strong>Population:</strong> ${population}<br>
-            <strong>IMD Score:</strong> ${imdScore}<br>
             <strong>IMD Decile:</strong> ${imdDecile}<br>
             <strong>Car Availability:</strong> ${carAvailability}<br>
             <strong>Population Growth:</strong> ${growthPop}
@@ -1494,14 +1501,13 @@ map.on('click', function (e) {
         const properties = feature.properties;
         const population = formatValue(properties.pop, 10);
         const imdScore = formatValue(properties.IMDScore, 0.1);
-        const imdDecile = formatValue(properties.IMD_Decile, 1);
-        const carAvailability = formatValue(properties.car_availability, 0.01);
+        const imdDecile = formatValue(properties.imd_decile_mhclg, 1);
+        const carAvailability = formatValue(properties.hh_caravail_ts045, 0.01);
         const growthPop = formatValue(properties.pop_growth, 10);
 
         popupContent.Hexagon.push(`
-          <strong>Hex_ID:</strong> ${properties.Hex_ID}<br>
+          <strong>Hex_ID:</strong> ${properties.hex_id}<br>
           <strong>Population:</strong> ${population}<br>
-          <strong>IMD Score:</strong> ${imdScore}<br>
           <strong>IMD Decile:</strong> ${imdDecile}<br>
           <strong>Car Availability:</strong> ${carAvailability}<br>
           <strong>Population Growth:</strong> ${growthPop}
@@ -4414,23 +4420,17 @@ function updateSliderRanges(type, scaleType) {
   }
   
   if (hexesData) {
-    const values = field !== "None" ? 
-      hexesData.features.map(feature => feature.properties[field]).filter(value => value !== null && value !== 0) : [];
-    
-    const minValue = Math.min(...values);
-    const maxValue = Math.max(...values);
-    
-    const roundedMaxValue = Math.pow(10, Math.ceil(Math.log10(maxValue)));
-    let step = roundedMaxValue / 100;
+    const numericValues = field !== "None" ?
+      hexesData.features
+        .map(feature => Number(feature.properties[field]))
+        .filter(val => Number.isFinite(val)) : [];
 
-    if (isNaN(step) || step <= 0) {
-      step = 1;
-    }
+    const hasValues = numericValues.length > 0;
+    const minValue = hasValues ? Math.min(...numericValues) : 0;
+    const maxValue = hasValues ? Math.max(...numericValues) : 0;
+    const step = hasValues ? chooseStepFromMax(maxValue) : 1;
 
-    const adjustedMaxValue = Math.ceil(maxValue / step) * step;
-    const adjustedMinValue = Math.floor(minValue / step) * step;
-    
-    if (field === "None") {
+    if (field === "None" || !hasValues) {
       rangeElement.setAttribute('disabled', true);
       rangeElement.noUiSlider.updateOptions({
         range: {
@@ -4443,6 +4443,9 @@ function updateSliderRanges(type, scaleType) {
       minElement.innerText = '';
       maxElement.innerText = '';
     } else {
+      const adjustedMaxValue = Math.ceil(maxValue / step) * step;
+      const adjustedMinValue = Math.floor(minValue / step) * step;
+
       rangeElement.removeAttribute('disabled');
       rangeElement.noUiSlider.updateOptions({
         range: {
@@ -4541,6 +4544,7 @@ function initializeLayerTransparencySliderAmenities() {
     if (connectElements.length > 0) {
       connectElements[0].classList.add('noUi-connect-dark-grey');
     }
+    setTransparencySliderState('Amenities');
     return true;
   } catch (error) {
     // console.error('Error initializing layer transparency slider:', error);
@@ -4597,11 +4601,30 @@ function initializeLayerTransparencySliderScores() {
     if (connectElements.length > 0) {
       connectElements[0].classList.add('noUi-connect-dark-grey');
     }
+    setTransparencySliderState('Scores');
     return true;
   } catch (error) {
     // console.error('Error initializing layer transparency slider for scores:', error);
     return false;
   }
+}
+
+function setTransparencySliderState(layerType) {
+  const slider = layerType === 'Scores' ? LayerTransparencySliderScores : LayerTransparencySliderAmenities;
+  const valueLabel = layerType === 'Scores' ? LayerTransparencyValueScores : LayerTransparencyValueAmenities;
+  const opacitySelect = layerType === 'Scores' ? ScoresOpacity : AmenitiesOpacity;
+  if (!slider || !opacitySelect || !slider.noUiSlider) return;
+  const disabled = opacitySelect.value && opacitySelect.value !== 'None';
+  if (disabled) {
+    slider.setAttribute('disabled', 'true');
+    slider.style.pointerEvents = 'none';
+  } else {
+    slider.removeAttribute('disabled');
+    slider.style.pointerEvents = '';
+  }
+  slider.classList.toggle('slider-disabled', disabled);
+  slider.querySelectorAll('.noUi-handle').forEach(handle => handle.setAttribute('tabindex', disabled ? '-1' : '0'));
+  if (valueLabel) valueLabel.style.opacity = disabled ? '0.5' : '1';
 }
 
 function toggleInverseScale(type, scaleType) {
@@ -4721,6 +4744,14 @@ function formatValue(value, step) {
   }
 }
 
+function chooseStepFromMax(maxValue) {
+  if (maxValue === null || maxValue === undefined || isNaN(maxValue)) return 1;
+  if (maxValue > 1000) return 100;
+  if (maxValue > 100) return 10;
+  if (maxValue >= 10) return 1;
+  return 0.1;
+}
+
 function isClassVisible(value, selectedYear) {
   const legendCheckboxes = document.querySelectorAll('.legend-checkbox');
   for (const checkbox of legendCheckboxes) {
@@ -4795,7 +4826,7 @@ function updateFeatureVisibility() {
 
   const selectedYear = AmenitiesCatchmentLayer ? AmenitiesYear.value : ScoresYear.value;
   if (AmenitiesCatchmentLayer) {
-    updateLayerVisibility(AmenitiesCatchmentLayer, feature => hexTimeMap[feature.properties.Hex_ID], selectedYear, 'time');
+    updateLayerVisibility(AmenitiesCatchmentLayer, feature => hexTimeMap[feature.properties.hex_id], selectedYear, 'time');
   } else if (ScoresLayer) {
     const showPercentiles = window.usePercentileClassification !== false;
     let fieldToDisplay;
@@ -4820,11 +4851,18 @@ function updateLegend() {
   const dataLayerCategory = document.getElementById('data-layer-category');
   if (!dataLayerCategory) return;
   
+  // Hide legend entirely when no data layer is active
   if (!ScoresLayer && !AmenitiesCatchmentLayer && !CensusLayer) {
     dataLayerCategory.style.display = 'none';
     return;
   } else {
     dataLayerCategory.style.display = '';
+  }
+
+  // For Census-only view, keep legend hidden
+  if (CensusLayer && !ScoresLayer && !AmenitiesCatchmentLayer) {
+    dataLayerCategory.style.display = 'none';
+    return;
   }
   
   const legendCategoryHeader = dataLayerCategory.querySelector('.legend-category-header span');
@@ -4905,6 +4943,11 @@ function updateLegend() {
         ];
       }
     }
+  } else if (CensusLayer) {
+    // Simple legend entry for census base styling
+    classes = [
+      { range: 'Census layer', color: baseColorCensus.value }
+    ];
   }
 
   // Add percentile checkbox for Connectivity Scores (non-difference years)
@@ -5579,9 +5622,9 @@ function updateScoresLayer() {
   }
 
   const featuresWithScores = hexes.features
-    .filter(feature => scoreLookup[feature.properties.Hex_ID])
+    .filter(feature => scoreLookup[feature.properties.hex_id])
     .map(feature => {
-      const hexId = feature.properties.Hex_ID;
+      const hexId = feature.properties.hex_id;
       const scoreData = scoreLookup[hexId];
 
       return {
@@ -5603,7 +5646,7 @@ function updateScoresLayer() {
     pane: 'polygonLayers',
   }).addTo(map);
   ScoresLayer._currentYear = selectedYear;
-
+  
   applyScoresLayerStyling();
   
   selectedScoresAmenities = purposeToAmenitiesMap[selectedPurpose];
@@ -6023,7 +6066,7 @@ function updateAmenitiesCatchmentLayer() {
 
   Promise.all(fetchPromises).then(() => {    
     hexes.features.forEach(feature => {
-      const hexId = feature.properties.Hex_ID;
+      const hexId = feature.properties.hex_id;
       if (hexTimeMap[hexId] === undefined) {
         hexTimeMap[hexId] = 120;
       }
@@ -6035,7 +6078,7 @@ function updateAmenitiesCatchmentLayer() {
     }
 
     const filteredFeatures = hexes.features.map(feature => {
-      const hexId = feature.properties.Hex_ID;
+      const hexId = feature.properties.hex_id;
       const time = hexTimeMap[hexId];
       return {
         ...feature,
@@ -6084,7 +6127,7 @@ function applyAmenitiesCatchmentLayerStyling() {
   
   AmenitiesCatchmentLayer.eachLayer(layer => {
     const feature = layer.feature;
-    const hexId = feature.properties.Hex_ID;
+    const hexId = feature.properties.hex_id;
     const time = hexTimeMap[hexId];
     let color = 'transparent';
 
@@ -6555,6 +6598,12 @@ function displayEmptyStatistics() {
   statisticIds.forEach(id => {
     document.getElementById(id).textContent = '-';
   });
+
+  // Hide score / percentile rows when nothing is selected
+  const scoreRow = document.getElementById('avg-score')?.closest('tr');
+  const percentileRow = document.getElementById('avg-percentile')?.closest('tr');
+  if (scoreRow) scoreRow.style.display = 'none';
+  if (percentileRow) percentileRow.style.display = 'none';
   
   const amenityTypes = ['PriSch', 'SecSch', 'FurEd', 'Em500', 'Em5000', 'StrEmp', 'CitCtr', 'MajCtr', 'DisCtr', 'GP', 'Hos'];
   amenityTypes.forEach(type => {
@@ -6735,7 +6784,7 @@ function applyFilters(features) {
     selectedValues.forEach(filterValue => {
       const geographicFiltered = applyGeographicFilter(filteredFeatures, filterType, filterValue);
       geographicFiltered.forEach(feature => {
-        if (!combinedFeatures.some(f => f.properties.Hex_ID === feature.properties.Hex_ID)) {
+        if (!combinedFeatures.some(f => f.properties.hex_id === feature.properties.hex_id)) {
           combinedFeatures.push(feature);
         }
       });
@@ -6775,7 +6824,7 @@ function applyRangeFilter(features, filterValue) {
 }
 
 function adjustSpecialHexCenters(feature) {
-  if (feature.properties && feature.properties.Hex_ID === 'NS00493') {
+  if (feature.properties && feature.properties.hex_id === 'NS00493') {
     feature._originalGeometry = JSON.parse(JSON.stringify(feature.geometry));
     
     const shiftedCenter = turf.center(turf.polygon(feature.geometry.coordinates));
@@ -6885,7 +6934,7 @@ function applyGeographicFilter(features, filterType, filterValue) {
     const hexPolygon = turf.polygon(feature.geometry.coordinates);
     
     let centerPoint;
-    if (feature.properties && feature.properties.Hex_ID === 'NS00493' && feature.properties._adjustedCenter) {
+    if (feature.properties && feature.properties.hex_id === 'NS00493' && feature.properties._adjustedCenter) {
       centerPoint = turf.point(feature.properties._adjustedCenter);
     } else {
       centerPoint = turf.center(hexPolygon);
@@ -6932,8 +6981,8 @@ function calculateBaseStatistics(features) {
     const props = feature.properties;
     metrics.population.push(props.pop || 0);
     metrics.imd_score.push(props.IMDScore || 0);
-    metrics.imd_decile.push(props.IMD_Decile || 0);
-    metrics.carAvailability.push(props.car_availability || 0);
+    metrics.imd_decile.push(props.imd_decile_mhclg || 0);
+    metrics.carAvailability.push(props.hh_caravail_ts045 || 0);
     metrics.growthpop.push(props.pop_growth || 0);
   });
 
@@ -6964,15 +7013,6 @@ function calculateBaseStatistics(features) {
       const val = feature.properties[metric.dataField] || 0;
       values.push(val);
     });
-    
-    // Debug logging
-    if (metricKey === 'popemp' && values.length > 0) {
-      console.log(`POPEMP Debug - Total features: ${features.length}`);
-      console.log(`POPEMP Debug - Sample values:`, values.slice(0, 5));
-      console.log(`POPEMP Debug - Non-zero values:`, values.filter(v => v > 0).length);
-      console.log(`POPEMP Debug - Max value:`, Math.max(...values));
-      console.log(`POPEMP Debug - Sample feature properties:`, features[0]?.properties);
-    }
     
     if (values.length > 0) {
       if (metric.aggregation === 'total') {
@@ -7043,7 +7083,7 @@ function calculateTimeStatistics(features) {
 
   features.forEach(feature => {
     const props = feature.properties;
-    const hexId = props.Hex_ID;
+    const hexId = props.hex_id;
     const time = hexTimeMap[hexId] !== undefined ? hexTimeMap[hexId] : 0;
     metrics.time.push(time);
     metrics.population.push(props.pop || 0);
@@ -7076,7 +7116,7 @@ function countAmenitiesByType(filteredHexagons) {
 
   const filteredHexIds = new Set();
   filteredHexagons.forEach(feature => {
-    const hexId = feature.properties.Hex_ID;
+    const hexId = feature.properties.hex_id;
     if (hexId) {
       filteredHexIds.add(hexId);
     }
@@ -7085,7 +7125,7 @@ function countAmenitiesByType(filteredHexagons) {
   Object.keys(amenityLayers).forEach(amenityType => {
     if (amenityLayers[amenityType] && amenityLayers[amenityType].features) {
       amenityLayers[amenityType].features.forEach(feature => {
-        const hexId = feature.properties.Hex_ID;
+        const hexId = feature.properties.hex_id;
         if (hexId && filteredHexIds.has(hexId)) {
           amenityCounts[amenityType]++;
         }
@@ -7097,35 +7137,78 @@ function countAmenitiesByType(filteredHexagons) {
 }
 
 function updateStatisticsUI(stats) {
-  document.getElementById('total-population').textContent = formatValue(stats.totalPopulation, 10);
-  document.getElementById('min-population').textContent = formatValue(stats.minPopulation, 10);
-  document.getElementById('max-population').textContent = formatValue(stats.maxPopulation, 10);
-  document.getElementById('avg-imd-decile').textContent = formatValue(stats.avgImdDecile, 1);
-  document.getElementById('min-imd-decile').textContent = formatValue(stats.minImdDecile, 1);
-  document.getElementById('max-imd-decile').textContent = formatValue(stats.maxImdDecile, 1);
-  document.getElementById('avg-car-availability').textContent = formatValue(stats.avgCarAvailability, 0.01);
-  document.getElementById('min-car-availability').textContent = formatValue(stats.minCarAvailability, 0.01);
-  document.getElementById('max-car-availability').textContent = formatValue(stats.maxCarAvailability, 0.01);
+  const setStat = (id, value, options = {}) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const { maxForStep, stepOverride } = typeof options === 'object' ? options : { maxForStep: options };
+    const step = stepOverride !== undefined ? stepOverride : chooseStepFromMax(maxForStep);
+    el.textContent = formatValue(value, step);
+  };
 
-  document.getElementById('metric-row-1').textContent = stats.metricRow1 || '-';
-  document.getElementById('metric-row-2').textContent = stats.metricRow2 || '-';
+  const scoreRow = document.getElementById('avg-score')?.closest('tr');
+  const percentileRow = document.getElementById('avg-percentile')?.closest('tr');
+  const scoreLabel = document.getElementById('metric-row-1');
+  const percentileLabel = document.getElementById('metric-row-2');
+  const setRowVisibility = (row, visible) => { if (row) row.style.display = visible ? '' : 'none'; };
+
+  // Base stats with dynamic rounding based on max values
+  setStat('total-population', stats.totalPopulation, { maxForStep: stats.maxPopulation });
+  setStat('min-population', stats.minPopulation, { maxForStep: stats.maxPopulation });
+  setStat('max-population', stats.maxPopulation, { maxForStep: stats.maxPopulation });
+
+  // IMD decile: force whole numbers
+  setStat('avg-imd-decile', stats.avgImdDecile, { stepOverride: 1 });
+  setStat('min-imd-decile', stats.minImdDecile, { stepOverride: 1 });
+  setStat('max-imd-decile', stats.maxImdDecile, { stepOverride: 1 });
+
+  setStat('avg-car-availability', stats.avgCarAvailability, { maxForStep: stats.maxCarAvailability });
+  setStat('min-car-availability', stats.minCarAvailability, { maxForStep: stats.maxCarAvailability });
+  setStat('max-car-availability', stats.maxCarAvailability, { maxForStep: stats.maxCarAvailability });
+
+  const metricRow1 = document.getElementById('metric-row-1');
+  if (metricRow1) metricRow1.textContent = stats.metricRow1 || '-';
+  const metricRow2 = document.getElementById('metric-row-2');
+  if (metricRow2) metricRow2.textContent = stats.metricRow2 || '-';
   
   if (stats.isScoreLayer) {
+    setRowVisibility(scoreRow, true);
+    setRowVisibility(percentileRow, true);
+    if (scoreLabel) scoreLabel.textContent = stats.metricRow1 || 'Score';
+    if (percentileLabel) percentileLabel.textContent = stats.metricRow2 || 'Score Percentile';
+
     const formatScore = value => stats.selectedYear.includes('-') ? `${(value * 100).toFixed(1)}%` : formatValue(value, 1);
-    document.getElementById('avg-score').textContent = formatScore(stats.avgScore);
-    document.getElementById('min-score').textContent = formatScore(stats.minScore);
-    document.getElementById('max-score').textContent = formatScore(stats.maxScore);
-    document.getElementById('avg-percentile').textContent = formatValue(stats.avgPercentile, 1);
-    document.getElementById('min-percentile').textContent = formatValue(stats.minPercentile, 1);
-    document.getElementById('max-percentile').textContent = formatValue(stats.maxPercentile, 1);
+    const avgScoreEl = document.getElementById('avg-score');
+    const minScoreEl = document.getElementById('min-score');
+    const maxScoreEl = document.getElementById('max-score');
+    const avgPctEl = document.getElementById('avg-percentile');
+    const minPctEl = document.getElementById('min-percentile');
+    const maxPctEl = document.getElementById('max-percentile');
+
+    if (avgScoreEl) avgScoreEl.textContent = formatScore(stats.avgScore);
+    if (minScoreEl) minScoreEl.textContent = formatScore(stats.minScore);
+    if (maxScoreEl) maxScoreEl.textContent = formatScore(stats.maxScore);
+    if (avgPctEl) avgPctEl.textContent = formatValue(stats.avgPercentile, 1);
+    if (minPctEl) minPctEl.textContent = formatValue(stats.minPercentile, 1);
+    if (maxPctEl) maxPctEl.textContent = formatValue(stats.maxPercentile, 1);
   } 
   else if (stats.isTimeLayer) {
-    document.getElementById('avg-score').textContent = '-';
-    document.getElementById('min-score').textContent = '-';
-    document.getElementById('max-score').textContent = '-';
-    document.getElementById('avg-percentile').textContent = formatValue(stats.avgTime, 1);
-    document.getElementById('min-percentile').textContent = formatValue(stats.minTime, 1);
-    document.getElementById('max-percentile').textContent = formatValue(stats.maxTime, 1);
+    setRowVisibility(scoreRow, false);
+    setRowVisibility(percentileRow, true);
+    if (percentileLabel) percentileLabel.textContent = 'Journey Time (minutes)';
+
+    const avgScoreEl = document.getElementById('avg-score');
+    const minScoreEl = document.getElementById('min-score');
+    const maxScoreEl = document.getElementById('max-score');
+    const avgPctEl = document.getElementById('avg-percentile');
+    const minPctEl = document.getElementById('min-percentile');
+    const maxPctEl = document.getElementById('max-percentile');
+
+    if (avgScoreEl) avgScoreEl.textContent = '-';
+    if (minScoreEl) minScoreEl.textContent = '-';
+    if (maxScoreEl) maxScoreEl.textContent = '-';
+    if (avgPctEl) avgPctEl.textContent = formatValue(stats.avgTime, 1);
+    if (minPctEl) minPctEl.textContent = formatValue(stats.minTime, 1);
+    if (maxPctEl) maxPctEl.textContent = formatValue(stats.maxTime, 1);
   }
   
   // Update dynamic metrics
@@ -7135,15 +7218,18 @@ function updateStatisticsUI(stats) {
     const metric = availableMetrics[metricKey];
     if (!metric) return;
     
+    const maxVal = stats[`max_${metricKey}`];
+    const step = metricKey === 'imd_decile_mhclg' ? 1 : chooseStepFromMax(maxVal);
+
     if (metric.aggregation === 'total') {
       const totalElem = document.getElementById(`total-${metricKey}`);
       const minElem = document.getElementById(`min-${metricKey}`);
       const maxElem = document.getElementById(`max-${metricKey}`);
       const avgElem = document.getElementById(`avg-${metricKey}`);
       
-      if (totalElem) totalElem.textContent = formatValue(stats[`total_${metricKey}`] || 0, 10);
-      if (minElem) minElem.textContent = formatValue(stats[`min_${metricKey}`] || 0, 10);
-      if (maxElem) maxElem.textContent = formatValue(stats[`max_${metricKey}`] || 0, 10);
+      if (totalElem) totalElem.textContent = formatValue(stats[`total_${metricKey}`] || 0, step);
+      if (minElem) minElem.textContent = formatValue(stats[`min_${metricKey}`] || 0, step);
+      if (maxElem) maxElem.textContent = formatValue(stats[`max_${metricKey}`] || 0, step);
       if (avgElem) avgElem.textContent = '-';
     } else {
       const avgElem = document.getElementById(`avg-${metricKey}`);
@@ -7151,20 +7237,16 @@ function updateStatisticsUI(stats) {
       const maxElem = document.getElementById(`max-${metricKey}`);
       const totalElem = document.getElementById(`total-${metricKey}`);
       
-      if (avgElem) avgElem.textContent = formatValue(stats[`avg_${metricKey}`] || 0, 0.1);
-      if (minElem) minElem.textContent = formatValue(stats[`min_${metricKey}`] || 0, 0.1);
-      if (maxElem) maxElem.textContent = formatValue(stats[`max_${metricKey}`] || 0, 0.1);
+      if (avgElem) avgElem.textContent = formatValue(stats[`avg_${metricKey}`] || 0, step);
+      if (minElem) minElem.textContent = formatValue(stats[`min_${metricKey}`] || 0, step);
+      if (maxElem) maxElem.textContent = formatValue(stats[`max_${metricKey}`] || 0, step);
       if (totalElem) totalElem.textContent = '-';
     }
   });
 
   if (!stats.isScoreLayer && !stats.isTimeLayer) {
-    document.getElementById('avg-score').textContent = '-';
-    document.getElementById('min-score').textContent = '-';
-    document.getElementById('max-score').textContent = '-';
-    document.getElementById('avg-percentile').textContent = '-';
-    document.getElementById('min-percentile').textContent = '-';
-    document.getElementById('max-percentile').textContent = '-';
+    setRowVisibility(scoreRow, false);
+    setRowVisibility(percentileRow, false);
   }
   
   if (stats.amenityCounts) {
@@ -7245,14 +7327,14 @@ function filterByJourneyTime(features, filterValue) {
   // console.log('filterByJourneyTime called from:');
   if (filterValue === '>30') {
     return features.filter(feature => {
-      const hexId = feature.properties.Hex_ID;
+      const hexId = feature.properties.hex_id;
       const time = hexTimeMap[hexId];
       return time > 30;
     });
   } else {
     const [minRange, maxRange] = filterValue.split('-').map(parseFloat);
     return features.filter(feature => {
-      const hexId = feature.properties.Hex_ID;
+      const hexId = feature.properties.hex_id;
       const time = hexTimeMap[hexId];
       return time >= minRange && (maxRange ? time <= maxRange : true);
     });
@@ -7416,29 +7498,131 @@ function highlightSelectedArea() {
 // ============================================================================
 
 const availableMetrics = {
-  // Population & Demographics
+  // -----------------------------------------------------------------------
+  // Base / Reference
+  // -----------------------------------------------------------------------
   'pop': { name: 'Population (2025)', dataField: 'pop', aggregation: 'total' },
-  'pop_growth': { name: 'Population Growth', dataField: 'pop_growth', aggregation: 'total' },
-  'pop_fut': { name: 'Population (with Local Plan growth)', dataField: 'pop_fut', aggregation: 'total' },
-  
-  // Employment & Jobs
-  'jobs': { name: 'Jobs (2025)', dataField: 'jobs', aggregation: 'total' },
-  'jobs_growth': { name: 'Jobs Growth', dataField: 'jobs_growth', aggregation: 'total' },
-  'jobs_fut': { name: 'Jobs (with Local Plan growth)', dataField: 'jobs_fut', aggregation: 'total' },
+  'car_availability': { name: 'Car Availability', dataField: 'hh_caravail_ts045', aggregation: 'average' },
+  'pop16plus': { name: 'Population 16+ (2025)', dataField: 'pop16plus', aggregation: 'total' },
   'popemp': { name: 'Population in Employment (2025)', dataField: 'popemp', aggregation: 'total' },
-  
-  // Housing
+  'jobs': { name: 'Jobs (2025)', dataField: 'jobs', aggregation: 'total' },
   'hh': { name: 'Households (2025)', dataField: 'hh', aggregation: 'total' },
+  'imd_decile_mhclg': { name: 'IMD Decile', dataField: 'imd_decile_mhclg', aggregation: 'average' },
+  
+  // Growth & Futures
+  'pop_growth': { name: 'Population Growth', dataField: 'pop_growth', aggregation: 'total' },
+  'jobs_growth': { name: 'Jobs Growth', dataField: 'jobs_growth', aggregation: 'total' },
   'hh_growth': { name: 'Household Growth', dataField: 'hh_growth', aggregation: 'total' },
-  'hh_fut': { name: 'Households (with Local Plan growth)', dataField: 'hh_fut', aggregation: 'total' },
-  
-  // Socioeconomic
-  'imd_decile': { name: 'IMD Decile', dataField: 'IMDDecile', aggregation: 'average' },
-  'car_availability': { name: 'Car Availability', dataField: 'car_availability', aggregation: 'average' },
-  
-  // Growth & Planning
   'emp_ha_growth': { name: 'Employment Land Growth (Ha)', dataField: 'emp_ha_growth', aggregation: 'total' },
+  'pop_fut': { name: 'Population (future)', dataField: 'pop_fut', aggregation: 'total' },
+  'jobs_fut': { name: 'Jobs (future)', dataField: 'jobs_fut', aggregation: 'total' },
+  'hh_fut': { name: 'Households (future)', dataField: 'hh_fut', aggregation: 'total' },
+  
+  // TS007 Age by Single Year (counts)
+  'pop_0-4_ts007': { name: 'Age 0–4 (count)', dataField: 'pop_0-4_ts007', aggregation: 'total' },
+  'pop_5-9_ts007': { name: 'Age 5–9 (count)', dataField: 'pop_5-9_ts007', aggregation: 'total' },
+  'pop_10-15_ts007': { name: 'Age 10–15 (count)', dataField: 'pop_10-15_ts007', aggregation: 'total' },
+  'pop_16-19_ts007': { name: 'Age 16–19 (count)', dataField: 'pop_16-19_ts007', aggregation: 'total' },
+  'pop_20-24_ts007': { name: 'Age 20–24 (count)', dataField: 'pop_20-24_ts007', aggregation: 'total' },
+  'pop_25-34_ts007': { name: 'Age 25–34 (count)', dataField: 'pop_25-34_ts007', aggregation: 'total' },
+  'pop_35-49_ts007': { name: 'Age 35–49 (count)', dataField: 'pop_35-49_ts007', aggregation: 'total' },
+  'pop_50-64_ts007': { name: 'Age 50–64 (count)', dataField: 'pop_50-64_ts007', aggregation: 'total' },
+  'pop_65-74_ts007': { name: 'Age 65–74 (count)', dataField: 'pop_65-74_ts007', aggregation: 'total' },
+  'pop_75-84_ts007': { name: 'Age 75–84 (count)', dataField: 'pop_75-84_ts007', aggregation: 'total' },
+  'pop_85+_ts007': { name: 'Age 85+ (count)', dataField: 'pop_85+_ts007', aggregation: 'total' },
+  // TS007 Age by Single Year (percent)
+  'pop_0-4%_ts007': { name: 'Age 0–4 (%)', dataField: 'pop_0-4%_ts007', aggregation: 'average' },
+  'pop_5-9%_ts007': { name: 'Age 5–9 (%)', dataField: 'pop_5-9%_ts007', aggregation: 'average' },
+  'pop_10-15%_ts007': { name: 'Age 10–15 (%)', dataField: 'pop_10-15%_ts007', aggregation: 'average' },
+  'pop_16-19%_ts007': { name: 'Age 16–19 (%)', dataField: 'pop_16-19%_ts007', aggregation: 'average' },
+  'pop_20-24%_ts007': { name: 'Age 20–24 (%)', dataField: 'pop_20-24%_ts007', aggregation: 'average' },
+  'pop_25-34%_ts007': { name: 'Age 25–34 (%)', dataField: 'pop_25-34%_ts007', aggregation: 'average' },
+  'pop_35-49%_ts007': { name: 'Age 35–49 (%)', dataField: 'pop_35-49%_ts007', aggregation: 'average' },
+  'pop_50-64%_ts007': { name: 'Age 50–64 (%)', dataField: 'pop_50-64%_ts007', aggregation: 'average' },
+  'pop_65-74%_ts007': { name: 'Age 65–74 (%)', dataField: 'pop_65-74%_ts007', aggregation: 'average' },
+  'pop_75-84%_ts007': { name: 'Age 75–84 (%)', dataField: 'pop_75-84%_ts007', aggregation: 'average' },
+  'pop_85+%_ts007': { name: 'Age 85+ (%)', dataField: 'pop_85+%_ts007', aggregation: 'average' },
+  
+  // TS008 Sex
+  'pop_f_ts008': { name: 'Female population (count)', dataField: 'pop_f_ts008', aggregation: 'total' },
+  'pop_m_ts008': { name: 'Male population (count)', dataField: 'pop_m_ts008', aggregation: 'total' },
+  'pop_f%_ts008': { name: 'Female population (%)', dataField: 'pop_f%_ts008', aggregation: 'average' },
+  'pop_m%_ts008': { name: 'Male population (%)', dataField: 'pop_m%_ts008', aggregation: 'average' },
+  
+  // TS038 Disability / Long-term Conditions
+  'pop_dis_vlim_ts038': { name: 'Very limited health/disability (count)', dataField: 'pop_dis_vlim_ts038', aggregation: 'total' },
+  'pop_dis_llim_ts038': { name: 'Limited health/disability (count)', dataField: 'pop_dis_llim_ts038', aggregation: 'total' },
+  'pop_ltc_nlim_ts038': { name: 'Long-term condition, not limited (count)', dataField: 'pop_ltc_nlim_ts038', aggregation: 'total' },
+  'pop_nltc_nlim_ts038': { name: 'No long-term condition (count)', dataField: 'pop_nltc_nlim_ts038', aggregation: 'total' },
+  'pop_dis_vlim%_ts038': { name: 'Very limited health/disability (%)', dataField: 'pop_dis_vlim%_ts038', aggregation: 'average' },
+  'pop_dis_llim%_ts038': { name: 'Limited health/disability (%)', dataField: 'pop_dis_llim%_ts038', aggregation: 'average' },
+  'pop_ltc_nlim%_ts038': { name: 'Long-term condition, not limited (%)', dataField: 'pop_ltc_nlim%_ts038', aggregation: 'average' },
+  'pop_nltc_nlim%_ts038': { name: 'No long-term condition (%)', dataField: 'pop_nltc_nlim%_ts038', aggregation: 'average' },
+  
+  // TS045 Car/Van Availability
+  'hh_ts045': { name: 'Households (TS045)', dataField: 'hh_ts045', aggregation: 'total' },
+  
+  // TS061 Method of Travel to Work (residents) - counts
+  'popemp_ttw_wfh_ts061': { name: 'Work from home (count)', dataField: 'popemp_ttw_wfh_ts061', aggregation: 'total' },
+  'popemp_ttw_train_ts061': { name: 'Train/metro/rail (count)', dataField: 'popemp_ttw_train_ts061', aggregation: 'total' },
+  'popemp_ttw_bus_ts061': { name: 'Bus/coach (count)', dataField: 'popemp_ttw_bus_ts061', aggregation: 'total' },
+  'popemp_ttw_moto_ts061': { name: 'Motorcycle/scooter (count)', dataField: 'popemp_ttw_moto_ts061', aggregation: 'total' },
+  'popemp_ttw_cardr_ts061': { name: 'Car/van driver (count)', dataField: 'popemp_ttw_cardr_ts061', aggregation: 'total' },
+  'popemp_ttw_carpass_ts061': { name: 'Car/van passenger (count)', dataField: 'popemp_ttw_carpass_ts061', aggregation: 'total' },
+  'popemp_ttw_bike_ts061': { name: 'Bicycle (count)', dataField: 'popemp_ttw_bike_ts061', aggregation: 'total' },
+  'popemp_ttw_ped_ts061': { name: 'On foot (count)', dataField: 'popemp_ttw_ped_ts061', aggregation: 'total' },
+  // TS061 Method of Travel to Work (residents) - percent
+  'popemp_ttw_wfh%_ts061': { name: 'Work from home (%)', dataField: 'popemp_ttw_wfh%_ts061', aggregation: 'average' },
+  'popemp_ttw_train%_ts061': { name: 'Train/metro/rail (%)', dataField: 'popemp_ttw_train%_ts061', aggregation: 'average' },
+  'popemp_ttw_bus%_ts061': { name: 'Bus/coach (%)', dataField: 'popemp_ttw_bus%_ts061', aggregation: 'average' },
+  'popemp_ttw_moto%_ts061': { name: 'Motorcycle/scooter (%)', dataField: 'popemp_ttw_moto%_ts061', aggregation: 'average' },
+  'popemp_ttw_cardr%_ts061': { name: 'Car/van driver (%)', dataField: 'popemp_ttw_cardr%_ts061', aggregation: 'average' },
+  'popemp_ttw_carpass%_ts061': { name: 'Car/van passenger (%)', dataField: 'popemp_ttw_carpass%_ts061', aggregation: 'average' },
+  'popemp_ttw_bike%_ts061': { name: 'Bicycle (%)', dataField: 'popemp_ttw_bike%_ts061', aggregation: 'average' },
+  'popemp_ttw_ped%_ts061': { name: 'On foot (%)', dataField: 'popemp_ttw_ped%_ts061', aggregation: 'average' },
+  
+  // TS066 Economic Activity (16+)
+  'pop16plus_nstud_unemp_ts066': { name: '16+ not studying, unemployed (count)', dataField: 'pop16plus_nstud_unemp_ts066', aggregation: 'total' },
+  'pop16plus_homemaker_ts066': { name: '16+ homemaker (count)', dataField: 'pop16plus_homemaker_ts066', aggregation: 'total' },
+  'pop16plus_nstud_unemp%_ts066': { name: '16+ not studying, unemployed (%)', dataField: 'pop16plus_nstud_unemp%_ts066', aggregation: 'average' },
+  'pop16plus_homemaker%_ts066': { name: '16+ homemaker (%)', dataField: 'pop16plus_homemaker%_ts066', aggregation: 'average' },
+  
+  // TS067 Highest Qualification (16+)
+  'pop16plus_level0_ts067': { name: 'No qualifications (count)', dataField: 'pop16plus_level0_ts067', aggregation: 'total' },
+  'pop16plus_level1_ts067': { name: 'Level 1 (count)', dataField: 'pop16plus_level1_ts067', aggregation: 'total' },
+  'pop16plus_level2_ts067': { name: 'Level 2 (count)', dataField: 'pop16plus_level2_ts067', aggregation: 'total' },
+  'pop16plus_apprentice_ts067': { name: 'Apprenticeship (count)', dataField: 'pop16plus_apprentice_ts067', aggregation: 'total' },
+  'pop16plus_level3_ts067': { name: 'Level 3 (count)', dataField: 'pop16plus_level3_ts067', aggregation: 'total' },
+  'pop16plus_level4_ts067': { name: 'Level 4+ (count)', dataField: 'pop16plus_level4_ts067', aggregation: 'total' },
+  'pop16plus_level0%_ts067': { name: 'No qualifications (%)', dataField: 'pop16plus_level0%_ts067', aggregation: 'average' },
+  'pop16plus_level1%_ts067': { name: 'Level 1 (%)', dataField: 'pop16plus_level1%_ts067', aggregation: 'average' },
+  'pop16plus_level2%_ts067': { name: 'Level 2 (%)', dataField: 'pop16plus_level2%_ts067', aggregation: 'average' },
+  'pop16plus_apprentice%_ts067': { name: 'Apprenticeship (%)', dataField: 'pop16plus_apprentice%_ts067', aggregation: 'average' },
+  'pop16plus_level3%_ts067': { name: 'Level 3 (%)', dataField: 'pop16plus_level3%_ts067', aggregation: 'average' },
+  'pop16plus_level4%_ts067': { name: 'Level 4+ (%)', dataField: 'pop16plus_level4%_ts067', aggregation: 'average' },
+  
+  // WP025 Workplace Population by Mode (workplace-based counts)
+  'workpop_ttw_bike_wp025': { name: 'Workplace: bicycle (count)', dataField: 'workpop_ttw_bike_wp025', aggregation: 'total' },
+  'workpop_ttw_bus_wp025': { name: 'Workplace: bus/coach (count)', dataField: 'workpop_ttw_bus_wp025', aggregation: 'total' },
+  'workpop_ttw_cardr_wp025': { name: 'Workplace: car/van driver (count)', dataField: 'workpop_ttw_cardr_wp025', aggregation: 'total' },
+  'workpop_ttw_moto_wp025': { name: 'Workplace: motorcycle/scooter (count)', dataField: 'workpop_ttw_moto_wp025', aggregation: 'total' },
+  'workpop_ttw_ped_wp025': { name: 'Workplace: on foot (count)', dataField: 'workpop_ttw_ped_wp025', aggregation: 'total' },
+  'workpop_ttw_carpass_wp025': { name: 'Workplace: car/van passenger (count)', dataField: 'workpop_ttw_carpass_wp025', aggregation: 'total' },
+  'workpop_ttw_train_wp025': { name: 'Workplace: train/metro/rail (count)', dataField: 'workpop_ttw_train_wp025', aggregation: 'total' },
+  'workpop_ttw_wfh_wp025': { name: 'Workplace: work from home (count)', dataField: 'workpop_ttw_wfh_wp025', aggregation: 'total' },
+  // WP025 Workplace Population by Mode (percent)
+  'workpop_ttw_bike%_wp025': { name: 'Workplace: bicycle (%)', dataField: 'workpop_ttw_bike%_wp025', aggregation: 'average' },
+  'workpop_ttw_bus%_wp025': { name: 'Workplace: bus/coach (%)', dataField: 'workpop_ttw_bus%_wp025', aggregation: 'average' },
+  'workpop_ttw_cardr%_wp025': { name: 'Workplace: car/van driver (%)', dataField: 'workpop_ttw_cardr%_wp025', aggregation: 'average' },
+  'workpop_ttw_moto%_wp025': { name: 'Workplace: motorcycle/scooter (%)', dataField: 'workpop_ttw_moto%_wp025', aggregation: 'average' },
+  'workpop_ttw_ped%_wp025': { name: 'Workplace: on foot (%)', dataField: 'workpop_ttw_ped%_wp025', aggregation: 'average' },
+  'workpop_ttw_carpass%_wp025': { name: 'Workplace: car/van passenger (%)', dataField: 'workpop_ttw_carpass%_wp025', aggregation: 'average' },
+  'workpop_ttw_train%_wp025': { name: 'Workplace: train/metro/rail (%)', dataField: 'workpop_ttw_train%_wp025', aggregation: 'average' },
+  'workpop_ttw_wfh%_wp025': { name: 'Workplace: work from home (%)', dataField: 'workpop_ttw_wfh%_wp025', aggregation: 'average' },
 };
+
+// Populate link hexagon transparency/outline dropdowns with metrics
+initializeLinkMetricDropdowns();
 
 let activeMetrics = ['Score', 'Score Percentile', 'Population (2025)', 'IMD Decile', 'Car Availability'];
 
@@ -7466,6 +7650,10 @@ function initializeMetricsDropdown() {
       dropdown.appendChild(option);
     }
   });
+
+  // Reapply any active search filter
+  const searchInput = document.getElementById('addMetricSearch');
+  applySelectFilter(searchInput, dropdown);
 }
 
 /**
@@ -7474,6 +7662,7 @@ function initializeMetricsDropdown() {
 document.addEventListener('DOMContentLoaded', () => {
   const dropdown = document.getElementById('add-metric-dropdown');
   if (dropdown) {
+    attachSelectSearch('addMetricSearch', dropdown);
     dropdown.addEventListener('change', function() {
       if (this.value) {
         addMetricRow(this.value);
@@ -7611,4 +7800,81 @@ function getCurrentFeatures() {
   }
   
   return features;
+}
+
+// ---------------------------------------------------------------------------
+// Link hexagon transparency/outline dropdowns with metric list (like stats)
+// ---------------------------------------------------------------------------
+function buildMetricOptions(selectEl, defaultKeys = []) {
+  if (!selectEl) return;
+  const seen = new Set();
+  const addOption = (key) => {
+    const metric = availableMetrics[key];
+    if (!metric || seen.has(metric.dataField)) return;
+    const opt = document.createElement('option');
+    opt.value = metric.dataField;
+    opt.textContent = metric.name;
+    selectEl.appendChild(opt);
+    seen.add(metric.dataField);
+  };
+
+  // Always start with a None option
+  selectEl.innerHTML = '';
+  const noneOpt = document.createElement('option');
+  noneOpt.value = 'None';
+  noneOpt.textContent = '-';
+  selectEl.appendChild(noneOpt);
+
+  // Preferred defaults
+  defaultKeys.forEach(addOption);
+
+  // All remaining metrics
+  Object.keys(availableMetrics).forEach(addOption);
+
+  // Default selection should be unlinked
+  selectEl.value = 'None';
+}
+
+function initializeLinkMetricDropdowns() {
+  const defaults = ['pop', 'imd_decile_mhclg', 'hh_caravail_ts045'];
+  [
+    ScoresOpacity,
+    ScoresOutline,
+    AmenitiesOpacity,
+    AmenitiesOutline,
+    CensusOpacity,
+    CensusOutline
+  ].forEach(selectEl => buildMetricOptions(selectEl, defaults));
+
+  attachSelectSearch('opacityFieldScoresSearch', ScoresOpacity);
+  attachSelectSearch('outlineFieldScoresSearch', ScoresOutline);
+  attachSelectSearch('opacityFieldAmenitiesSearch', AmenitiesOpacity);
+  attachSelectSearch('outlineFieldAmenitiesSearch', AmenitiesOutline);
+  attachSelectSearch('opacityFieldCensusSearch', CensusOpacity);
+  attachSelectSearch('outlineFieldCensusSearch', CensusOutline);
+}
+
+function applySelectFilter(inputEl, selectEl) {
+  if (!inputEl || !selectEl) return;
+  const term = inputEl.value.trim().toLowerCase();
+  const alwaysVisible = new Set(['', 'None']);
+  Array.from(selectEl.options).forEach(opt => {
+    const keep = alwaysVisible.has(opt.value);
+    if (!term) {
+      opt.hidden = false;
+      return;
+    }
+    const text = (opt.textContent || '').toLowerCase();
+    const value = (opt.value || '').toLowerCase();
+    opt.hidden = !(keep || text.includes(term) || value.includes(term));
+  });
+}
+
+function attachSelectSearch(inputId, selectEl) {
+  const inputEl = document.getElementById(inputId);
+  if (!inputEl || !selectEl) return;
+  const handler = () => applySelectFilter(inputEl, selectEl);
+  inputEl.addEventListener('input', handler);
+  inputEl.addEventListener('change', handler);
+  handler();
 }
