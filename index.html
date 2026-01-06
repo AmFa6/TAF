@@ -640,7 +640,18 @@
       </div>
     </div>
   </template>
+  <!-- Info Button -->
+  <button id="info-btn" class="info-btn" title="View Glossary & Methodology">
+    <i class="fas fa-info-circle"></i>
+  </button>
+
   <script src="config.js"></script>
   <script src="main.js"></script>
+  <script>
+    // Info button functionality
+    document.getElementById('info-btn').addEventListener('click', function() {
+      window.open('glossary.html', '_blank');
+    });
+  </script>
 </body>
 </html>

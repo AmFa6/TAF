@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Glossary & Methodology - West of England Connectivity Tool</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Trebuchet MS', sans-serif;
+      line-height: 1.6;
+      color: #333;
+      background-color: #f5f5f5;
+    }
+
+    header {
+      background: linear-gradient(135deg, #555 0%, #333 100%);
+      color: white;
+      padding: 30px 20px;
+      text-align: center;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    header h1 {
+      font-size: 2.5em;
+      margin-bottom: 10px;
+    }
+
+    header p {
+      font-size: 1.1em;
+      opacity: 0.95;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+
+    .section {
+      background: white;
+      padding: 30px;
+      margin-bottom: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .section h2 {
+      color: #333;
+      font-size: 1.8em;
+      margin-bottom: 20px;
+      border-bottom: 3px solid #999;
+      padding-bottom: 10px;
+    }
+
+    .section h3 {
+      color: #555;
+      font-size: 1.3em;
+      margin-top: 25px;
+      margin-bottom: 12px;
+    }
+
+    .glossary-item {
+      margin-bottom: 20px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    .glossary-item:last-child {
+      border-bottom: none;
+    }
+
+    .term {
+      font-weight: bold;
+      color: #333;
+      font-size: 1.1em;
+      margin-bottom: 5px;
+    }
+
+    .definition {
+      color: #555;
+      font-size: 1em;
+    }
+
+    ul, ol {
+      margin-left: 20px;
+      margin-bottom: 15px;
+    }
+
+    li {
+      margin-bottom: 8px;
+    }
+
+    .highlight {
+      background-color: #fff3cd;
+      padding: 15px;
+      border-left: 4px solid #ffc107;
+      margin: 20px 0;
+      border-radius: 4px;
+    }
+
+    footer {
+      background-color: #333;
+      color: white;
+      text-align: center;
+      padding: 20px;
+      margin-top: 50px;
+    }
+
+    footer a {
+      color: #999;
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      text-decoration: underline;
+    }
+
+    .back-button {
+      display: inline-block;
+      margin-bottom: 20px;
+      padding: 10px 20px;
+      background-color: #999;
+      color: white;
+      text-decoration: none;
+      border-radius: 5px;
+      transition: background-color 0.3s;
+    }
+
+    .back-button:hover {
+      background-color: #777;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+    }
+
+    table th, table td {
+      border: 1px solid #ddd;
+      padding: 12px;
+      text-align: left;
+    }
+
+    table th {
+      background-color: #999;
+      color: white;
+    }
+
+    table tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1><i class="fas fa-book"></i> Glossary & Methodology</h1>
+    <p>West of England Connectivity Tool</p>
+  </header>
+
+  <div class="container">
+    <a href="javascript:window.close();" class="back-button"><i class="fas fa-arrow-left"></i> Close Window</a>
+
+    <!-- GLOSSARY SECTION -->
+    <div class="section">
+      <h2>Glossary</h2>
+
+      <h3>Key Terms</h3>
+
+      <div class="glossary-item">
+        <div class="term">Connectivity</div>
+        <div class="definition">The ability to access essential services and amenities by public transport, walking, or cycling within a reasonable timeframe.</div>
+      </div>
+
+      <div class="glossary-item">
+        <div class="term">Connectivity Score</div>
+        <div class="definition">A quantitative measure representing the ease of access to essential amenities from a given location.</div>
+      </div>
+
+      <div class="glossary-item">
+        <div class="term">Amenity</div>
+        <div class="definition">Essential facilities and services including education, employment, healthcare, and high street (shopping, hospitality and leisure activities).</div>
+      </div>
+
+      <div class="glossary-item">
+        <div class="term">Active Travel</div>
+        <div class="definition">Transportation methods that rely on physical activity, such as walking and cycling.</div>
+      </div>
+
+      <div class="glossary-item">
+        <div class="term">Public Transport</div>
+        <div class="definition">Shared passenger transportation services available to the general public, including buses, trains, and other transit systems.</div>
+      </div>
+
+      <div class="glossary-item">
+        <div class="term">MCA</div>
+        <div class="definition">West of England Mayoral Combined Authority - Bath and North East Somerset, Bristol City Council, and South Gloucestershire Council.</div>
+      </div>
+      <div class="glossary-item">
+        <div class="term">LEP</div>
+        <div class="definition">Local Entreprise Partnership - MCA + North Somerset Council</div>
+      </div>
+      <div class="glossary-item">
+        <div class="term">Travel Time</div>
+        <div class="definition">The estimated duration required to travel from a specific location to a given amenity using the specified transport mode.</div>
+      </div>
+
+      <h3>Amenity Categories</h3>
+
+      <div class="glossary-item">
+        <div class="term">Education</div>
+        <div class="definition">Schools and educational facilities, including primary, secondary, and college institutions.</div>
+      </div>
+
+      <div class="glossary-item">
+        <div class="term">Employment</div>
+        <div class="definition">Employment centers and business districts offering diverse job opportunities. Strategic employment refers to identified employment growth sites (outdated).</div>
+      </div>
+
+      <div class="glossary-item">
+        <div class="term">Health</div>
+        <div class="definition">Healthcare facilities including hospitals, clinics, and GPs.</div>
+      </div>
+
+      <div class="glossary-item">
+        <div class="term">High Street</div>
+        <div class="definition">Town centers and commercial areas with diverse retail and service offerings.</div>
+      </div>
+    </div>
+
+    <!-- METHODOLOGY SECTION -->
+    <div class="section">
+      <h2>Methodology</h2>
+
+      <h3>Overview</h3>
+      <p>The West of England Connectivity Tool uses connectivity analysis to evaluate how easily residents can access essential services and amenities. This analysis considers multiple transport modes and time-based thresholds to determine connectivity levels.</p>
+
+      <h3>Data Sources</h3>
+      <ul>
+        <li><strong>Transport Networks:</strong> Ordnance Survey road and public transit networks</li>
+        <li><strong>Amenity Locations:</strong> Geographic databases of schools, hospitals, employment centers, and other facilities, such as ONS, OS, NHS, and constituent local authorities. </li>
+        <li><strong>Travel Times:</strong> Calculated using Basemap TRACC.</li>
+        <li><strong>Socioeconomical datasets</strong> Census 2021 has been used for the majority of these datasets. Deprivation derives from MHCLG, and future population / employment  growth derive from Local Plans.</li>
+      </ul>
+
+      <h3>Calculation Method</h3>
+      
+      <h4>Step 1: Travel Time Calculation</h4>
+      <p>For each hexagonal origin point, the tool calculates travel times to the closest destinations for each amenity type using multiple transport modes (Walk, Cycle, Public Transport, Car). Travel times are sourced from two datasets:</p>
+      <ul>
+        <li><strong>TRACC:</strong> Public Transport travel times (2019, 2022, 2023, 2024)</li>
+        <li><strong>Network Analyst:</strong> Walking, Cycling, and Car travel times</li>
+      </ul>
+      <p>For each origin-mode-amenity combination, only the closest 20 destinations are retained to reduce computational complexity.</p>
+      
+      <h4>Step 2: Score Calculation</h4>
+      <p>A revised score is calculated for each accessible destination using a weighted formula:</p>
+      <div class="highlight">
+        <strong>Revised_Score = Service_Weight × Mode_Weight / (Travel_Time ^ Threshold_Weight)</strong>
+      </div>
+      <p>Where:</p>
+      <ul>
+        <li><strong>Service Weight:</strong> Importance weighting for each amenity type (e.g., Schools: 26.8, City Centres: 38.6, Employment: 29.9, Healthcare: 4.7). Derived from National Travel Survey.
+        </li>
+        <li><strong>Mode Weight:</strong> Preference weighting for transport modes (Walk: 100, Cycle: 75, Public Transport: 50, Car: 1)</li>
+        <li><strong>Threshold Weight:</strong> Distance decay factor (Walk: 2.0, Cycle: 1.5, PT: 1.1, Car: 1.0)</li>
+      </ul>
+      <p>Scores are set to zero for destinations with travel times ≥ 60 minutes (unreachable).</p>
+      
+      <h4>Step 3: Aggregation by Origin and Mode</h4>
+      <p>Revised scores are aggregated by summing all destination scores for each origin-mode combination, creating a total accessibility score per transport mode.</p>
+      
+      <h4>Step 4: Purpose-Level Aggregation</h4>
+      <p>Amenity types are grouped into strategic purposes:</p>
+      <ul>
+        <li><strong>Education:</strong> Primary Schools, Secondary Schools, Further Education</li>
+        <li><strong>Employment:</strong> Employment sites (500+ jobs), Employment sites (5000+ jobs), Strategic Employment Sites</li>
+        <li><strong>Health:</strong> GPs, Hospitals</li>
+        <li><strong>High Street:</strong> City Centres, Major Centres, District Centres</li>
+        <li><strong>All Amenities:</strong> Aggregate of all above categories</li>
+      </ul>
+      <p>For each purpose, scores are summed across all transport modes to create a total connectivity score.</p>
+      
+      <h4>Step 5: Population-Weighted Percentiles</h4>
+      <p>Connectivity scores are converted to population-weighted percentiles (0-100) based on the distribution across the four local authorities (Bath & North East Somerset, Bristol, North Somerset, South Gloucestershire). This percentile ranking reflects how well-connected each hexagon is relative to the rest of the region, weighted by population distribution.</p>
+
+      <h3>Transport Modes</h3>
+      <table>
+        <tr>
+          <th>Transport Mode</th>
+          <th>Description</th>
+          <th>Typical Speed</th>
+        </tr>
+        <tr>
+          <td>Walking</td>
+          <td>Pedestrian access to services</td>
+          <td>4.8 km/h</td>
+        </tr>
+        <tr>
+          <td>Cycling</td>
+          <td>Active travel by bicycle</td>
+          <td>16 km/h</td>
+        </tr>
+        <tr>
+          <td>Public Transport</td>
+          <td>Buses, trains</td>
+          <td>Timetable based</td>
+        </tr>
+        <tr>
+          <td>Car/Vehicle</td>
+          <td>Private vehicle access</td>
+          <td>Variable based on DfT averages per road type</td>
+        </tr>
+      </table>
+      
+      <p><strong>Note on Weighting:</strong> The tool prioritizes sustainable and equitable transport modes by applying higher weights to walking, cycling, and public transport over private vehicle access. The threshold weights determine how quickly accessibility decreases with distance for each mode.</p>
+
+      <h3>Limitations</h3>
+      <ul>
+        <li>Analysis is based on network data that may not reflect all route variations or temporary closures</li>
+        <li>Physical connectivity requirements (mobility impairments, disabilities) are not individually assessed</li>
+        <li>Real-world factors like weather, traffic incidents, and service disruptions are not modeled</li>
+        <li>Personal factors (age, fitness, preferences) affect practical connectivity beyond quantitative measures</li>
+        <li>Data accuracy depends on source data quality and currency</li>
+        <li>Travel times for public transport are based on scheduled services and may not reflect real-time conditions or service disruptions</li>
+        <li>Only the closest 20 destinations per origin-mode combination are considered, which may exclude some accessible alternatives</li>
+        <li>Car weighting is low by design to prioritize sustainable transport modes; high car-dependent areas may appear less well-connected</li>
+      </ul>
+
+      <h3>Updates and Versioning</h3>
+      <p>The connectivity tool has been updated for multiple years (2019, 2022, 2023, 2024) to reflect changes in:</p>
+      <ul>
+        <li>Public transport networks and schedules</li>
+        <li>Amenity locations and service provision</li>
+        <li>Road and active travel infrastructure</li>
+        <li>Regional transport strategies and policies</li>
+      </ul>
+      <p>Year-on-year comparisons are available to identify improvements or deteriorations in connectivity over time.</p>
+
+      <div class="highlight">
+        <strong>Note:</strong> This tool provides indicative analysis for planning and policy purposes. For specific travel planning or connectivity assessments, users should consult current transport schedules, service providers, and detailed local knowledge.
+      </div>
+    </div>
+
+    <!-- ADDITIONAL INFO SECTION -->
+    <div class="section">
+      <h2>About This Tool</h2>
+      <p>The West of England Connectivity Tool was developed to support strategic planning and policy-making around connectivity across the West of England Combined Authority region.</p>
+      <p>The tool enables users to:</p>
+      <ul>
+        <li>Visualize connectivity to key services and amenities</li>
+        <li>Identify connectivity gaps and underserved areas</li>
+        <li>Compare different transport modes and scenarios</li>
+        <li>Support evidence-based transport and land-use planning</li>
+        <li>Engage stakeholders in connectivity discussions</li>
+      </ul>
+    </div>
+  </div>
+
+  <footer>
+    <p>&copy; 2025 West of England Mayoral Combined Authority. All rights reserved.</p>
+    <p>For more information, visit <a href="https://www.westofengland-ca.gov.uk/" target="_blank">West of England Mayoral Combined Authority</a></p>
+  </footer>
+</body>
+</html>
