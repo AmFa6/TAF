@@ -39,7 +39,7 @@ const InfrastructureFiles = [
 ];
 
 const GeographyFiles = [
-  { type: 'Hexes', path: `${BASE_PATH}/Boundaries/hexes-socioeco.geojson` },
+  { type: 'Hexes', path: `${BASE_PATH}/Boundaries/hexes800-socioeco.geojson` },
   { type: 'GrowthZones', path: `${BASE_PATH}/Boundaries/GrowthZones.geojson` }
 ];
 

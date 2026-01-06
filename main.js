@@ -6965,6 +6965,15 @@ function calculateBaseStatistics(features) {
       values.push(val);
     });
     
+    // Debug logging
+    if (metricKey === 'popemp' && values.length > 0) {
+      console.log(`POPEMP Debug - Total features: ${features.length}`);
+      console.log(`POPEMP Debug - Sample values:`, values.slice(0, 5));
+      console.log(`POPEMP Debug - Non-zero values:`, values.filter(v => v > 0).length);
+      console.log(`POPEMP Debug - Max value:`, Math.max(...values));
+      console.log(`POPEMP Debug - Sample feature properties:`, features[0]?.properties);
+    }
+    
     if (values.length > 0) {
       if (metric.aggregation === 'total') {
         const nonZeroValues = values.filter(v => v > 0);
