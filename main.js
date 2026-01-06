@@ -14,7 +14,6 @@
 // MAP INITIALIZATION
 // ============================================================================
 
-// rename metrics
 // fix journey times
 
 const map = L.map('map').setView([51.480, -2.591], 11);
@@ -5996,14 +5995,14 @@ function updateAmenitiesCatchmentLayer() {
                   if (matchCount < 3) {
                     matchCount++;
                   }
-                  const hexId = row.OriginName;
+                  const hexId = row.hex_id;
                   const time = parseFloat(row.Time);
                   if (!hexTimeMap[hexId] || time < hexTimeMap[hexId]) {
                     hexTimeMap[hexId] = time;
                   }
                 }
               } else {
-                const hexId = row.OriginName;
+                const hexId = row.hex_id;
                 const time = parseFloat(row.Time);
                 if (!hexTimeMap[hexId] || time < hexTimeMap[hexId]) {
                   hexTimeMap[hexId] = time;
@@ -6044,14 +6043,14 @@ function updateAmenitiesCatchmentLayer() {
               if (matchCount < 3) {
                 matchCount++;
               }
-              const hexId = row.OriginName;
+              const hexId = row.hex_id;
               const time = parseFloat(row.Time);
               if (!hexTimeMap[hexId] || time < hexTimeMap[hexId]) {
                 hexTimeMap[hexId] = time;
               }
             }
           } else {
-            const hexId = row.OriginName;
+            const hexId = row.hex_id;
             const time = parseFloat(row.Time);
             if (!hexTimeMap[hexId] || time < hexTimeMap[hexId]) {
               hexTimeMap[hexId] = time;
@@ -7502,9 +7501,8 @@ const availableMetrics = {
   // Base / Reference
   // -----------------------------------------------------------------------
   'pop': { name: 'Population (2025)', dataField: 'pop', aggregation: 'total' },
-  'car_availability': { name: 'Car Availability', dataField: 'hh_caravail_ts045', aggregation: 'average' },
-  'pop16plus': { name: 'Population 16+ (2025)', dataField: 'pop16plus', aggregation: 'total' },
-  'popemp': { name: 'Population in Employment (2025)', dataField: 'popemp', aggregation: 'total' },
+  'car_availability': { name: 'Car Availability (per household)', dataField: 'hh_caravail_ts045', aggregation: 'average' },
+  'popemp': { name: 'Residents in Employment (2025)', dataField: 'popemp', aggregation: 'total' },
   'jobs': { name: 'Jobs (2025)', dataField: 'jobs', aggregation: 'total' },
   'hh': { name: 'Households (2025)', dataField: 'hh', aggregation: 'total' },
   'imd_decile_mhclg': { name: 'IMD Decile', dataField: 'imd_decile_mhclg', aggregation: 'average' },
@@ -7519,106 +7517,104 @@ const availableMetrics = {
   'hh_fut': { name: 'Households (future)', dataField: 'hh_fut', aggregation: 'total' },
   
   // TS007 Age by Single Year (counts)
-  'pop_0-4_ts007': { name: 'Age 0–4 (count)', dataField: 'pop_0-4_ts007', aggregation: 'total' },
-  'pop_5-9_ts007': { name: 'Age 5–9 (count)', dataField: 'pop_5-9_ts007', aggregation: 'total' },
-  'pop_10-15_ts007': { name: 'Age 10–15 (count)', dataField: 'pop_10-15_ts007', aggregation: 'total' },
-  'pop_16-19_ts007': { name: 'Age 16–19 (count)', dataField: 'pop_16-19_ts007', aggregation: 'total' },
-  'pop_20-24_ts007': { name: 'Age 20–24 (count)', dataField: 'pop_20-24_ts007', aggregation: 'total' },
-  'pop_25-34_ts007': { name: 'Age 25–34 (count)', dataField: 'pop_25-34_ts007', aggregation: 'total' },
-  'pop_35-49_ts007': { name: 'Age 35–49 (count)', dataField: 'pop_35-49_ts007', aggregation: 'total' },
-  'pop_50-64_ts007': { name: 'Age 50–64 (count)', dataField: 'pop_50-64_ts007', aggregation: 'total' },
-  'pop_65-74_ts007': { name: 'Age 65–74 (count)', dataField: 'pop_65-74_ts007', aggregation: 'total' },
-  'pop_75-84_ts007': { name: 'Age 75–84 (count)', dataField: 'pop_75-84_ts007', aggregation: 'total' },
-  'pop_85+_ts007': { name: 'Age 85+ (count)', dataField: 'pop_85+_ts007', aggregation: 'total' },
+  'pop_0-4_ts007': { name: 'Population aged 0–4', dataField: 'pop_0-4_ts007', aggregation: 'total' },
+  'pop_5-9_ts007': { name: 'Population aged 5–9', dataField: 'pop_5-9_ts007', aggregation: 'total' },
+  'pop_10-15_ts007': { name: 'Population aged 10–15', dataField: 'pop_10-15_ts007', aggregation: 'total' },
+  'pop_16-19_ts007': { name: 'Population aged 16–19', dataField: 'pop_16-19_ts007', aggregation: 'total' },
+  'pop_20-24_ts007': { name: 'Population aged 20–24', dataField: 'pop_20-24_ts007', aggregation: 'total' },
+  'pop_25-34_ts007': { name: 'Population aged 25–34', dataField: 'pop_25-34_ts007', aggregation: 'total' },
+  'pop_35-49_ts007': { name: 'Population aged 35–49', dataField: 'pop_35-49_ts007', aggregation: 'total' },
+  'pop_50-64_ts007': { name: 'Population aged 50–64', dataField: 'pop_50-64_ts007', aggregation: 'total' },
+  'pop_65-74_ts007': { name: 'Population aged 65–74', dataField: 'pop_65-74_ts007', aggregation: 'total' },
+  'pop_75-84_ts007': { name: 'Population aged 75–84', dataField: 'pop_75-84_ts007', aggregation: 'total' },
+  'pop_85+_ts007': { name: 'Population aged 85 and over', dataField: 'pop_85+_ts007', aggregation: 'total' },
   // TS007 Age by Single Year (percent)
-  'pop_0-4%_ts007': { name: 'Age 0–4 (%)', dataField: 'pop_0-4%_ts007', aggregation: 'average' },
-  'pop_5-9%_ts007': { name: 'Age 5–9 (%)', dataField: 'pop_5-9%_ts007', aggregation: 'average' },
-  'pop_10-15%_ts007': { name: 'Age 10–15 (%)', dataField: 'pop_10-15%_ts007', aggregation: 'average' },
-  'pop_16-19%_ts007': { name: 'Age 16–19 (%)', dataField: 'pop_16-19%_ts007', aggregation: 'average' },
-  'pop_20-24%_ts007': { name: 'Age 20–24 (%)', dataField: 'pop_20-24%_ts007', aggregation: 'average' },
-  'pop_25-34%_ts007': { name: 'Age 25–34 (%)', dataField: 'pop_25-34%_ts007', aggregation: 'average' },
-  'pop_35-49%_ts007': { name: 'Age 35–49 (%)', dataField: 'pop_35-49%_ts007', aggregation: 'average' },
-  'pop_50-64%_ts007': { name: 'Age 50–64 (%)', dataField: 'pop_50-64%_ts007', aggregation: 'average' },
-  'pop_65-74%_ts007': { name: 'Age 65–74 (%)', dataField: 'pop_65-74%_ts007', aggregation: 'average' },
-  'pop_75-84%_ts007': { name: 'Age 75–84 (%)', dataField: 'pop_75-84%_ts007', aggregation: 'average' },
-  'pop_85+%_ts007': { name: 'Age 85+ (%)', dataField: 'pop_85+%_ts007', aggregation: 'average' },
+  'pop_0-4%_ts007': { name: 'Population aged 0–4 (% of population)', dataField: 'pop_0-4%_ts007', aggregation: 'average' },
+  'pop_5-9%_ts007': { name: 'Population aged 5–9 (% of population)', dataField: 'pop_5-9%_ts007', aggregation: 'average' },
+  'pop_10-15%_ts007': { name: 'Population aged 10–15 (% of population)', dataField: 'pop_10-15%_ts007', aggregation: 'average' },
+  'pop_16-19%_ts007': { name: 'Population aged 16–19 (% of population)', dataField: 'pop_16-19%_ts007', aggregation: 'average' },
+  'pop_20-24%_ts007': { name: 'Population aged 20–24 (% of population)', dataField: 'pop_20-24%_ts007', aggregation: 'average' },
+  'pop_25-34%_ts007': { name: 'Population aged 25–34 (% of population)', dataField: 'pop_25-34%_ts007', aggregation: 'average' },
+  'pop_35-49%_ts007': { name: 'Population aged 35–49 (% of population)', dataField: 'pop_35-49%_ts007', aggregation: 'average' },
+  'pop_50-64%_ts007': { name: 'Population aged 50–64 (% of population)', dataField: 'pop_50-64%_ts007', aggregation: 'average' },
+  'pop_65-74%_ts007': { name: 'Population aged 65–74 (% of population)', dataField: 'pop_65-74%_ts007', aggregation: 'average' },
+  'pop_75-84%_ts007': { name: 'Population aged 75–84 (% of population)', dataField: 'pop_75-84%_ts007', aggregation: 'average' },
+  'pop_85+%_ts007': { name: 'Population aged 85 and over (% of population)', dataField: 'pop_85+%_ts007', aggregation: 'average' },
   
   // TS008 Sex
-  'pop_f_ts008': { name: 'Female population (count)', dataField: 'pop_f_ts008', aggregation: 'total' },
-  'pop_m_ts008': { name: 'Male population (count)', dataField: 'pop_m_ts008', aggregation: 'total' },
-  'pop_f%_ts008': { name: 'Female population (%)', dataField: 'pop_f%_ts008', aggregation: 'average' },
-  'pop_m%_ts008': { name: 'Male population (%)', dataField: 'pop_m%_ts008', aggregation: 'average' },
+  'pop_f_ts008': { name: 'Female population', dataField: 'pop_f_ts008', aggregation: 'total' },
+  'pop_m_ts008': { name: 'Male population', dataField: 'pop_m_ts008', aggregation: 'total' },
+  'pop_f%_ts008': { name: 'Female population (% of population)', dataField: 'pop_f%_ts008', aggregation: 'average' },
+  'pop_m%_ts008': { name: 'Male population (% of population)', dataField: 'pop_m%_ts008', aggregation: 'average' },
   
   // TS038 Disability / Long-term Conditions
-  'pop_dis_vlim_ts038': { name: 'Very limited health/disability (count)', dataField: 'pop_dis_vlim_ts038', aggregation: 'total' },
-  'pop_dis_llim_ts038': { name: 'Limited health/disability (count)', dataField: 'pop_dis_llim_ts038', aggregation: 'total' },
-  'pop_ltc_nlim_ts038': { name: 'Long-term condition, not limited (count)', dataField: 'pop_ltc_nlim_ts038', aggregation: 'total' },
-  'pop_nltc_nlim_ts038': { name: 'No long-term condition (count)', dataField: 'pop_nltc_nlim_ts038', aggregation: 'total' },
-  'pop_dis_vlim%_ts038': { name: 'Very limited health/disability (%)', dataField: 'pop_dis_vlim%_ts038', aggregation: 'average' },
-  'pop_dis_llim%_ts038': { name: 'Limited health/disability (%)', dataField: 'pop_dis_llim%_ts038', aggregation: 'average' },
-  'pop_ltc_nlim%_ts038': { name: 'Long-term condition, not limited (%)', dataField: 'pop_ltc_nlim%_ts038', aggregation: 'average' },
-  'pop_nltc_nlim%_ts038': { name: 'No long-term condition (%)', dataField: 'pop_nltc_nlim%_ts038', aggregation: 'average' },
-  
-  // TS045 Car/Van Availability
-  'hh_ts045': { name: 'Households (TS045)', dataField: 'hh_ts045', aggregation: 'total' },
-  
+  'pop_dis_vlim_ts038': { name: 'Disabled under the Equality Act: Day-to-day activities limited a lot', dataField: 'pop_dis_vlim_ts038', aggregation: 'total' },
+  'pop_dis_llim_ts038': { name: 'Disabled under the Equality Act: Day-to-day activities limited a little', dataField: 'pop_dis_llim_ts038', aggregation: 'total' },
+  'pop_ltc_nlim_ts038': { name: 'Not disabled under the Equality Act: Has long term physical or mental health condition but day-to-day activities are not limited', dataField: 'pop_ltc_nlim_ts038', aggregation: 'total' },
+  'pop_nltc_nlim_ts038': { name: 'Not disabled under the Equality Act: No long term physical or mental health conditions', dataField: 'pop_nltc_nlim_ts038', aggregation: 'total' },
+  'pop_dis_vlim%_ts038': { name: 'Disabled under the Equality Act: Day-to-day activities limited a lot (% of population)', dataField: 'pop_dis_vlim%_ts038', aggregation: 'average' },
+  'pop_dis_llim%_ts038': { name: 'Disabled under the Equality Act: Day-to-day activities limited a little (% of population)', dataField: 'pop_dis_llim%_ts038', aggregation: 'average' },
+  'pop_ltc_nlim%_ts038': { name: 'Not disabled under the Equality Act: Has long term physical or mental health condition but day-to-day activities are not limited (% of population)', dataField: 'pop_ltc_nlim%_ts038', aggregation: 'average' },
+  'pop_nltc_nlim%_ts038': { name: 'Not disabled under the Equality Act: No long term physical or mental health conditions (% of population)', dataField: 'pop_nltc_nlim%_ts038', aggregation: 'average' },
+    
   // TS061 Method of Travel to Work (residents) - counts
-  'popemp_ttw_wfh_ts061': { name: 'Work from home (count)', dataField: 'popemp_ttw_wfh_ts061', aggregation: 'total' },
-  'popemp_ttw_train_ts061': { name: 'Train/metro/rail (count)', dataField: 'popemp_ttw_train_ts061', aggregation: 'total' },
-  'popemp_ttw_bus_ts061': { name: 'Bus/coach (count)', dataField: 'popemp_ttw_bus_ts061', aggregation: 'total' },
-  'popemp_ttw_moto_ts061': { name: 'Motorcycle/scooter (count)', dataField: 'popemp_ttw_moto_ts061', aggregation: 'total' },
-  'popemp_ttw_cardr_ts061': { name: 'Car/van driver (count)', dataField: 'popemp_ttw_cardr_ts061', aggregation: 'total' },
-  'popemp_ttw_carpass_ts061': { name: 'Car/van passenger (count)', dataField: 'popemp_ttw_carpass_ts061', aggregation: 'total' },
-  'popemp_ttw_bike_ts061': { name: 'Bicycle (count)', dataField: 'popemp_ttw_bike_ts061', aggregation: 'total' },
-  'popemp_ttw_ped_ts061': { name: 'On foot (count)', dataField: 'popemp_ttw_ped_ts061', aggregation: 'total' },
+  'popemp_ttw_wfh_ts061': { name: 'Residents Travel to Work - Work from home', dataField: 'popemp_ttw_wfh_ts061', aggregation: 'total' },
+  'popemp_ttw_train_ts061': { name: 'Residents Travel to Work - Train/metro/rail', dataField: 'popemp_ttw_train_ts061', aggregation: 'total' },
+  'popemp_ttw_bus_ts061': { name: 'Residents Travel to Work - Bus/coach', dataField: 'popemp_ttw_bus_ts061', aggregation: 'total' },
+  'popemp_ttw_moto_ts061': { name: 'Residents Travel to Work - Motorcycle/scooter', dataField: 'popemp_ttw_moto_ts061', aggregation: 'total' },
+  'popemp_ttw_cardr_ts061': { name: 'Residents Travel to Work - Car/van driver', dataField: 'popemp_ttw_cardr_ts061', aggregation: 'total' },
+  'popemp_ttw_carpass_ts061': { name: 'Residents Travel to Work - Car/van passenger', dataField: 'popemp_ttw_carpass_ts061', aggregation: 'total' },
+  'popemp_ttw_bike_ts061': { name: 'Residents Travel to Work - Bicycle', dataField: 'popemp_ttw_bike_ts061', aggregation: 'total' },
+  'popemp_ttw_ped_ts061': { name: 'Residents Travel to Work - On foot', dataField: 'popemp_ttw_ped_ts061', aggregation: 'total' },
   // TS061 Method of Travel to Work (residents) - percent
-  'popemp_ttw_wfh%_ts061': { name: 'Work from home (%)', dataField: 'popemp_ttw_wfh%_ts061', aggregation: 'average' },
-  'popemp_ttw_train%_ts061': { name: 'Train/metro/rail (%)', dataField: 'popemp_ttw_train%_ts061', aggregation: 'average' },
-  'popemp_ttw_bus%_ts061': { name: 'Bus/coach (%)', dataField: 'popemp_ttw_bus%_ts061', aggregation: 'average' },
-  'popemp_ttw_moto%_ts061': { name: 'Motorcycle/scooter (%)', dataField: 'popemp_ttw_moto%_ts061', aggregation: 'average' },
-  'popemp_ttw_cardr%_ts061': { name: 'Car/van driver (%)', dataField: 'popemp_ttw_cardr%_ts061', aggregation: 'average' },
-  'popemp_ttw_carpass%_ts061': { name: 'Car/van passenger (%)', dataField: 'popemp_ttw_carpass%_ts061', aggregation: 'average' },
-  'popemp_ttw_bike%_ts061': { name: 'Bicycle (%)', dataField: 'popemp_ttw_bike%_ts061', aggregation: 'average' },
-  'popemp_ttw_ped%_ts061': { name: 'On foot (%)', dataField: 'popemp_ttw_ped%_ts061', aggregation: 'average' },
+  'popemp_ttw_wfh%_ts061': { name: 'Residents Travel to Work - Work from home (% of employed population)', dataField: 'popemp_ttw_wfh%_ts061', aggregation: 'average' },
+  'popemp_ttw_train%_ts061': { name: 'Residents Travel to Work - Train/metro/rail (% of employed population)', dataField: 'popemp_ttw_train%_ts061', aggregation: 'average' },
+  'popemp_ttw_bus%_ts061': { name: 'Residents Travel to Work - Bus/coach (% of employed population)', dataField: 'popemp_ttw_bus%_ts061', aggregation: 'average' },
+  'popemp_ttw_moto%_ts061': { name: 'Residents Travel to Work - Motorcycle/scooter (% of employed population)', dataField: 'popemp_ttw_moto%_ts061', aggregation: 'average' },
+  'popemp_ttw_cardr%_ts061': { name: 'Residents Travel to Work - Car/van driver (% of employed population)', dataField: 'popemp_ttw_cardr%_ts061', aggregation: 'average' },
+  'popemp_ttw_carpass%_ts061': { name: 'Residents Travel to Work - Car/van passenger (% of employed population)', dataField: 'popemp_ttw_carpass%_ts061', aggregation: 'average' },
+  'popemp_ttw_bike%_ts061': { name: 'Residents Travel to Work - Bicycle (% of employed population)', dataField: 'popemp_ttw_bike%_ts061', aggregation: 'average' },
+  'popemp_ttw_ped%_ts061': { name: 'Residents Travel to Work - On foot (% of employed population)', dataField: 'popemp_ttw_ped%_ts061', aggregation: 'average' },
   
   // TS066 Economic Activity (16+)
-  'pop16plus_nstud_unemp_ts066': { name: '16+ not studying, unemployed (count)', dataField: 'pop16plus_nstud_unemp_ts066', aggregation: 'total' },
-  'pop16plus_homemaker_ts066': { name: '16+ homemaker (count)', dataField: 'pop16plus_homemaker_ts066', aggregation: 'total' },
-  'pop16plus_nstud_unemp%_ts066': { name: '16+ not studying, unemployed (%)', dataField: 'pop16plus_nstud_unemp%_ts066', aggregation: 'average' },
-  'pop16plus_homemaker%_ts066': { name: '16+ homemaker (%)', dataField: 'pop16plus_homemaker%_ts066', aggregation: 'average' },
+  'pop16plus_nstud_unemp_ts066': { name: 'Unemployed population (not retired nor student)', dataField: 'pop16plus_nstud_unemp_ts066', aggregation: 'total' },
+  'pop16plus_homemaker_ts066': { name: 'Stay-at-home population', dataField: 'pop16plus_homemaker_ts066', aggregation: 'total' },
+  'pop16plus_nstud_unemp%_ts066': { name: 'Unemployed population (not retired nor student) (% of population aged 16 and over)', dataField: 'pop16plus_nstud_unemp%_ts066', aggregation: 'average' },
+  'pop16plus_homemaker%_ts066': { name: 'Stay-at-home population (% of population aged 16 and over)', dataField: 'pop16plus_homemaker%_ts066', aggregation: 'average' },
   
   // TS067 Highest Qualification (16+)
-  'pop16plus_level0_ts067': { name: 'No qualifications (count)', dataField: 'pop16plus_level0_ts067', aggregation: 'total' },
-  'pop16plus_level1_ts067': { name: 'Level 1 (count)', dataField: 'pop16plus_level1_ts067', aggregation: 'total' },
-  'pop16plus_level2_ts067': { name: 'Level 2 (count)', dataField: 'pop16plus_level2_ts067', aggregation: 'total' },
-  'pop16plus_apprentice_ts067': { name: 'Apprenticeship (count)', dataField: 'pop16plus_apprentice_ts067', aggregation: 'total' },
-  'pop16plus_level3_ts067': { name: 'Level 3 (count)', dataField: 'pop16plus_level3_ts067', aggregation: 'total' },
-  'pop16plus_level4_ts067': { name: 'Level 4+ (count)', dataField: 'pop16plus_level4_ts067', aggregation: 'total' },
-  'pop16plus_level0%_ts067': { name: 'No qualifications (%)', dataField: 'pop16plus_level0%_ts067', aggregation: 'average' },
-  'pop16plus_level1%_ts067': { name: 'Level 1 (%)', dataField: 'pop16plus_level1%_ts067', aggregation: 'average' },
-  'pop16plus_level2%_ts067': { name: 'Level 2 (%)', dataField: 'pop16plus_level2%_ts067', aggregation: 'average' },
-  'pop16plus_apprentice%_ts067': { name: 'Apprenticeship (%)', dataField: 'pop16plus_apprentice%_ts067', aggregation: 'average' },
-  'pop16plus_level3%_ts067': { name: 'Level 3 (%)', dataField: 'pop16plus_level3%_ts067', aggregation: 'average' },
-  'pop16plus_level4%_ts067': { name: 'Level 4+ (%)', dataField: 'pop16plus_level4%_ts067', aggregation: 'average' },
+  'pop16plus_level0_ts067': { name: 'Highest Qualification - None', dataField: 'pop16plus_level0_ts067', aggregation: 'total' },
+  'pop16plus_level1_ts067': { name: 'Highest Qualification - Level 1', dataField: 'pop16plus_level1_ts067', aggregation: 'total' },
+  'pop16plus_level2_ts067': { name: 'Highest Qualification - Level 2', dataField: 'pop16plus_level2_ts067', aggregation: 'total' },
+  'pop16plus_apprentice_ts067': { name: 'Highest Qualification - Apprenticeship', dataField: 'pop16plus_apprentice_ts067', aggregation: 'total' },
+  'pop16plus_level3_ts067': { name: 'Highest Qualification - Level 3', dataField: 'pop16plus_level3_ts067', aggregation: 'total' },
+  'pop16plus_level4_ts067': { name: 'Highest Qualification - Level 4+', dataField: 'pop16plus_level4_ts067', aggregation: 'total' },
+  'pop16plus_level0%_ts067': { name: 'Highest Qualification - None (% of population aged 16 and over)', dataField: 'pop16plus_level0%_ts067', aggregation: 'average' },
+  'pop16plus_level1%_ts067': { name: 'Highest Qualification - Level 1 (% of population aged 16 and over)', dataField: 'pop16plus_level1%_ts067', aggregation: 'average' },
+  'pop16plus_level2%_ts067': { name: 'Highest Qualification - Level 2 (% of population aged 16 and over)', dataField: 'pop16plus_level2%_ts067', aggregation: 'average' },
+  'pop16plus_apprentice%_ts067': { name: 'Highest Qualification - Apprenticeship (% of population aged 16 and over)', dataField: 'pop16plus_apprentice%_ts067', aggregation: 'average' },
+  'pop16plus_level3%_ts067': { name: 'Highest Qualification - Level 3 (% of population aged 16 and over)', dataField: 'pop16plus_level3%_ts067', aggregation: 'average' },
+  'pop16plus_level4%_ts067': { name: 'Highest Qualification - Level 4+ (% of population aged 16 and over)', dataField: 'pop16plus_level4%_ts067', aggregation: 'average' },
   
   // WP025 Workplace Population by Mode (workplace-based counts)
-  'workpop_ttw_bike_wp025': { name: 'Workplace: bicycle (count)', dataField: 'workpop_ttw_bike_wp025', aggregation: 'total' },
-  'workpop_ttw_bus_wp025': { name: 'Workplace: bus/coach (count)', dataField: 'workpop_ttw_bus_wp025', aggregation: 'total' },
-  'workpop_ttw_cardr_wp025': { name: 'Workplace: car/van driver (count)', dataField: 'workpop_ttw_cardr_wp025', aggregation: 'total' },
-  'workpop_ttw_moto_wp025': { name: 'Workplace: motorcycle/scooter (count)', dataField: 'workpop_ttw_moto_wp025', aggregation: 'total' },
-  'workpop_ttw_ped_wp025': { name: 'Workplace: on foot (count)', dataField: 'workpop_ttw_ped_wp025', aggregation: 'total' },
-  'workpop_ttw_carpass_wp025': { name: 'Workplace: car/van passenger (count)', dataField: 'workpop_ttw_carpass_wp025', aggregation: 'total' },
-  'workpop_ttw_train_wp025': { name: 'Workplace: train/metro/rail (count)', dataField: 'workpop_ttw_train_wp025', aggregation: 'total' },
-  'workpop_ttw_wfh_wp025': { name: 'Workplace: work from home (count)', dataField: 'workpop_ttw_wfh_wp025', aggregation: 'total' },
+  'workpop_ttw_bike_wp025': { name: 'Workplace population Travel to Work - bicycle', dataField: 'workpop_ttw_bike_wp025', aggregation: 'total' },
+  'workpop_ttw_bus_wp025': { name: 'Workplace population Travel to Work - bus/coach', dataField: 'workpop_ttw_bus_wp025', aggregation: 'total' },
+  'workpop_ttw_cardr_wp025': { name: 'Workplace population Travel to Work - car/van driver', dataField: 'workpop_ttw_cardr_wp025', aggregation: 'total' },
+  'workpop_ttw_moto_wp025': { name: 'Workplace population Travel to Work - motorcycle/scooter', dataField: 'workpop_ttw_moto_wp025', aggregation: 'total' },
+  'workpop_ttw_ped_wp025': { name: 'Workplace population Travel to Work - on foot', dataField: 'workpop_ttw_ped_wp025', aggregation: 'total' },
+  'workpop_ttw_carpass_wp025': { name: 'Workplace population Travel to Work - car/van passenger', dataField: 'workpop_ttw_carpass_wp025', aggregation: 'total' },
+  'workpop_ttw_train_wp025': { name: 'Workplace population Travel to Work - train/metro/rail', dataField: 'workpop_ttw_train_wp025', aggregation: 'total' },
+  'workpop_ttw_wfh_wp025': { name: 'Workplace population Travel to Work - work from home', dataField: 'workpop_ttw_wfh_wp025', aggregation: 'total' },
+
   // WP025 Workplace Population by Mode (percent)
-  'workpop_ttw_bike%_wp025': { name: 'Workplace: bicycle (%)', dataField: 'workpop_ttw_bike%_wp025', aggregation: 'average' },
-  'workpop_ttw_bus%_wp025': { name: 'Workplace: bus/coach (%)', dataField: 'workpop_ttw_bus%_wp025', aggregation: 'average' },
-  'workpop_ttw_cardr%_wp025': { name: 'Workplace: car/van driver (%)', dataField: 'workpop_ttw_cardr%_wp025', aggregation: 'average' },
-  'workpop_ttw_moto%_wp025': { name: 'Workplace: motorcycle/scooter (%)', dataField: 'workpop_ttw_moto%_wp025', aggregation: 'average' },
-  'workpop_ttw_ped%_wp025': { name: 'Workplace: on foot (%)', dataField: 'workpop_ttw_ped%_wp025', aggregation: 'average' },
-  'workpop_ttw_carpass%_wp025': { name: 'Workplace: car/van passenger (%)', dataField: 'workpop_ttw_carpass%_wp025', aggregation: 'average' },
-  'workpop_ttw_train%_wp025': { name: 'Workplace: train/metro/rail (%)', dataField: 'workpop_ttw_train%_wp025', aggregation: 'average' },
-  'workpop_ttw_wfh%_wp025': { name: 'Workplace: work from home (%)', dataField: 'workpop_ttw_wfh%_wp025', aggregation: 'average' },
+  'workpop_ttw_bike%_wp025': { name: 'Workplace population Travel to Work - bicycle (% of workplace population)', dataField: 'workpop_ttw_bike%_wp025', aggregation: 'average' },
+  'workpop_ttw_bus%_wp025': { name: 'Workplace population Travel to Work - bus/coach (% of workplace population)', dataField: 'workpop_ttw_bus%_wp025', aggregation: 'average' },
+  'workpop_ttw_cardr%_wp025': { name: 'Workplace population Travel to Work - car/van driver (% of workplace population)', dataField: 'workpop_ttw_cardr%_wp025', aggregation: 'average' },
+  'workpop_ttw_moto%_wp025': { name: 'Workplace population Travel to Work - motorcycle/scooter (% of workplace population)', dataField: 'workpop_ttw_moto%_wp025', aggregation: 'average' },
+  'workpop_ttw_ped%_wp025': { name: 'Workplace population Travel to Work - on foot (% of workplace population)', dataField: 'workpop_ttw_ped%_wp025', aggregation: 'average' },
+  'workpop_ttw_carpass%_wp025': { name: 'Workplace population Travel to Work - car/van passenger (% of workplace population)', dataField: 'workpop_ttw_carpass%_wp025', aggregation: 'average' },
+  'workpop_ttw_train%_wp025': { name: 'Workplace population Travel to Work - train/metro/rail (% of workplace population)', dataField: 'workpop_ttw_train%_wp025', aggregation: 'average' },
+  'workpop_ttw_wfh%_wp025': { name: 'Workplace population Travel to Work - work from home (% of workplace population)', dataField: 'workpop_ttw_wfh%_wp025', aggregation: 'average' },
 };
 
 // Populate link hexagon transparency/outline dropdowns with metrics
