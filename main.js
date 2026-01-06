@@ -7111,19 +7111,24 @@ function countAmenitiesByType(filteredHexagons) {
     'Hos': 0
   };
 
-  const filteredHexIds = new Set();
-  filteredHexagons.forEach(feature => {
-    const hexId = feature.properties.hex_id;
-    if (hexId) {
-      filteredHexIds.add(hexId);
-    }
-  });
-
+  // Count amenities by checking which fall within the filtered hexagons
   Object.keys(amenityLayers).forEach(amenityType => {
     if (amenityLayers[amenityType] && amenityLayers[amenityType].features) {
-      amenityLayers[amenityType].features.forEach(feature => {
-        const hexId = feature.properties.hex_id;
-        if (hexId && filteredHexIds.has(hexId)) {
+      amenityLayers[amenityType].features.forEach(amenityFeature => {
+        // Convert amenity point to turf point
+        const amenityPoint = turf.point(amenityFeature.geometry.coordinates);
+        
+        // Check if this amenity is within any filtered hexagon
+        const isInFilteredArea = filteredHexagons.some(hexFeature => {
+          try {
+            const hexPolygon = turf.polygon(hexFeature.geometry.coordinates);
+            return turf.booleanPointInPolygon(amenityPoint, hexPolygon);
+          } catch (e) {
+            return false;
+          }
+        });
+        
+        if (isInFilteredArea) {
           amenityCounts[amenityType]++;
         }
       });
