@@ -5,11 +5,16 @@ const isLocal = window.location.hostname === 'localhost' || window.location.host
 const BASE_PATH = isLocal ? '../TAF_test' : 'https://AmFa6.github.io/TAF_test';
 
 const ScoresFiles = [
+  { year: '2025', path: `${BASE_PATH}/ConnectScores/2025_connectscore.csv` },
   { year: '2024', path: `${BASE_PATH}/ConnectScores/2024_connectscore.csv` },
   { year: '2024 (DfT)', path: `${BASE_PATH}/ConnectScores/grid_dft_scores.csv` },
   { year: '2023', path: `${BASE_PATH}/ConnectScores/2023_connectscore.csv` },
   { year: '2022', path: `${BASE_PATH}/ConnectScores/2022_connectscore.csv` },
   { year: '2019', path: `${BASE_PATH}/ConnectScores/2019_connectscore.csv` },
+  { year: '2024-2025', path: `${BASE_PATH}/ConnectScores/2024-2025_connectscore.csv` },
+  { year: '2023-2025', path: `${BASE_PATH}/ConnectScores/2023-2025_connectscore.csv` },
+  { year: '2022-2025', path: `${BASE_PATH}/ConnectScores/2022-2025_connectscore.csv` },
+  { year: '2019-2025', path: `${BASE_PATH}/ConnectScores/2019-2025_connectscore.csv` },
   { year: '2023-2024', path: `${BASE_PATH}/ConnectScores/2023-2024_connectscore.csv` },
   { year: '2019-2024', path: `${BASE_PATH}/ConnectScores/2019-2024_connectscore.csv` },
   { year: '2022-2023', path: `${BASE_PATH}/ConnectScores/2022-2023_connectscore.csv` },
