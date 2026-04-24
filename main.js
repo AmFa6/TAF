@@ -340,6 +340,7 @@ function osmToGeoJSON(osmData, zoom) {
 // ============================================================================
 
 let lsoaLookup = {};
+let wardLookup = {};
 const ladCodesString = ladCodes.map(code => `'${code}'`).join(',');
 
 function convertMultiPolygonToPolygons(geoJson) {
@@ -416,22 +417,48 @@ fetch('https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Wards_
   .then(data => {
     const convertedData = convertMultiPolygonToPolygons(data);
     const filteredFeatures = convertedData.features.filter(feature => ladCodes.includes(feature.properties.LAD24CD));
-    const wardGeoJson = {
-      type: 'FeatureCollection',
-      features: filteredFeatures
-    };
-
-    wardBoundariesLayer = L.geoJSON(wardGeoJson, {
-      pane: 'boundaryLayers',
-      style: function () {
-        return {
-          color: 'black',
-          weight: 1,
-          fillOpacity: 0,
-          opacity: 0
+    
+    // Fetch ward to LAD lookup data
+    return fetch(`https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/LSOA21_WD24_LAD24_EW_LU/FeatureServer/0/query?outFields=WD24CD,WD24NM,LAD24CD,LAD24NM&where=LAD24CD%20IN%20(${ladCodesString})&f=geojson`)
+      .then(lookupResponse => lookupResponse.json())
+      .then(lookupData => {
+        // Build ward lookup: WD24CD -> {WD24NM, LAD24NM}
+        lookupData.features.forEach(feature => {
+          const wardCode = feature.properties.WD24CD;
+          const wardName = feature.properties.WD24NM;
+          const ladName = feature.properties.LAD24NM;
+          if (!wardLookup[wardCode]) {
+            wardLookup[wardCode] = { WD24NM: wardName, LAD24NM: ladName };
+          }
+        });
+        
+        // Enrich ward features with LAD24NM
+        filteredFeatures.forEach(feature => {
+          const wardCode = feature.properties.WD24CD;
+          if (wardLookup[wardCode]) {
+            feature.properties.LAD24NM = wardLookup[wardCode].LAD24NM;
+          }
+        });
+        
+        const wardGeoJson = {
+          type: 'FeatureCollection',
+          features: filteredFeatures
         };
-      },
-    }).addTo(map);
+
+        wardBoundariesLayer = L.geoJSON(wardGeoJson, {
+          pane: 'boundaryLayers',
+          style: function () {
+            return {
+              color: 'black',
+              weight: 1,
+              fillOpacity: 0,
+              opacity: 0
+            };
+          },
+        }).addTo(map);
+        
+        updateFilterValues();
+      });
   })
 
 fetch(`https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/LSOA21_WD24_LAD24_EW_LU/FeatureServer/0/query?outFields=*&where=LAD24CD%20IN%20(${ladCodesString})&f=geojson`)
@@ -439,7 +466,16 @@ fetch(`https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/LSOA21
   .then(data => {
     data.features.forEach(feature => {
       const lsoaCode = feature.properties.LSOA21CD;
+      const wardCode = feature.properties.WD24CD;
       lsoaLookup[lsoaCode] = true;
+      
+      // Also build ward lookup if not already present
+      if (wardCode && !wardLookup[wardCode]) {
+        wardLookup[wardCode] = {
+          WD24NM: feature.properties.WD24NM,
+          LAD24NM: feature.properties.LAD24NM
+        };
+      }
     });
 
     return fetch('https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Lower_layer_Super_Output_Areas_December_2021_Boundaries_EW_BGC_V5/FeatureServer/0/query?outFields=*&where=1%3D1&geometry=-3.073689%2C51.291726%2C-2.327195%2C51.656841&geometryType=esriGeometryEnvelope&inSR=4326&spatialRel=esriSpatialRelIntersects&outSR=4326&f=geojson');
@@ -1396,7 +1432,12 @@ map.on('click', function (e) {
     wardBoundariesLayer.eachLayer(layer => {
       const polygon = turf.polygon(layer.feature.geometry.coordinates);
       if (turf.booleanPointInPolygon(clickedPoint, polygon)) {
-        popupContent.Boundaries.push(`<strong>Ward:</strong> ${layer.feature.properties.WD24NM}`);
+        const wardName = layer.feature.properties.WD24NM;
+        const ladName = layer.feature.properties.LAD24NM;
+        popupContent.Boundaries.push(`<strong>WD24NM:</strong> ${wardName}`);
+        if (ladName) {
+          popupContent.Boundaries.push(`<strong>LAD24NM:</strong> ${ladName}`);
+        }
       }
     });
   }
@@ -6414,13 +6455,16 @@ function updateFilterValues() {
       ];
     }
   } else if (currentFilterType === 'Ward') {
-    const wardNames = new Set();
+    const wardInfo = new Map();
     if (wardBoundariesLayer) {
       wardBoundariesLayer.getLayers().forEach(layer => {
         const wardName = layer.feature.properties.WD24NM;
-        wardNames.add(wardName);
+        const ladName = layer.feature.properties.LAD24NM || '';
+        if (!wardInfo.has(wardName)) {
+          wardInfo.set(wardName, ladName);
+        }
       });
-      options = Array.from(wardNames).sort();
+      options = Array.from(wardInfo.keys()).sort();
     }
   } else if (currentFilterType === 'GrowthZone') {
     if (GrowthZonesLayer) {
@@ -7498,6 +7542,7 @@ const availableMetrics = {
   // -----------------------------------------------------------------------
   // Base / Reference
   // -----------------------------------------------------------------------
+  'total_score': { name: 'Total Score', dataField: 'Total Score', aggregation: 'average' },
   'pop': { name: 'Population (2025)', dataField: 'pop', aggregation: 'total' },
   'car_availability': { name: 'Car Availability (per household)', dataField: 'hh_caravail_ts045', aggregation: 'average' },
   'popemp': { name: 'Residents in Employment (2025)', dataField: 'popemp', aggregation: 'total' },
