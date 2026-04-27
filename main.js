@@ -1485,11 +1485,11 @@ map.on('click', function (e) {
             scoreField = `dft_${selectedPurpose}_${selectedMode}`;
             percentileField = `dft_${selectedPurpose}_${selectedMode}_100`;
           } else if (selectedYear.includes('-')) {
-            scoreField = `hyb_${selectedPurpose}_${selectedMode}`;
+            scoreField = `${selectedPurpose}_${selectedMode}`;
             percentileField = null; // No percentile for difference years
           } else {
-            scoreField = `hyb_${selectedPurpose}_${selectedMode}`;
-            percentileField = `hyb_${selectedPurpose}_${selectedMode}_100`;
+            scoreField = `${selectedPurpose}_${selectedMode}`;
+            percentileField = `${selectedPurpose}_${selectedMode}_100`;
           }
 
           const scoreValue = properties[scoreField];
@@ -4871,9 +4871,9 @@ function updateFeatureVisibility() {
     if (selectedYear === '2024 (DfT)') {
       fieldToDisplay = showPercentiles ? `dft_${ScoresPurpose.value}_${ScoresMode.value}_100` : `dft_${ScoresPurpose.value}_${ScoresMode.value}`;
     } else if (selectedYear.includes('-')) {
-      fieldToDisplay = `hyb_${ScoresPurpose.value}_${ScoresMode.value}`;
+      fieldToDisplay = `${ScoresPurpose.value}_${ScoresMode.value}`;
     } else {
-      fieldToDisplay = showPercentiles ? `hyb_${ScoresPurpose.value}_${ScoresMode.value}_100` : `hyb_${ScoresPurpose.value}_${ScoresMode.value}`;
+      fieldToDisplay = showPercentiles ? `${ScoresPurpose.value}_${ScoresMode.value}_100` : `${ScoresPurpose.value}_${ScoresMode.value}`;
     }
     updateLayerVisibility(ScoresLayer, feature => feature.properties[fieldToDisplay], selectedYear, fieldToDisplay);
   }
@@ -5605,10 +5605,10 @@ function updateScoresLayer() {
   
   if (selectedYear.includes('-')) {
     // Difference scores always use base field (no _100 suffix)
-    fieldToDisplay = `hyb_${selectedPurpose}_${selectedMode}`;
+    fieldToDisplay = `${selectedPurpose}_${selectedMode}`;
   } else {
     // All single-year scores (DfT and non-DfT): toggle between _100 field and raw field based on checkbox
-    const prefix = selectedYear === '2024 (DfT)' ? 'dft_' : 'hyb_';
+    const prefix = selectedYear === '2024 (DfT)' ? 'dft_' : ;
     const suffix = showPercentiles ? '_100' : '';
     fieldToDisplay = `${prefix}${selectedPurpose}_${selectedMode}${suffix}`;
     
@@ -5711,10 +5711,10 @@ function applyScoresLayerStyling() {
   let fieldToDisplay;
   if (selectedYear.includes('-')) {
     // Difference scores always use base field
-    fieldToDisplay = `hyb_${selectedPurpose}_${selectedMode}`;
+    fieldToDisplay = `${selectedPurpose}_${selectedMode}`;
   } else {
     // All single-year scores: toggle between _100 and raw field based on checkbox
-    const prefix = selectedYear === '2024 (DfT)' ? 'dft_' : 'hyb_';
+    const prefix = selectedYear === '2024 (DfT)' ? 'dft_' : ;
     const suffix = showPercentiles ? '_100' : '';
     fieldToDisplay = `${prefix}${selectedPurpose}_${selectedMode}${suffix}`;
   }
@@ -6846,9 +6846,9 @@ function applyRangeFilter(features, filterValue) {
     if (selectedYear === '2024 (DfT)') {
       fieldToDisplay = showPercentiles ? `dft_${ScoresPurpose.value}_${ScoresMode.value}_100` : `dft_${ScoresPurpose.value}_${ScoresMode.value}`;
     } else if (selectedYear.includes('-')) {
-      fieldToDisplay = `hyb_${ScoresPurpose.value}_${ScoresMode.value}`;
+      fieldToDisplay = `${ScoresPurpose.value}_${ScoresMode.value}`;
     } else {
-      fieldToDisplay = showPercentiles ? `hyb_${ScoresPurpose.value}_${ScoresMode.value}_100` : `hyb_${ScoresPurpose.value}_${ScoresMode.value}`;
+      fieldToDisplay = showPercentiles ? `${ScoresPurpose.value}_${ScoresMode.value}_100` : `${ScoresPurpose.value}_${ScoresMode.value}`;
     }
     
     if (selectedYear.includes('-')) {
@@ -7084,8 +7084,8 @@ function calculateScoreStatistics(features) {
     scoreField = `dft_${selectedPurpose}_${selectedMode}`;
     percentileField = `dft_${selectedPurpose}_${selectedMode}_100`;
   } else {
-    scoreField = `hyb_${selectedPurpose}_${selectedMode}`;
-    percentileField = `hyb_${selectedPurpose}_${selectedMode}_100`;
+    scoreField = `${selectedPurpose}_${selectedMode}`;
+    percentileField = `${selectedPurpose}_${selectedMode}_100`;
   }
   
   const metrics = {
