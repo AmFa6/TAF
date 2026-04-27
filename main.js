@@ -5608,7 +5608,7 @@ function updateScoresLayer() {
     fieldToDisplay = `${selectedPurpose}_${selectedMode}`;
   } else {
     // All single-year scores (DfT and non-DfT): toggle between _100 field and raw field based on checkbox
-    const prefix = selectedYear === '2024 (DfT)' ? 'dft_' : ;
+    const prefix = selectedYear === '2024 (DfT)' ? 'dft_' : ''
     const suffix = showPercentiles ? '_100' : '';
     fieldToDisplay = `${prefix}${selectedPurpose}_${selectedMode}${suffix}`;
     
@@ -5714,7 +5714,7 @@ function applyScoresLayerStyling() {
     fieldToDisplay = `${selectedPurpose}_${selectedMode}`;
   } else {
     // All single-year scores: toggle between _100 and raw field based on checkbox
-    const prefix = selectedYear === '2024 (DfT)' ? 'dft_' : ;
+    const prefix = selectedYear === '2024 (DfT)' ? 'dft_' : ''
     const suffix = showPercentiles ? '_100' : '';
     fieldToDisplay = `${prefix}${selectedPurpose}_${selectedMode}${suffix}`;
   }
