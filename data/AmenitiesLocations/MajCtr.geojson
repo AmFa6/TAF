@@ -1,0 +1,18 @@
+{
+"type": "FeatureCollection",
+"name": "MajCtr",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "fid": 3, "Id": 3, "Name": "St Davids Centre, Cardiff", "X_Coord": "318469.630510526", "Y_coord": "176322.533457229", "COREID": 3, "Hex_ID": null }, "geometry": { "type": "Point", "coordinates": [ -3.17543401457324, 51.479960833451095 ] } },
+{ "type": "Feature", "properties": { "fid": 5, "Id": 5, "Name": "Cardiff City Centre (Hayes Place)", "X_Coord": "318462.937340572", "Y_coord": "176123.278824713", "COREID": 5, "Hex_ID": null }, "geometry": { "type": "Point", "coordinates": [ -3.175484312858233, 51.478168647651842 ] } },
+{ "type": "Feature", "properties": { "fid": 6, "Id": 6, "Name": "Newport (Friars Walk)", "X_Coord": "331236.067261832", "Y_coord": "188034.283396723", "COREID": 6, "Hex_ID": null }, "geometry": { "type": "Point", "coordinates": [ -2.99392007081536, 51.586948895830567 ] } },
+{ "type": "Feature", "properties": { "fid": 7, "Id": 7, "Name": "Gloucester (Eastgate)", "X_Coord": "383240.554604122", "Y_coord": "218480.874498228", "COREID": 7, "Hex_ID": null }, "geometry": { "type": "Point", "coordinates": [ -2.244791960569668, 51.864652677075654 ] } },
+{ "type": "Feature", "properties": { "fid": 8, "Id": 8, "Name": "Cheltenham (Regent Arcade)", "X_Coord": "394923.635392159", "Y_coord": "222282.602848212", "COREID": 8, "Hex_ID": null }, "geometry": { "type": "Point", "coordinates": [ -2.075183674973196, 51.899064555023102 ] } },
+{ "type": "Feature", "properties": { "fid": 9, "Id": 9, "Name": "Swindon (The Brunel)", "X_Coord": "414965.514572586", "Y_coord": "184760.736932257", "COREID": 9, "Hex_ID": null }, "geometry": { "type": "Point", "coordinates": [ -1.785507800944361, 51.561530042437681 ] } },
+{ "type": "Feature", "properties": { "fid": 1, "Id": 1, "Name": "Cabot Circus", "X_Coord": "359422.159755863", "Y_coord": "173435.719787768", "COREID": 1, "Hex_ID": "BS00119" }, "geometry": { "type": "Point", "coordinates": [ -2.585432304055512, 51.458434526552203 ] } },
+{ "type": "Feature", "properties": { "fid": 2, "Id": 2, "Name": "The Mall, Cribbs Causeway", "X_Coord": "358791.965092696", "Y_coord": "180884.615414726", "COREID": 2, "Hex_ID": "SG00527" }, "geometry": { "type": "Point", "coordinates": [ -2.595374398288822, 51.525361822528033 ] } },
+{ "type": "Feature", "properties": { "fid": 4, "Id": 4, "Name": "Bristol City Centre (Broadmead)", "X_Coord": "359164.321899908", "Y_coord": "173354.221624141", "COREID": 4, "Hex_ID": "BS00119" }, "geometry": { "type": "Point", "coordinates": [ -2.589133747449497, 51.457683177688523 ] } },
+{ "type": "Feature", "properties": { "fid": 10, "Id": 10, "Name": "Bath (SouthGate)", "X_Coord": "375062.478825538", "Y_coord": "164574.965987797", "COREID": 10, "Hex_ID": "BA00204" }, "geometry": { "type": "Point", "coordinates": [ -2.359699224262753, 51.379672174442085 ] } },
+{ "type": "Feature", "properties": { "fid": 11, "Id": 11, "Name": "Weston-super-Mare (High Street / Sovereign)", "X_Coord": "331917.920866601", "Y_coord": "161514.227795614", "COREID": 11, "Hex_ID": "NS00493" }, "geometry": { "type": "Point", "coordinates": [ -2.978962642622017, 51.348611437205371 ] } }
+]
+}

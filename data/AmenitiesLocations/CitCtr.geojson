@@ -1,0 +1,17 @@
+{
+"type": "FeatureCollection",
+"name": "CitCtr",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "fid": 1, "FID_": 1264, "X_Coord": 357264.34944800002, "Y_Coord": 172400.080273, "Hex_ID": "BS00134", "District": "BS", "Boundary": null, "COREID": 1 }, "geometry": { "type": "Point", "coordinates": [ -2.616362581705626, 51.448963840420426 ] } },
+{ "type": "Feature", "properties": { "fid": 2, "FID_": 1317, "X_Coord": 357957.170094, "Y_Coord": 172800.08045899999, "Hex_ID": "BS00129", "District": "BS", "Boundary": null, "COREID": 2 }, "geometry": { "type": "Point", "coordinates": [ -2.606441061509507, 51.452612262395242 ] } },
+{ "type": "Feature", "properties": { "fid": 3, "FID_": 1318, "X_Coord": 357957.170094, "Y_Coord": 173600.08083200001, "Hex_ID": "BS00118", "District": "BS", "Boundary": null, "COREID": 3 }, "geometry": { "type": "Point", "coordinates": [ -2.606536424747402, 51.459805087117196 ] } },
+{ "type": "Feature", "properties": { "fid": 4, "FID_": 1369, "X_Coord": 358649.99073999998, "Y_Coord": 172400.080273, "Hex_ID": "BS00135", "District": "BS", "Boundary": null, "COREID": 4 }, "geometry": { "type": "Point", "coordinates": [ -2.596424178086467, 51.449067005315008 ] } },
+{ "type": "Feature", "properties": { "fid": 5, "FID_": 1370, "X_Coord": 358649.99073999998, "Y_Coord": 173200.08064599999, "Hex_ID": "BS00124", "District": "BS", "Boundary": null, "COREID": 5 }, "geometry": { "type": "Point", "coordinates": [ -2.596517955020133, 51.456259847636943 ] } },
+{ "type": "Feature", "properties": { "fid": 6, "FID_": 1422, "X_Coord": 359342.81138600002, "Y_Coord": 172800.08045899999, "Hex_ID": "BS00130", "District": "BS", "Boundary": null, "COREID": 6 }, "geometry": { "type": "Point", "coordinates": [ -2.586501032743772, 51.452713745100205 ] } },
+{ "type": "Feature", "properties": { "fid": 7, "FID_": 1423, "X_Coord": 359342.81138600002, "Y_Coord": 173600.08083200001, "Hex_ID": "BS00119", "District": "BS", "Boundary": null, "COREID": 7 }, "geometry": { "type": "Point", "coordinates": [ -2.586593262215836, 51.45990659579936 ] } },
+{ "type": "Feature", "properties": { "fid": 8, "FID_": 1474, "X_Coord": 360035.63203199999, "Y_Coord": 172400.080273, "Hex_ID": "BS00136", "District": "BS", "Boundary": null, "COREID": 8 }, "geometry": { "type": "Point", "coordinates": [ -2.576485657939628, 51.449166779847694 ] } },
+{ "type": "Feature", "properties": { "fid": 9, "FID_": 2800, "X_Coord": 374584.8656, "Y_Coord": 164800.07672899999, "Hex_ID": "BA00187", "District": "BA", "Boundary": null, "COREID": 9 }, "geometry": { "type": "Point", "coordinates": [ -2.366577778488146, 51.381674968878038 ] } },
+{ "type": "Feature", "properties": { "fid": 10, "FID_": 2861, "X_Coord": 375277.686246, "Y_Coord": 164400.076543, "Hex_ID": "BA00204", "District": "BA", "Boundary": null, "COREID": 10 }, "geometry": { "type": "Point", "coordinates": [ -2.356594881039134, 51.378109117641621 ] } }
+]
+}

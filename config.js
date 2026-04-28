@@ -1,8 +1,27 @@
 // West of England Connectivity Tool - Configuration Data
-// Automatically detects environment and uses appropriate paths
+// Data is hosted in this repository under /data by default.
 
-const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-const BASE_PATH = isLocal ? '../TAF_test' : 'https://AmFa6.github.io/TAF_test';
+const searchParams = new URLSearchParams(window.location.search);
+const dataRef = searchParams.get('dataRef');
+const dataRepo = searchParams.get('dataRepo') || 'AmFa6/TAF';
+const dataSource = searchParams.get('dataSource') || 'local'; // local | legacy
+const legacyRepo = searchParams.get('legacyRepo') || 'AmFa6/TAF_test';
+
+const localBasePath = './data';
+const versionedBasePath = dataRef
+  ? `https://cdn.jsdelivr.net/gh/${dataRepo}@${encodeURIComponent(dataRef)}/data`
+  : null;
+const legacyBasePath = dataRef
+  ? `https://cdn.jsdelivr.net/gh/${legacyRepo}@${encodeURIComponent(dataRef)}`
+  : `https://${legacyRepo.split('/')[0]}.github.io/${legacyRepo.split('/')[1]}`;
+
+// Default behavior:
+// - local: use ./data from this repository
+// - local + dataRef: fetch immutable snapshot from jsDelivr
+// - legacy: read from TAF_test (migration fallback)
+const BASE_PATH = dataSource === 'legacy'
+  ? legacyBasePath
+  : (versionedBasePath || localBasePath);
 
 const ScoresFiles = [
   { year: '2025', path: `${BASE_PATH}/ConnectScores/2025_connectscore.csv` },

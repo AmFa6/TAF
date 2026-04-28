@@ -20,6 +20,10 @@
   <script src="https://unpkg.com/@mapbox/togeojson@0.16.0/togeojson.js"></script>
 </head>
 <body>
+  <div id="release-toolbar" aria-label="Version selector">
+    <label for="version-selector">Version:</label>
+    <select id="version-selector"></select>
+  </div>
   <div id="map"></div>
   <div id="panel-container">
     <div id="Scores" class="panel">
@@ -656,6 +660,7 @@
   </button>
 
   <script src="config.js"></script>
+  <script src="versioning.js"></script>
   <script src="main.js"></script>
   <script>
     // Info button functionality

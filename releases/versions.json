@@ -1,0 +1,13 @@
+{
+  "latest": "v2026.04.0",
+  "versions": [
+    {
+      "name": "v2026.04.0",
+      "releasedOn": "2026-04-28",
+      "status": "current",
+      "public": true,
+      "url": "./",
+      "notes": "./releases/v2026.04.0.md"
+    }
+  ]
+}
