@@ -30,6 +30,32 @@ html, body {
   min-width: 140px;
   font-size: 0.9em;
 }
+#data-version-divider {
+  color: #ccc;
+  margin: 0 2px;
+}
+#data-version-toggle {
+  display: flex;
+  gap: 2px;
+}
+.data-version-btn {
+  font-size: 0.85em;
+  padding: 2px 8px;
+  border: 1px solid #aaa;
+  border-radius: 3px;
+  background: #f0f0f0;
+  cursor: pointer;
+  color: #444;
+  transition: background 0.15s, color 0.15s;
+}
+.data-version-btn:hover {
+  background: #ddd;
+}
+.data-version-btn.active {
+  background: #3d85c8;
+  color: #fff;
+  border-color: #2a6094;
+}
 #panel-container, #legend, #summary-panel {
   position: absolute;
   background: white;

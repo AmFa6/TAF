@@ -512,6 +512,9 @@ fetch(`https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/LSOA21
 
 const layers = {};
 const scoreLayers = {};
+// Cache of computed class breaks for raw (non-pop-weighted) scores.
+// Structure: { [year]: { [purpose_mode]: { p10, interval } } }
+const scoreClassBreaks = {};
 const ScoresYear = document.getElementById("yearScoresDropdown");
 const ScoresPurpose = document.getElementById("purposeScoresDropdown");
 const ScoresMode = document.getElementById("modeScoresDropdown");
@@ -1313,6 +1316,35 @@ document.addEventListener('DOMContentLoaded', (event) => {
   initializeFileUpload();
   initializeLayerStorage();
   setupAmenitiesToggle();
+
+  // ---- Data version toggle ----
+  const dataVersionBtns = document.querySelectorAll('.data-version-btn');
+  function setDataVersion(version) {
+    window.dataVersion = version;
+    dataVersionBtns.forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.version === version);
+    });
+    // Clear cached score and journey time data so files are re-fetched from the new version folder
+    Object.keys(scoreLayers).forEach(k => delete scoreLayers[k]);
+    Object.keys(scoreClassBreaks).forEach(k => delete scoreClassBreaks[k]);
+    Object.keys(csvDataCache).forEach(k => delete csvDataCache[k]);
+    // Reload the active layer if visible
+    if (ScoresLayer) {
+      map.removeLayer(ScoresLayer);
+      ScoresLayer = null;
+      updateScoresLayer();
+    }
+    if (AmenitiesCatchmentLayer) {
+      map.removeLayer(AmenitiesCatchmentLayer);
+      AmenitiesCatchmentLayer = null;
+      updateAmenitiesCatchmentLayer();
+    }
+  }
+  dataVersionBtns.forEach(btn => {
+    btn.addEventListener('click', () => setDataVersion(btn.dataset.version));
+  });
+  // Set default active state (v2025.10)
+  setDataVersion('v2025.10');
 
   document.getElementById('add-attribute-field').addEventListener('click', function() {
     addAttributeField();
@@ -4990,19 +5022,40 @@ function updateLegend() {
           { range: `0-10 - 10% of region's population with worst access to amenities`, color: "#440154" }
         ];
       } else {
-        // When percentiles are off, show simple numeric ranges without population text
-        classes = [
-          { range: `90-100`, color: "#fde725" },
-          { range: `80-90`, color: "#b5de2b" },
-          { range: `70-80`, color: "#6ece58" },
-          { range: `60-70`, color: "#35b779" },
-          { range: `50-60`, color: "#1f9e89" },
-          { range: `40-50`, color: "#26828e" },
-          { range: `30-40`, color: "#31688e" },
-          { range: `20-30`, color: "#3e4989" },
-          { range: `10-20`, color: "#482777" },
-          { range: `0-10`, color: "#440154" }
-        ];
+        // When percentiles are off, show computed raw score class breaks
+        const viridis = ['#440154','#482777','#3e4989','#31688e','#26828e','#1f9e89','#35b779','#6ece58','#b5de2b','#fde725'];
+        const breaks = getCurrentClassBreaks();
+        if (breaks) {
+          const { p10, interval } = breaks;
+          // Use plain numeric X-Y / > X formats compatible with isClassVisible parser
+          const fmt = v => Number.isInteger(v) ? String(v) : v.toFixed(1);
+          // Class 1: 0 to p10
+          classes = [{ range: `0-${fmt(p10)}`, color: viridis[0] }];
+          // Classes 2–9: 8 intervals from p10
+          for (let i = 0; i < 8; i++) {
+            const lo = p10 + i * interval;
+            const hi = p10 + (i + 1) * interval;
+            classes.push({ range: `${fmt(lo)}-${fmt(hi)}`, color: viridis[i + 1] });
+          }
+          // Class 10: above p10 + 8 intervals
+          classes.push({ range: `> ${fmt(p10 + 8 * interval)}`, color: viridis[9] });
+          // Reverse so highest value is at top of legend
+          classes.reverse();
+        } else {
+          // Fallback if breaks not yet computed
+          classes = [
+            { range: `90-100`, color: "#fde725" },
+            { range: `80-90`, color: "#b5de2b" },
+            { range: `70-80`, color: "#6ece58" },
+            { range: `60-70`, color: "#35b779" },
+            { range: `50-60`, color: "#1f9e89" },
+            { range: `40-50`, color: "#26828e" },
+            { range: `30-40`, color: "#31688e" },
+            { range: `20-30`, color: "#3e4989" },
+            { range: `10-20`, color: "#482777" },
+            { range: `0-10`,  color: "#440154" }
+          ];
+        }
       }
     }
   } else if (CensusLayer) {
@@ -5621,6 +5674,103 @@ function updateLayerStyles() {
   }
 }
 
+// ============================================================================
+// CLASS BREAK COMPUTATION (non-pop-weighted percentile score ranges)
+// ============================================================================
+
+/**
+ * Round a value based on its magnitude (number of digits).
+ * >= 4 digits → nearest 100; 3 digits → nearest 50; 2 digits → nearest 10; else → nearest 1
+ */
+function smartRoundScore(v) {
+  if (v <= 0) return 0;
+  const digits = Math.floor(Math.log10(v)) + 1;
+  if (digits >= 4) return Math.round(v / 100) * 100;
+  if (digits === 3) return Math.round(v / 50) * 50;
+  if (digits === 2) return Math.round(v / 10) * 10;
+  return Math.round(v);
+}
+
+/**
+ * Round a class interval: > 3 digits → nearest 10; else → nearest 1
+ */
+function smartRoundInterval(v) {
+  if (v <= 0) return 1;
+  const digits = Math.floor(Math.log10(v)) + 1;
+  return digits > 3 ? Math.round(v / 10) * 10 : Math.round(v);
+}
+
+/**
+ * Compute the p-th percentile of a sorted array (linear interpolation).
+ */
+function sortedPercentile(sorted, p) {
+  if (sorted.length === 0) return 0;
+  const idx = (p / 100) * (sorted.length - 1);
+  const lo = Math.floor(idx);
+  const hi = Math.ceil(idx);
+  if (lo === hi) return sorted[lo];
+  return sorted[lo] + (sorted[hi] - sorted[lo]) * (idx - lo);
+}
+
+/**
+ * Precompute class breaks for all purpose/mode combos in a year's CSV data.
+ * Uses only LEP 4-district hexes (District in ['BA','BS','SG','NS']).
+ * Stores results in scoreClassBreaks[year][purpose_mode] = { p10, interval }.
+ * Skips difference-year files (year contains '-').
+ */
+function computeClassBreaksForYear(year, csvData) {
+  if (year.includes('-') || year === '2024 (DfT)') return;
+
+  const fourDistricts = ['BA', 'BS', 'SG', 'NS'];
+  const lepHexIds = new Set(
+    (hexes ? hexes.features : [])
+      .filter(f => f.properties && fourDistricts.includes(f.properties.District))
+      .map(f => f.properties.hex_id)
+  );
+
+  const purposes = ['Edu', 'Emp', 'Hth', 'HSt', 'All'];
+  const modes = ['PT', 'Cy', 'Wa', 'Ca', 'To'];
+
+  if (!scoreClassBreaks[year]) scoreClassBreaks[year] = {};
+
+  purposes.forEach(purpose => {
+    modes.forEach(mode => {
+      const field = `${purpose}_${mode}`;
+      const values = csvData
+        .filter(row => {
+          const hexId = row.Hex_ID || row.hex_id;
+          return lepHexIds.has(hexId);
+        })
+        .map(row => parseFloat(row[field]))
+        .filter(v => !isNaN(v) && v > 0);
+
+      if (values.length < 10) return; // not enough data
+
+      values.sort((a, b) => a - b);
+      const rawP10 = sortedPercentile(values, 10);
+      const rawP90 = sortedPercentile(values, 90);
+
+      const p10 = smartRoundScore(rawP10);
+      const p90 = smartRoundScore(rawP90);
+      const rawInterval = (p90 - p10) / 8;
+      const interval = Math.max(1, smartRoundInterval(rawInterval));
+
+      scoreClassBreaks[year][`${purpose}_${mode}`] = { p10, interval };
+    });
+  });
+}
+
+/**
+ * Return computed class breaks for the current selection, or null if not available.
+ */
+function getCurrentClassBreaks() {
+  const year = ScoresYear ? ScoresYear.value : '';
+  const purpose = ScoresPurpose ? ScoresPurpose.value : '';
+  const mode = ScoresMode ? ScoresMode.value : '';
+  if (!year || year.includes('-')) return null;
+  return (scoreClassBreaks[year] || {})[`${purpose}_${mode}`] || null;
+}
+
 function updateScoresLayer() {
   // console.log('Updating scores layer...');
   if (!initialLoadComplete || !isPanelOpen("Connectivity Scores")) {
@@ -5657,7 +5807,7 @@ function updateScoresLayer() {
   }
 
   if (!scoreLayers[selectedYear]) {
-    const scoreFile = ScoresFiles.find(file => file.year === selectedYear);
+    const scoreFile = getScoresFiles().find(file => file.year === selectedYear);
     if (scoreFile) {
       fetch(scoreFile.path)
         .then(response => {
@@ -5669,6 +5819,7 @@ function updateScoresLayer() {
         .then(csvData => {
           const parsedData = Papa.parse(csvData, { header: true }).data;
           scoreLayers[selectedYear] = parsedData;
+          computeClassBreaksForYear(selectedYear, parsedData);
           updateScoresLayer();
         })
       return;
@@ -5809,8 +5960,8 @@ function styleScoresFeature(feature, fieldToDisplay, opacityField, outlineField,
       } else {
         return '#38A800';
       }
-    } else {
-      // All single-year scores use 0-100 scale classification
+    } else if (fieldToDisplay.endsWith('_100')) {
+      // Pop-weighted percentile: 0-100 equal-bin classification
       return value > 90 ? '#fde725' :
              value > 80 ? '#b5de2b' :
              value > 70 ? '#6ece58' :
@@ -5821,6 +5972,30 @@ function styleScoresFeature(feature, fieldToDisplay, opacityField, outlineField,
              value > 20 ? '#3e4989' :
              value > 10 ? '#482777' :
                           '#440154';
+    } else {
+      // Raw score: use computed class breaks (10 classes)
+      const viridis = ['#440154','#482777','#3e4989','#31688e','#26828e','#1f9e89','#35b779','#6ece58','#b5de2b','#fde725'];
+      const breaks = getCurrentClassBreaks();
+      if (!breaks) {
+        // Fallback to 0-100 equal bins if breaks not yet computed
+        return value > 90 ? '#fde725' :
+               value > 80 ? '#b5de2b' :
+               value > 70 ? '#6ece58' :
+               value > 60 ? '#35b779' :
+               value > 50 ? '#1f9e89' :
+               value > 40 ? '#26828e' :
+               value > 30 ? '#31688e' :
+               value > 20 ? '#3e4989' :
+               value > 10 ? '#482777' :
+                            '#440154';
+      }
+      const { p10, interval } = breaks;
+      if (value <= 0) return 'transparent';
+      if (value < p10) return viridis[0];
+      for (let i = 0; i < 8; i++) {
+        if (value < p10 + (i + 1) * interval) return viridis[i + 1];
+      }
+      return viridis[9];
     }
   }
 

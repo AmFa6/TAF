@@ -21,8 +21,14 @@
 </head>
 <body>
   <div id="release-toolbar" aria-label="Version selector">
-    <label for="version-selector">Version:</label>
+    <label for="version-selector">Release:</label>
     <select id="version-selector"></select>
+    <span id="data-version-divider">|</span>
+    <label for="data-version-toggle">Data:</label>
+    <div id="data-version-toggle" role="group" aria-label="Data version">
+      <button class="data-version-btn" data-version="v2025.10">v2025.10</button>
+      <button class="data-version-btn" data-version="v2026.04">v2026.04</button>
+    </div>
   </div>
   <div id="map"></div>
   <div id="panel-container">

@@ -23,23 +23,39 @@ const BASE_PATH = dataSource === 'legacy'
   ? legacyBasePath
   : (versionedBasePath || localBasePath);
 
-const ScoresFiles = [
-  { year: '2025', path: `${BASE_PATH}/ConnectScores/2025_connectscore.csv` },
-  { year: '2024', path: `${BASE_PATH}/ConnectScores/2024_connectscore.csv` },
-  { year: '2024 (DfT)', path: `${BASE_PATH}/ConnectScores/grid_dft_scores.csv` },
-  { year: '2023', path: `${BASE_PATH}/ConnectScores/2023_connectscore.csv` },
-  { year: '2022', path: `${BASE_PATH}/ConnectScores/2022_connectscore.csv` },
-  { year: '2019', path: `${BASE_PATH}/ConnectScores/2019_connectscore.csv` },
-  { year: '2024-2025', path: `${BASE_PATH}/ConnectScores/2024-2025_connectscore.csv` },
-  { year: '2023-2025', path: `${BASE_PATH}/ConnectScores/2023-2025_connectscore.csv` },
-  { year: '2022-2025', path: `${BASE_PATH}/ConnectScores/2022-2025_connectscore.csv` },
-  { year: '2019-2025', path: `${BASE_PATH}/ConnectScores/2019-2025_connectscore.csv` },
-  { year: '2023-2024', path: `${BASE_PATH}/ConnectScores/2023-2024_connectscore.csv` },
-  { year: '2019-2024', path: `${BASE_PATH}/ConnectScores/2019-2024_connectscore.csv` },
-  { year: '2022-2023', path: `${BASE_PATH}/ConnectScores/2022-2023_connectscore.csv` },
-  { year: '2019-2023', path: `${BASE_PATH}/ConnectScores/2019-2023_connectscore.csv` }, 
-  { year: '2019-2022', path: `${BASE_PATH}/ConnectScores/2019-2022_connectscore.csv` }
-];
+// Data version toggle: 'v2025.10' uses ./data/v0/, 'v2026.04' uses ./data/v1/
+// Default is v2025.10. Changed at runtime by the UI toggle.
+window.dataVersion = 'v2025.10';
+
+function getVersionedDataPath() {
+  return window.dataVersion === 'v2026.04'
+    ? `${BASE_PATH}/v1`
+    : `${BASE_PATH}/v0`;
+}
+
+function getScoresFiles() {
+  const vp = getVersionedDataPath();
+  return [
+    { year: '2025',      path: `${vp}/2025_connectscore.csv` },
+    { year: '2024',      path: `${vp}/2024_connectscore.csv` },
+    { year: '2024 (DfT)', path: `${vp}/grid_dft_scores.csv` },
+    { year: '2023',      path: `${vp}/2023_connectscore.csv` },
+    { year: '2022',      path: `${vp}/2022_connectscore.csv` },
+    { year: '2019',      path: `${vp}/2019_connectscore.csv` },
+    { year: '2024-2025', path: `${vp}/2024-2025_connectscore.csv` },
+    { year: '2023-2025', path: `${vp}/2023-2025_connectscore.csv` },
+    { year: '2022-2025', path: `${vp}/2022-2025_connectscore.csv` },
+    { year: '2019-2025', path: `${vp}/2019-2025_connectscore.csv` },
+    { year: '2023-2024', path: `${vp}/2023-2024_connectscore.csv` },
+    { year: '2019-2024', path: `${vp}/2019-2024_connectscore.csv` },
+    { year: '2022-2023', path: `${vp}/2022-2023_connectscore.csv` },
+    { year: '2019-2023', path: `${vp}/2019-2023_connectscore.csv` },
+    { year: '2019-2022', path: `${vp}/2019-2022_connectscore.csv` }
+  ];
+}
+
+// Keep ScoresFiles as a static alias for legacy references; versioned callers use getScoresFiles()
+const ScoresFiles = getScoresFiles();
 
 const AmenitiesFiles = [
   { type: 'PriSch', path: `${BASE_PATH}/AmenitiesLocations/PriSch.geojson` },
@@ -68,8 +84,7 @@ const GeographyFiles = [
 ];
 
 const JourneyTimeFiles = {
-  basePath: `${BASE_PATH}/JourneyTimes/`,
-  getPath: (year, amenityType) => `${BASE_PATH}/JourneyTimes/${year}_${amenityType}_csv.csv`
+  getPath: (year, amenityType) => `${getVersionedDataPath()}/${year}_${amenityType}_csv.csv`
 };
 
 const purposeToAmenitiesMap = {
