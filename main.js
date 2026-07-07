@@ -523,7 +523,7 @@ const ScoresInverseOpacity = document.getElementById("inverseOpacityScaleScoresB
 const ScoresInverseOutline = document.getElementById("inverseOutlineScaleScoresButton");
 const AmenitiesYear = document.getElementById("yearAmenitiesDropdown");
 const AmenitiesMode = document.getElementById("modeAmenitiesDropdown");
-const AmenitiesPurpose = document.querySelectorAll('.checkbox-label input[type="checkbox"]');
+const AmenitiesPurpose = document.querySelectorAll('#amenitiesCheckboxesContainer input[type="checkbox"]');
 const AmenitiesOpacity = document.getElementById("opacityFieldAmenitiesDropdown");
 const AmenitiesOutline = document.getElementById("outlineFieldAmenitiesDropdown");
 const LayerTransparencySliderAmenities = document.getElementById('layerTransparencySliderAmenities');
@@ -826,9 +826,7 @@ AmenitiesYear.addEventListener("change", () => {
   updateAmenitiesCatchmentLayer();
 });
 
-AmenitiesMode.addEventListener("change", () => {
-  updateAmenitiesCatchmentLayer();
-});
+// Mode checkboxes are set up in DOMContentLoaded
 AmenitiesPurpose.forEach(checkbox => {
   checkbox.addEventListener("change", () => {
     if (!checkbox.checked && selectingFromMap) {
@@ -1103,6 +1101,32 @@ document.addEventListener('DOMContentLoaded', (event) => {
       }
     }
   });
+
+  // Mode dropdown setup
+  const modeDropdownBtn = document.getElementById('modeAmenitiesDropdown');
+  const modeDropdownMenu = document.getElementById('modeAmenitiesContainer');
+  if (modeDropdownBtn && modeDropdownMenu) {
+    modeDropdownBtn.addEventListener('click', () => {
+      modeDropdownMenu.classList.toggle('show');
+    });
+    modeDropdownMenu.addEventListener('click', (event) => {
+      event.stopPropagation();
+    });
+    window.addEventListener('click', (event) => {
+      if (!event.target.matches('#modeAmenitiesDropdown')) {
+        if (modeDropdownMenu.classList.contains('show')) {
+          modeDropdownMenu.classList.remove('show');
+        }
+      }
+    });
+    modeDropdownMenu.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+      cb.addEventListener('change', () => {
+        updateModeDropdownLabel();
+        updateAmenitiesCatchmentLayer();
+      });
+    });
+    updateModeDropdownLabel();
+  }
 
   document.querySelectorAll('.legend-checkbox').forEach(checkbox => {
     checkbox.addEventListener('change', updateFeatureVisibility);
@@ -5545,6 +5569,20 @@ function getAmenityTypeDisplayName(amenityType) {
   }
 }
 
+function updateModeDropdownLabel() {
+  const modeBtn = document.getElementById('modeAmenitiesDropdown');
+  if (!modeBtn) return;
+  const checked = Array.from(document.querySelectorAll('#modeAmenitiesContainer input[type="checkbox"]:checked'));
+  const labels = { Wa: 'Walk', Cy: 'Cycle', PT: 'Public Transport', Ca: 'Car' };
+  if (checked.length === 0) {
+    modeBtn.textContent = '\u00A0';
+  } else if (checked.length === 1) {
+    modeBtn.textContent = labels[checked[0].value] || checked[0].value;
+  } else {
+    modeBtn.textContent = 'Multiple Modes';
+  }
+}
+
 function updateAmenitiesDropdownLabel() {
   // console.log('Updating amenities dropdown label...');
   const amenitiesDropdown = document.getElementById('amenitiesDropdown');
@@ -5843,9 +5881,11 @@ function showAmenityCatchment(amenityType, amenityId) {
       AmenitiesYear.value = AmenitiesYear.options[0].value;
     }
     
-    if (!AmenitiesMode.value) {
-      AmenitiesMode.value = AmenitiesMode.options[0].value;
+    const modeCheckboxes = document.querySelectorAll('#modeAmenitiesContainer input[type="checkbox"]');
+    if (!Array.from(modeCheckboxes).some(cb => cb.checked)) {
+      modeCheckboxes[0].checked = true;
     }
+    updateModeDropdownLabel();
     
     AmenitiesPurpose.forEach(checkbox => {
       checkbox.checked = false;
@@ -5972,7 +6012,7 @@ function updateAmenitiesCatchmentLayer() {
   }
 
   const selectedYear = AmenitiesYear.value;
-  const selectedMode = AmenitiesMode.value;
+  const selectedModes = Array.from(document.querySelectorAll('#modeAmenitiesContainer input[type="checkbox"]:checked')).map(cb => cb.value);
   
   selectedAmenitiesAmenities = Array.from(AmenitiesPurpose)
     .filter(checkbox => checkbox.checked)
@@ -5983,7 +6023,7 @@ function updateAmenitiesCatchmentLayer() {
     ScoresLayer = null;
   }
 
-  if (!selectedYear || !selectedMode || selectedAmenitiesAmenities.length === 0) {
+  if (!selectedYear || selectedModes.length === 0 || selectedAmenitiesAmenities.length === 0) {
     if (AmenitiesCatchmentLayer) {
       map.removeLayer(AmenitiesCatchmentLayer);
       AmenitiesCatchmentLayer = null;
@@ -6009,13 +6049,13 @@ function updateAmenitiesCatchmentLayer() {
           
           let matchCount = 0;
           csvData.forEach(row => {
-            if (row.Mode === selectedMode) {
+            if (selectedModes.includes(row.Mode)) {
               if (selectingFromMap && selectedAmenitiesFromMap.length > 0) {
                 let isMatch = false;
                 
                 const selectedId = selectedAmenitiesFromMap[0];
                 
-                const rowId = selectedMode === 'PT' ? row.Tracc_ID : row.NA_ID;
+                const rowId = row.Mode === 'PT' ? row.Tracc_ID : row.NA_ID;
                 
                 if (selectedId === rowId) {
                   isMatch = true;
@@ -6057,13 +6097,13 @@ function updateAmenitiesCatchmentLayer() {
       
       let matchCount = 0;
       csvData.forEach(row => {
-        if (row.Mode === selectedMode) {
+        if (selectedModes.includes(row.Mode)) {
           if (selectingFromMap && selectedAmenitiesFromMap.length > 0) {
             let isMatch = false;
             
             const selectedId = selectedAmenitiesFromMap[0];
             
-            const rowId = selectedMode === 'PT' ? row.Tracc_ID : row.NA_ID;
+            const rowId = row.Mode === 'PT' ? row.Tracc_ID : row.NA_ID;
             
             if (selectedId === rowId) {
               isMatch = true;
@@ -6135,7 +6175,7 @@ function updateAmenitiesCatchmentLayer() {
     AmenitiesCatchmentLayer = L.geoJSON(filteredAmenitiesCatchmentLayer, {
       pane: 'polygonLayers',
     }).addTo(map);
-    AmenitiesCatchmentLayer._currentMode = selectedMode;
+    AmenitiesCatchmentLayer._currentMode = selectedModes.join(',');
 
     applyAmenitiesCatchmentLayerStyling();
 

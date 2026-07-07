@@ -56,9 +56,9 @@
           <option value="Emp">Employment</option>
           <option value="HSt" class="standard-purpose">High Street</option>
           <option value="Hth">Health</option>
-          <option value="Lei" class="dft-purpose" style="display:none;">Leisure</option>
-          <option value="Shp" class="dft-purpose" style="display:none;">Shopping</option>
-          <option value="Res" class="dft-purpose" style="display:none;">Residential</option>
+          <option value="Lei" class="dft-purpose">Leisure</option>
+          <option value="Shp" class="dft-purpose">Shopping</option>
+          <option value="Res" class="dft-purpose">Residential</option>
         </select>
         <br>
         <label for="modeScoresDropdown" class="large-font">Mode of Travel:</label>
@@ -84,7 +84,7 @@
           </div>
           <br>
           <label for="opacityFieldScoresDropdown" class="medium-font">Link Hexagon Transparency to:</label>
-          <input id="opacityFieldScoresSearch" type="text" class="small-font" placeholder="Search metrics…" style="width: 100%; margin: 4px 0;">
+          <input id="opacityFieldScoresSearch" type="text" class="small-font metric-search-input" placeholder="Search metrics…">
           <select id="opacityFieldScoresDropdown" class="small-font">
             <option value="None">-</option>
             <option value="pop">Population</option>
@@ -109,7 +109,7 @@
           </div>
           <br>
           <label for="outlineFieldScoresDropdown" class="medium-font">Link Hexagon Outline to:</label>
-          <input id="outlineFieldScoresSearch" type="text" class="small-font" placeholder="Search metrics…" style="width: 100%; margin: 4px 0;">
+          <input id="outlineFieldScoresSearch" type="text" class="small-font metric-search-input" placeholder="Search metrics…">
           <select id="outlineFieldScoresDropdown" class="small-font">
             <option value="None">-</option>
             <option value="IMDScore">Index of Multiple Deprivation - Score</option>
@@ -147,13 +147,16 @@
           <option value="2019">2019</option>
         </select>
         <br>
-        <label for="modeAmenitiesDropdown" class="large-font">Mode of Travel:</label>
-        <select id="modeAmenitiesDropdown" class="medium-font">
-          <option value="Wa">Walk</option>
-          <option value="Cy">Cycle</option>
-          <option value="PT">Public Transport</option>
-          <option value="Ca">Car</option>
-        </select>
+        <label class="large-font">Mode of Travel:</label>
+        <div class="dropdown">
+          <button type="button" class="dropdown-toggle" id="modeAmenitiesDropdown">Walk</button>
+          <div class="dropdown-menu" id="modeAmenitiesContainer">
+            <label class="checkbox-label"><input type="checkbox" value="Wa" checked> <span>Walk</span></label>
+            <label class="checkbox-label"><input type="checkbox" value="Cy"> <span>Cycle</span></label>
+            <label class="checkbox-label"><input type="checkbox" value="PT"> <span>Public Transport</span></label>
+            <label class="checkbox-label"><input type="checkbox" value="Ca"> <span>Car</span></label>
+          </div>
+        </div>
         <br>
         <label class="large-font">Amenities:</label>
         <div class="dropdown">
@@ -187,7 +190,7 @@
           </div>
           <br>
           <label for="opacityFieldAmenitiesDropdown" class="medium-font">Link Hexagon Transparency to:</label>
-          <input id="opacityFieldAmenitiesSearch" type="text" class="small-font" placeholder="Search metrics…" style="width: 100%; margin: 4px 0;">
+          <input id="opacityFieldAmenitiesSearch" type="text" class="small-font metric-search-input" placeholder="Search metrics…">
           <select id="opacityFieldAmenitiesDropdown" class="small-font">
             <option value="None">-</option>
             <option value="pop">Population</option>
@@ -212,7 +215,7 @@
           </div>
           <br>
           <label for="outlineFieldAmenitiesDropdown" class="medium-font">Link Hexagon Outline to:</label>
-          <input id="outlineFieldAmenitiesSearch" type="text" class="small-font" placeholder="Search metrics…" style="width: 100%; margin: 4px 0;">
+          <input id="outlineFieldAmenitiesSearch" type="text" class="small-font metric-search-input" placeholder="Search metrics…">
           <select id="outlineFieldAmenitiesDropdown" class="small-font">
             <option value="None">-</option>
             <option value="IMDScore">Index of Multiple Deprivation - Score</option>
@@ -254,7 +257,7 @@
         </select>
         <br>
         <label for="opacityFieldCensusDropdown" class="large-font">Hexagon Transparency</label>
-        <input id="opacityFieldCensusSearch" type="text" class="medium-font" placeholder="Search metrics…" style="width: 100%; margin: 4px 0;">
+        <input id="opacityFieldCensusSearch" type="text" class="medium-font metric-search-input" placeholder="Search metrics…">
         <select id="opacityFieldCensusDropdown" class="medium-font">
           <option value="None">-</option>
           <option value="pop">Population</option>
@@ -283,7 +286,7 @@
         </div>
         <br>
         <label for="outlineFieldCensusDropdown" class="large-font">Hexagon Outline</label>
-        <input id="outlineFieldCensusSearch" type="text" class="medium-font" placeholder="Search metrics…" style="width: 100%; margin: 4px 0;">
+        <input id="outlineFieldCensusSearch" type="text" class="medium-font metric-search-input" placeholder="Search metrics…">
         <select id="outlineFieldCensusDropdown" class="medium-font">
           <option value="None">-</option>
           <option value="IMDScore">Index of Multiple Deprivation - Score</option>
@@ -334,16 +337,16 @@
         <div class="legend-category-content">
           <div id="userLayersContainer" class="user-layers-list"></div>
           
-          <div style="margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px;">
-            <div style="margin-bottom: 5px; font-weight: bold;">Add Layer</div>
-            <input type="file" id="fileUpload" accept=".geojson,.kml" style="display: none;" />
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px;">
-              <button id="uploadFromFileBtn" class="btn" style="height: 40px; padding: 6px 12px; font-size: 13px; box-sizing: border-box;">Upload from File</button>
-              <button id="loadLayersBtn" class="btn" style="height: 40px; padding: 6px 12px; font-size: 13px; box-sizing: border-box;">Load from User Library</button>
+          <div class="add-layer-section">
+            <div class="section-heading">Add Layer</div>
+            <input type="file" id="fileUpload" accept=".geojson,.kml" aria-label="Upload GeoJSON or KML file" title="Upload GeoJSON or KML file" />
+            <div class="layer-button-grid">
+              <button id="uploadFromFileBtn" class="btn layer-action-btn">Upload from File</button>
+              <button id="loadLayersBtn" class="btn layer-action-btn">Load from User Library</button>
             </div>
           </div>
-          <div class="drawing-tools" style="margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px;">
-            <div style="margin-bottom: 5px; font-weight: bold;">Draw Layer</div>
+          <div class="drawing-tools">
+            <div class="section-heading">Draw Layer</div>
             <div class="draw-buttons">
               <button class="draw-button" id="drawPointBtn" title="Draw Points">
                 <i class="fas fa-map-marker-alt"></i>
@@ -355,13 +358,13 @@
                 <i class="fas fa-draw-polygon"></i>
               </button>
             </div>
-            <div style="margin-top: 5px;">
-              <div id="drawing-instructions" style="font-size: 0.85em; color: #666; margin-bottom: 5px; display: none;">
+            <div class="drawing-controls-wrapper">
+              <div id="drawing-instructions">
                 Click on map to place points. Press ESC to cancel.
               </div>
-              <div id="save-drawing-container" style="display: none; margin-top: 8px;">
-                <input type="text" id="drawingNameInput" placeholder="Enter layer name" style="width: calc(100% - 65px); padding: 4px; margin-right: 5px;">
-                <button id="saveDrawingBtn" class="btn" style="width: 60px; padding: 4px;">Save</button>
+              <div id="save-drawing-container">
+                <input type="text" id="drawingNameInput" placeholder="Enter layer name">
+                <button id="saveDrawingBtn" class="btn">Save</button>
               </div>
             </div>
           </div>
@@ -373,21 +376,21 @@
         </div>
         <div class="legend-category-content">
           <div>
-            <input type="checkbox" id="amenitiesCheckbox"> <span style="font-size: 1em;">Amenities</span>
+            <label><input type="checkbox" id="amenitiesCheckbox" title="Amenities"> <span>Amenities</span></label>
           </div>
           <div>
-            <input type="checkbox" id="busStopsCheckbox"> <span style="font-size: 1em;">Bus Stops</span>
+            <label><input type="checkbox" id="busStopsCheckbox" title="Bus Stops"> <span>Bus Stops</span></label>
           </div>
           <div>
-            <input type="checkbox" id="busLinesCheckbox"> <span style="font-size: 1em;">Bus Lines</span>
+            <label><input type="checkbox" id="busLinesCheckbox" title="Bus Lines"> <span>Bus Lines</span></label>
           </div>
           <div>
-            <input type="checkbox" id="WestLinkZonesCheckbox"> <span style="font-size: 1em;">WESTlink Zones</span>
+            <label><input type="checkbox" id="WestLinkZonesCheckbox" title="WESTlink Zones"> <span>WESTlink Zones</span></label>
           </div>
-          <div style="display: flex; align-items: center; justify-content: space-between;">
-            <label style="display: flex; align-items: center; margin: 0;">
-              <input type="checkbox" id="roadNetworkCheckbox" style="margin-right: 5px;"> 
-              <span style="font-size: 1em;">Road Network</span>
+          <div class="road-network-row">
+            <label class="road-network-label">
+              <input type="checkbox" id="roadNetworkCheckbox"> 
+              <span>Road Network</span>
             </label>
           </div>
         </div>
@@ -398,16 +401,16 @@
         </div>
         <div class="legend-category-content">
           <div>
-            <input type="checkbox" id="uaBoundariesCheckbox"> <span style="font-size: 1em;">Unitary Authorities (2024)</span>
+            <label><input type="checkbox" id="uaBoundariesCheckbox" title="Unitary Authorities (2024)"> <span>Unitary Authorities (2024)</span></label>
           </div>
           <div>
-            <input type="checkbox" id="wardBoundariesCheckbox"> <span style="font-size: 1em;">Wards (2024)</span>
+            <label><input type="checkbox" id="wardBoundariesCheckbox" title="Wards (2024)"> <span>Wards (2024)</span></label>
           </div>
           <div>
-            <input type="checkbox" id="lsoaCheckbox"> <span style="font-size: 1em;">Lower Layer Super Output Areas (LSOA 2021)</span>
+            <label><input type="checkbox" id="lsoaCheckbox" title="Lower Layer Super Output Areas (LSOA 2021)"> <span>Lower Layer Super Output Areas (LSOA 2021)</span></label>
           </div>
           <div>
-            <input type="checkbox" id="GrowthZonesCheckbox"> <span style="font-size: 1em;">Growth Zones</span>
+            <label><input type="checkbox" id="GrowthZonesCheckbox" title="Growth Zones"> <span>Growth Zones</span></label>
           </div>
         </div>
       </div>
@@ -426,30 +429,30 @@
           <option value="Range">Range (see Legend)</option>
         </select>
       </div>
-      <div style="display: flex; align-items: center; margin-bottom: 5px;">
-        <div style="margin-right: 10px;">
+      <div class="filter-area-row">
+        <div class="filter-area-label-col">
           <label for="filterValueDropdown">Area Name:</label>
         </div>
-        <div style="margin-left: auto; white-space: nowrap; display: flex; align-items: center;">
-          <label for="highlightAreaCheckbox" style="font-size: 1em; font-weight: normal; font-style: italic; margin: 0; margin-right: 5px;">Highlight Area on Map</label>
-          <input type="checkbox" id="highlightAreaCheckbox" style="width: auto; margin: 0; padding: 0; height: auto;">
+        <div class="highlight-area-control">
+          <label for="highlightAreaCheckbox" class="highlight-area-label">Highlight Area on Map</label>
+          <input type="checkbox" id="highlightAreaCheckbox">
         </div>
       </div>
-      <select id="filterValueDropdown" class="small-font" style="width: 100%; margin-bottom: 10px; margin-top: 2px;"></select>  
-      <div style="margin-bottom: 15px;"></div>
+      <select id="filterValueDropdown" class="small-font"></select>  
+      <div class="filter-spacer"></div>
       
       <!-- Statistics table collapsible section -->
-      <label id="toggle-statistics-table" style="display: block; cursor: pointer; font-size: 1.1em; font-weight: normal; margin-bottom: 8px; margin-top: 10px;">Statistics table ▶</label>
-      <div id="statistics-content" class="collapsible-content no-background" style="display: none;">
+      <label id="toggle-statistics-table">Statistics table ▶</label>
+      <div id="statistics-content" class="collapsible-content no-background">
         <table id="summary-table">
           <thead>
-            <tr style="background-color: #f2f2f2;">
+            <tr>
               <th id="metric-header">Metric</th>
               <th>Average</th>
               <th>Total</th>
               <th>Minimum</th>
               <th>Maximum</th>
-              <th style="width: 30px;"></th>
+              <th class="th-delete-col"></th>
             </tr>
           </thead>
         <tbody id="summary-table-body">
@@ -493,10 +496,10 @@
             <td id="max-car-availability"></td>
             <td><button class="delete-metric-btn" onclick="deleteMetricRow(this)">✕</button></td>
           </tr>
-          <tr id="add-metric-row" style="background-color: #f9f9f9;">
+          <tr id="add-metric-row">
             <td colspan="6">
-              <input id="addMetricSearch" type="text" class="small-font" placeholder="Search metrics…" style="width: 100%; padding: 5px; margin-bottom: 4px;">
-              <select id="add-metric-dropdown" class="small-font" style="width: 100%; padding: 5px;">
+              <input id="addMetricSearch" type="text" class="small-font" placeholder="Search metrics…">
+              <select id="add-metric-dropdown" class="small-font" aria-label="Add metric">
                 <option value="">+ Add Metric</option>
               </select>
             </td>
@@ -506,9 +509,9 @@
       </div>
       
       <!-- Amenities within Area collapsible section -->
-      <div id="amenities-summary" style="margin-top: 15px;">
-        <label id="toggle-amenities-table" style="display: block; cursor: pointer; font-size: 1.1em; font-weight: normal; margin-bottom: 8px;">Amenities within Area ▶</label>
-        <div id="amenities-content" class="collapsible-content no-background" style="display: none;">
+      <div id="amenities-summary">
+        <label id="toggle-amenities-table">Amenities within Area ▶</label>
+        <div id="amenities-content" class="collapsible-content no-background">
           <table id="amenities-table">
             <thead>
               <tr>
@@ -534,7 +537,7 @@
       </div>
     </div>
   </div>
-  <div id="attribute-editor-modal" style="display:none;" class="modal-dialog">
+  <div id="attribute-editor-modal" class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
         <h3>Feature Attributes</h3>
@@ -544,13 +547,13 @@
           <!-- Default name field -->
           <div class="attribute-field">
             <div class="field-row">
-              <input type="text" class="attribute-name" value="Name" readonly>
+              <input type="text" class="attribute-name" value="Name" readonly title="Attribute name">
               <input type="text" class="attribute-value" placeholder="Enter name...">
             </div>
           </div>
           <!-- Additional fields will be added here -->
         </div>
-        <button id="add-attribute-field" class="btn" style="margin-top: 10px;">Add New Attribute</button>
+        <button id="add-attribute-field" class="btn">Add New Attribute</button>
       </div>
       <div class="modal-footer">
         <button id="save-attributes" class="btn">Save</button>
