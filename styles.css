@@ -1251,6 +1251,13 @@ h4.legend-title {
 }
 
 /* Amenities summary section */
+/* Consistent gap between year select, mode dropdown, and amenities dropdown */
+#yearAmenitiesDropdown,
+.panel-form-control {
+  display: block;
+  margin-bottom: 0.4em;
+}
+
 #amenities-summary {
   margin-top: 15px;
 }
