@@ -5022,39 +5022,38 @@ function updateLegend() {
           { range: `0-10 - 10% of region's population with worst access to amenities`, color: "#440154" }
         ];
       } else {
-        // When percentiles are off, show computed raw score class breaks
+        // When percentiles are off: fixed 0-10…90-100 bins for v2026.04; computed LEP percentile breaks for v2025.10
         const viridis = ['#440154','#482777','#3e4989','#31688e','#26828e','#1f9e89','#35b779','#6ece58','#b5de2b','#fde725'];
-        const breaks = getCurrentClassBreaks();
-        if (breaks) {
-          const { p10, interval } = breaks;
-          // Use plain numeric X-Y / > X formats compatible with isClassVisible parser
-          const fmt = v => Number.isInteger(v) ? String(v) : v.toFixed(1);
-          // Class 1: 0 to p10
-          classes = [{ range: `0-${fmt(p10)}`, color: viridis[0] }];
-          // Classes 2–9: 8 intervals from p10
-          for (let i = 0; i < 8; i++) {
-            const lo = p10 + i * interval;
-            const hi = p10 + (i + 1) * interval;
-            classes.push({ range: `${fmt(lo)}-${fmt(hi)}`, color: viridis[i + 1] });
-          }
-          // Class 10: above p10 + 8 intervals
-          classes.push({ range: `> ${fmt(p10 + 8 * interval)}`, color: viridis[9] });
-          // Reverse so highest value is at top of legend
-          classes.reverse();
+        const fixedClasses = [
+          { range: `90-100`, color: "#fde725" },
+          { range: `80-90`,  color: "#b5de2b" },
+          { range: `70-80`,  color: "#6ece58" },
+          { range: `60-70`,  color: "#35b779" },
+          { range: `50-60`,  color: "#1f9e89" },
+          { range: `40-50`,  color: "#26828e" },
+          { range: `30-40`,  color: "#31688e" },
+          { range: `20-30`,  color: "#3e4989" },
+          { range: `10-20`,  color: "#482777" },
+          { range: `0-10`,   color: "#440154" }
+        ];
+        if (window.dataVersion === 'v2026.04') {
+          classes = fixedClasses;
         } else {
-          // Fallback if breaks not yet computed
-          classes = [
-            { range: `90-100`, color: "#fde725" },
-            { range: `80-90`, color: "#b5de2b" },
-            { range: `70-80`, color: "#6ece58" },
-            { range: `60-70`, color: "#35b779" },
-            { range: `50-60`, color: "#1f9e89" },
-            { range: `40-50`, color: "#26828e" },
-            { range: `30-40`, color: "#31688e" },
-            { range: `20-30`, color: "#3e4989" },
-            { range: `10-20`, color: "#482777" },
-            { range: `0-10`,  color: "#440154" }
-          ];
+          const breaks = getCurrentClassBreaks();
+          if (breaks) {
+            const { p10, interval } = breaks;
+            const fmt = v => Number.isInteger(v) ? String(v) : v.toFixed(1);
+            classes = [{ range: `0-${fmt(p10)}`, color: viridis[0] }];
+            for (let i = 0; i < 8; i++) {
+              const lo = p10 + i * interval;
+              const hi = p10 + (i + 1) * interval;
+              classes.push({ range: `${fmt(lo)}-${fmt(hi)}`, color: viridis[i + 1] });
+            }
+            classes.push({ range: `> ${fmt(p10 + 8 * interval)}`, color: viridis[9] });
+            classes.reverse();
+          } else {
+            classes = fixedClasses;
+          }
         }
       }
     }
@@ -5973,8 +5972,20 @@ function styleScoresFeature(feature, fieldToDisplay, opacityField, outlineField,
              value > 10 ? '#482777' :
                           '#440154';
     } else {
-      // Raw score: use computed class breaks (10 classes)
+      // Raw score: fixed 0-10…90-100 bins for v2026.04; computed LEP percentile breaks for v2025.10
       const viridis = ['#440154','#482777','#3e4989','#31688e','#26828e','#1f9e89','#35b779','#6ece58','#b5de2b','#fde725'];
+      if (window.dataVersion === 'v2026.04') {
+        return value > 90 ? '#fde725' :
+               value > 80 ? '#b5de2b' :
+               value > 70 ? '#6ece58' :
+               value > 60 ? '#35b779' :
+               value > 50 ? '#1f9e89' :
+               value > 40 ? '#26828e' :
+               value > 30 ? '#31688e' :
+               value > 20 ? '#3e4989' :
+               value > 10 ? '#482777' :
+                            '#440154';
+      }
       const breaks = getCurrentClassBreaks();
       if (!breaks) {
         // Fallback to 0-100 equal bins if breaks not yet computed
@@ -5990,7 +6001,6 @@ function styleScoresFeature(feature, fieldToDisplay, opacityField, outlineField,
                             '#440154';
       }
       const { p10, interval } = breaks;
-      if (value <= 0) return 'transparent';
       if (value < p10) return viridis[0];
       for (let i = 0; i < 8; i++) {
         if (value < p10 + (i + 1) * interval) return viridis[i + 1];

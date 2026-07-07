@@ -30,10 +30,6 @@ html, body {
   min-width: 140px;
   font-size: 0.9em;
 }
-#data-version-divider {
-  color: #ccc;
-  margin: 0 2px;
-}
 #data-version-toggle {
   display: flex;
   gap: 2px;
