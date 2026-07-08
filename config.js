@@ -23,12 +23,12 @@ const BASE_PATH = dataSource === 'legacy'
   ? legacyBasePath
   : (versionedBasePath || localBasePath);
 
-// Default is WoE v0. Changed at runtime by the UI toggle.
-window.dataVersion = 'WoE_v0';
+// Default is woe v0. Changed at runtime by the UI toggle.
+window.dataVersion = 'woe_v0';
 
 function getVersionedDataPath() {
-  if (window.dataVersion === 'WoE_v1') return `${BASE_PATH}/WoE_v1`;
-  return `${BASE_PATH}/WoE_v0`;
+  if (window.dataVersion === 'woe_v1') return `${BASE_PATH}/woe_v1`;
+  return `${BASE_PATH}/woe_v0`;
 }
 
 function getDftScorePath() {

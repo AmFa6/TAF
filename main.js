@@ -824,7 +824,7 @@ function setDataVersion(version) {
 // Returns the effective year key for score data based on current version/checkbox state
 function getEffectiveYear() {
   if (window.dataVersion === 'DfT') return 'DfT';
-  if (window.dataVersion === 'v2025.10') {
+  if (window.dataVersion === 'woe_v0') {
     const checked = Array.from(document.querySelectorAll('#yearScoresCheckboxes input[type="checkbox"]:checked'))
       .map(cb => cb.value);
     if (checked.length === 2) {
@@ -835,7 +835,7 @@ function getEffectiveYear() {
     }
     return null;
   }
-  return ScoresYear.value; // v2026.04 uses dropdown
+  return ScoresYear.value; // woe_v1 uses dropdown
 }
 
 function updateYearSelector() {
@@ -848,9 +848,9 @@ function updateYearSelector() {
     container.style.display = 'none';
   } else {
     container.style.display = '';
-    if (version === 'v2025.10') {
+    if (version === 'woe_v0') {
       dropdown.style.display = 'none';
-      checkboxes.style.display = '';
+      checkboxes.style.display = 'flex';
       // Default to 2025 checked if nothing selected
       const anyChecked = checkboxes.querySelectorAll('input:checked').length;
       if (anyChecked === 0) {
@@ -915,7 +915,7 @@ function updatePurposeOptions() {
 }
 ScoresMode.addEventListener("change", () => updateScoresLayer());
 
-// Year checkbox listeners (v2025.10 mode)
+// Year checkbox listeners (woe_v0 mode)
 document.querySelectorAll('#yearScoresCheckboxes input[type="checkbox"]').forEach(cb => {
   cb.addEventListener('change', () => {
     const allChecked = document.querySelectorAll('#yearScoresCheckboxes input[type="checkbox"]:checked');
@@ -1421,8 +1421,8 @@ document.addEventListener('DOMContentLoaded', (event) => {
   setupAmenitiesToggle();
 
   // ---- Data version toggle ----
-  // Set default active state (v2025.10)
-  setDataVersion('v2025.10');
+  // Set default active state (woe_v0)
+  setDataVersion('woe_v0');
 
   document.getElementById('add-attribute-field').addEventListener('click', function() {
     addAttributeField();
@@ -5103,7 +5103,7 @@ function updateLegend() {
           { range: `0-10 - 10% of region's population with worst access to amenities`, color: "#440154" }
         ];
       } else {
-        // When percentiles are off: fixed 0-10…90-100 bins for v2026.04; computed LEP percentile breaks for v2025.10
+        // When percentiles are off: fixed 0-10…90-100 bins for woe_v1; computed LEP percentile breaks for woe_v0
         const viridis = ['#440154','#482777','#3e4989','#31688e','#26828e','#1f9e89','#35b779','#6ece58','#b5de2b','#fde725'];
         const fixedClasses = [
           { range: `90-100`, color: "#fde725" },
@@ -5117,7 +5117,7 @@ function updateLegend() {
           { range: `10-20`,  color: "#482777" },
           { range: `0-10`,   color: "#440154" }
         ];
-        if (window.dataVersion === 'v2026.04') {
+        if (window.dataVersion === 'woe_v1') {
           classes = fixedClasses;
         } else {
           const breaks = getCurrentClassBreaks();
@@ -6048,9 +6048,9 @@ function styleScoresFeature(feature, fieldToDisplay, opacityField, outlineField,
              value > 10 ? '#482777' :
                           '#440154';
     } else {
-      // Raw score: fixed 0-10…90-100 bins for v2026.04; computed LEP percentile breaks for v2025.10
+      // Raw score: fixed 0-10…90-100 bins for woe_v1; computed LEP percentile breaks for woe_v0
       const viridis = ['#440154','#482777','#3e4989','#31688e','#26828e','#1f9e89','#35b779','#6ece58','#b5de2b','#fde725'];
-      if (window.dataVersion === 'v2026.04') {
+      if (window.dataVersion === 'woe_v1') {
         return value > 90 ? '#fde725' :
                value > 80 ? '#b5de2b' :
                value > 70 ? '#6ece58' :

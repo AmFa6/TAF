@@ -171,12 +171,12 @@
       border: 2px solid;
     }
 
-    .version-card.v2025 {
+    .version-card.woe_v0 {
       background: #f0f6ff;
       border-color: #3d85c8;
     }
 
-    .version-card.v2026 {
+    .version-card.woe_v1 {
       background: #f0fff4;
       border-color: #3aab6a;
     }
@@ -189,8 +189,8 @@
       gap: 8px;
     }
 
-    .version-card.v2025 h5 { color: #2a6094; }
-    .version-card.v2026 h5 { color: #267a4a; }
+    .version-card.woe_v0 h5 { color: #2a6094; }
+    .version-card.woe_v1 h5 { color: #267a4a; }
 
     .version-badge {
       display: inline-block;
@@ -201,8 +201,8 @@
       color: white;
     }
 
-    .version-badge.v2025 { background: #3d85c8; }
-    .version-badge.v2026 { background: #3aab6a; }
+    .version-badge.woe_v0 { background: #3d85c8; }
+    .version-badge.woe_v1 { background: #3aab6a; }
 
     .warning-box {
       background: #fff4f4;
@@ -338,8 +338,8 @@
       <p>The tool supports two score calculation methodologies, selectable via the <strong>Score calculation methodology version</strong> toggle at the top of the map. Both use a weighted formula applied to each accessible destination, but differ in how mode weights, distance decay, and normalisation are handled.</p>
 
       <div class="version-grid">
-        <div class="version-card v2025">
-          <h5><span class="version-badge v2025">v2025.10</span> WoE methodology</h5>
+        <div class="version-card woe_v0">
+          <h5><span class="version-badge woe_v0">woe_v0.10</span> Methodology WoE v0 - May 2025</h5>
           <p class="formula-label">Formula:</p>
           <div class="highlight">
             <strong>Score = Service_Weight × Mode_Weight / (Travel_Time ^ Threshold_Weight)</strong>
@@ -350,8 +350,8 @@
             <li><strong>Threshold weight:</strong> Walk 2.0, Cycle 1.5, PT 1.1, Car 1.0. A higher value means that each further destination gets more penalised.</li>
           </ul>
         </div>
-        <div class="version-card v2026">
-          <h5><span class="version-badge v2026">v2026.04</span> DfT-aligned methodology</h5>
+        <div class="version-card woe_v1">
+          <h5><span class="version-badge woe_v1">woe_v1</span> Methodology WoE v1 - April 2026</h5>
           <div class="highlight">
             <strong>Score = Service_Weight × Mode_Weight × e<sup>−Diminishing_Returns_Weight × Travel_Time</sup></strong>
           </div>
@@ -364,7 +364,7 @@
       </div>
 
       <div class="warning-box">
-        <strong>⚠ Year-on-year comparisons:</strong> v2026.04 scores are normalised to a scale 0-100 for each year/purpose/mode combination. This means the absolute score values are not comparable across different years — a score of 50 in 2022 and 50 in 2025 do not represent the same level of connectivity. Use the <em>score difference</em> layer with caution under v2026.04. For trend analysis, use <strong>v2025.10</strong>.
+        <strong>⚠ Year-on-year comparisons:</strong> V1 scores are normalised to a scale 0-100 for each year/purpose/mode combination. This means the absolute score values are not comparable across different years — a score of 50 in 2022 and 50 in 2025 do not represent the same level of connectivity. Use the <em>score difference</em> layer with caution under woe_v1. For trend analysis, use <strong>woe_v0.10</strong>.
       </div>
       
       <h4>Step 3: Aggregation by Origin and Mode</h4>
