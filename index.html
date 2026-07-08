@@ -20,37 +20,36 @@
   <script src="https://unpkg.com/@mapbox/togeojson@0.16.0/togeojson.js"></script>
 </head>
 <body>
-  <div id="release-toolbar" aria-label="Score calculation methodology version">
-    <label for="data-version-toggle">Score calculation methodology version:</label>
-    <div id="data-version-toggle" role="group" aria-label="Score calculation methodology version">
-      <button class="data-version-btn" data-version="v2025.10">v2025.10</button>
-      <button class="data-version-btn" data-version="v2026.04">v2026.04</button>
-    </div>
-  </div>
   <div id="map"></div>
   <div id="panel-container">
     <div id="Scores" class="panel">
       <button class="panel-header">Connectivity Scores</button>
       <div id="panel-content">
-        <label for="yearScoresDropdown" class="large-font">Year:</label>
-        <select id="yearScoresDropdown" class="medium-font">
-          <option value="2025">2025</option>
-          <option value="2024">2024</option>
-          <option value="2024 (DfT)">2024 (DfT)</option>
-          <option value="2023">2023</option>
-          <option value="2022">2022</option>
-          <option value="2019">2019</option>
-          <option value="2024-2025">2024-2025</option>
-          <option value="2023-2025">2023-2025</option>
-          <option value="2022-2025">2022-2025</option>
-          <option value="2019-2025">2019-2025</option>
-          <option value="2023-2024">2023-2024</option>
-          <option value="2022-2024">2022-2024</option>
-          <option value="2019-2024">2019-2024</option>
-          <option value="2022-2023">2022-2023</option>
-          <option value="2019-2023">2019-2023</option>
-          <option value="2019-2022">2019-2022</option>
+        <label for="versionScoresDropdown" class="large-font">Version:</label>
+        <select id="versionScoresDropdown" class="medium-font">
+          <option value="v2025.10">West of England - v0 - May 2025</option>
+          <option value="v2026.04">West of England - v1 - April 2026</option>
+          <option value="DfT">DfT Tool - June 2025</option>
         </select>
+        <br>
+        <div id="yearScoresContainer">
+          <label class="large-font" id="yearScoresLabel" for="yearScoresDropdown">Year:</label>
+          <select id="yearScoresDropdown" class="medium-font">
+            <option value="2025">2025</option>
+            <option value="2024">2024</option>
+            <option value="2023">2023</option>
+            <option value="2022">2022</option>
+            <option value="2019">2019</option>
+          </select>
+          <div id="yearScoresCheckboxes">
+            <label class="checkbox-label"><input type="checkbox" name="yearCheck" value="2025"> <span>2025</span></label>
+            <label class="checkbox-label"><input type="checkbox" name="yearCheck" value="2024"> <span>2024</span></label>
+            <label class="checkbox-label"><input type="checkbox" name="yearCheck" value="2023"> <span>2023</span></label>
+            <label class="checkbox-label"><input type="checkbox" name="yearCheck" value="2022"> <span>2022</span></label>
+            <label class="checkbox-label"><input type="checkbox" name="yearCheck" value="2019"> <span>2019</span></label>
+            <div id="yearCheckStatus" class="small-font"></div>
+          </div>
+        </div>
         <br>
         <label for="purposeScoresDropdown" class="large-font">Purpose of Travel:</label>
         <select id="purposeScoresDropdown" class="medium-font">

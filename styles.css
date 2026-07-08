@@ -9,49 +9,6 @@ html, body {
   height: 100%;
   width: 100%;
 }
-#release-toolbar {
-  position: absolute;
-  top: 10px;
-  left: 300px;
-  z-index: 1100;
-  background: rgba(255, 255, 255, 0.95);
-  border: 1px solid #d8d8d8;
-  border-radius: 5px;
-  padding: 6px 8px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-}
-#release-toolbar label {
-  font-size: 0.95em;
-}
-#version-selector {
-  min-width: 140px;
-  font-size: 0.9em;
-}
-#data-version-toggle {
-  display: flex;
-  gap: 2px;
-}
-.data-version-btn {
-  font-size: 0.85em;
-  padding: 2px 8px;
-  border: 1px solid #aaa;
-  border-radius: 3px;
-  background: #f0f0f0;
-  cursor: pointer;
-  color: #444;
-  transition: background 0.15s, color 0.15s;
-}
-.data-version-btn:hover {
-  background: #ddd;
-}
-.data-version-btn.active {
-  background: #3d85c8;
-  color: #fff;
-  border-color: #2a6094;
-}
 #panel-container, #legend, #summary-panel {
   position: absolute;
   background: white;
@@ -301,6 +258,24 @@ html, body {
   display: flex !important;
   align-items: center !important;
   font-size: 1em !important;
+}
+#yearScoresCheckboxes {
+  display: none;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+  margin-top: 2px;
+}
+#yearScoresCheckboxes .checkbox-label {
+  font-size: 0.9em !important;
+  min-width: 50px;
+}
+#yearCheckStatus {
+  width: 100%;
+  font-size: 0.82em;
+  color: #888;
+  font-style: italic;
+  margin-top: 2px;
 }
 .checkbox-label input {
   padding: 15px !important;
@@ -1027,11 +1002,10 @@ h4.legend-title {
 }
 
 @media (max-width: 900px) {
-  #release-toolbar {
-    left: 10px;
-    top: auto;
-    bottom: 10px;
-    max-width: calc(100vw - 20px);
+  #panel-container {
+    width: calc(100vw - 20px);
+    max-height: 40vh;
+    overflow-y: auto;
   }
 }
 

@@ -516,6 +516,7 @@ const scoreLayers = {};
 // Structure: { [year]: { [purpose_mode]: { p10, interval } } }
 const scoreClassBreaks = {};
 const ScoresYear = document.getElementById("yearScoresDropdown");
+const ScoresVersion = document.getElementById("versionScoresDropdown");
 const ScoresPurpose = document.getElementById("purposeScoresDropdown");
 const ScoresMode = document.getElementById("modeScoresDropdown");
 const ScoresOpacity = document.getElementById("opacityFieldScoresDropdown");
@@ -792,11 +793,76 @@ ScoresYear.addEventListener("change", () => {
   updatePurposeOptions();
   updateScoresLayer();
 });
+ScoresVersion.addEventListener("change", () => {
+  setDataVersion(ScoresVersion.value);
+});
 ScoresPurpose.addEventListener("change", () => updateScoresLayer());
 
+// Returns the effective year key for score data based on current version/checkbox state
+function getEffectiveYear() {
+  if (window.dataVersion === 'DfT') return 'DfT';
+  if (window.dataVersion === 'v2025.10') {
+    const checked = Array.from(document.querySelectorAll('#yearScoresCheckboxes input[type="checkbox"]:checked'))
+      .map(cb => cb.value);
+    if (checked.length === 2) {
+      checked.sort((a, b) => Number(a) - Number(b));
+      return `${checked[0]}-${checked[1]}`;
+    } else if (checked.length === 1) {
+      return checked[0];
+    }
+    return null;
+  }
+  return ScoresYear.value; // v2026.04 uses dropdown
+}
+
+function updateYearSelector() {
+  const version = window.dataVersion;
+  const container = document.getElementById('yearScoresContainer');
+  const dropdown = document.getElementById('yearScoresDropdown');
+  const checkboxes = document.getElementById('yearScoresCheckboxes');
+
+  if (version === 'DfT') {
+    container.style.display = 'none';
+  } else {
+    container.style.display = '';
+    if (version === 'v2025.10') {
+      dropdown.style.display = 'none';
+      checkboxes.style.display = '';
+      // Default to 2025 checked if nothing selected
+      const anyChecked = checkboxes.querySelectorAll('input:checked').length;
+      if (anyChecked === 0) {
+        const cb2025 = checkboxes.querySelector('input[value="2025"]');
+        if (cb2025) cb2025.checked = true;
+      }
+      updateYearCheckStatus();
+    } else {
+      dropdown.style.display = '';
+      checkboxes.style.display = 'none';
+    }
+  }
+}
+
+function updateYearCheckStatus() {
+  const checked = Array.from(document.querySelectorAll('#yearScoresCheckboxes input[type="checkbox"]:checked'))
+    .map(cb => cb.value);
+  const statusEl = document.getElementById('yearCheckStatus');
+  if (!statusEl) return;
+  if (checked.length === 2) {
+    checked.sort((a, b) => Number(a) - Number(b));
+    statusEl.textContent = `Showing change: ${checked[0]} → ${checked[1]}`;
+  } else if (checked.length === 1) {
+    statusEl.textContent = '';
+  } else {
+    statusEl.textContent = 'Select at least one year';
+  }
+}
+
+function updateYearOptions() {
+  updateYearSelector();
+}
+
 function updatePurposeOptions() {
-  const selectedYear = ScoresYear.value;
-  const isDftYear = selectedYear === '2024 (DfT)';
+  const isDftVersion = window.dataVersion === 'DfT';
   const currentPurpose = ScoresPurpose.value;
   
   // Get all purpose options
@@ -804,7 +870,7 @@ function updatePurposeOptions() {
   const dftPurposes = document.querySelectorAll('#purposeScoresDropdown .dft-purpose');
   const hstOption = document.querySelector('#purposeScoresDropdown option[value="HSt"]');
   
-  if (isDftYear) {
+  if (isDftVersion) {
     // Hide High Street, show DfT purposes
     if (hstOption) hstOption.classList.add('hidden');
     dftPurposes.forEach(opt => opt.classList.remove('hidden'));
@@ -825,6 +891,20 @@ function updatePurposeOptions() {
   }
 }
 ScoresMode.addEventListener("change", () => updateScoresLayer());
+
+// Year checkbox listeners (v2025.10 mode)
+document.querySelectorAll('#yearScoresCheckboxes input[type="checkbox"]').forEach(cb => {
+  cb.addEventListener('change', () => {
+    const allChecked = document.querySelectorAll('#yearScoresCheckboxes input[type="checkbox"]:checked');
+    if (allChecked.length > 2) {
+      cb.checked = false; // Prevent selecting more than 2
+    }
+    updateYearCheckStatus();
+    updatePurposeOptions();
+    updateScoresLayer();
+  });
+});
+
 AmenitiesYear.addEventListener("change", () => {
   updateAmenitiesCatchmentLayer();
 });
@@ -1318,16 +1398,15 @@ document.addEventListener('DOMContentLoaded', (event) => {
   setupAmenitiesToggle();
 
   // ---- Data version toggle ----
-  const dataVersionBtns = document.querySelectorAll('.data-version-btn');
   function setDataVersion(version) {
     window.dataVersion = version;
-    dataVersionBtns.forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.version === version);
-    });
+    if (ScoresVersion) ScoresVersion.value = version;
     // Clear cached score and journey time data so files are re-fetched from the new version folder
     Object.keys(scoreLayers).forEach(k => delete scoreLayers[k]);
     Object.keys(scoreClassBreaks).forEach(k => delete scoreClassBreaks[k]);
     Object.keys(csvDataCache).forEach(k => delete csvDataCache[k]);
+    updateYearOptions();
+    updatePurposeOptions();
     // Reload the active layer if visible
     if (ScoresLayer) {
       map.removeLayer(ScoresLayer);
@@ -1340,9 +1419,6 @@ document.addEventListener('DOMContentLoaded', (event) => {
       updateAmenitiesCatchmentLayer();
     }
   }
-  dataVersionBtns.forEach(btn => {
-    btn.addEventListener('click', () => setDataVersion(btn.dataset.version));
-  });
   // Set default active state (v2025.10)
   setDataVersion('v2025.10');
 
@@ -1532,12 +1608,13 @@ map.on('click', function (e) {
       if (turf.booleanPointInPolygon(clickedPoint, polygon)) {
         const properties = layer.feature.properties;
         if (ScoresLayer) {
-          const selectedYear = ScoresYear.value;
+          const isDftVersion = window.dataVersion === 'DfT';
+          const selectedYear = getEffectiveYear();
           const selectedPurpose = ScoresPurpose.value;
           const selectedMode = ScoresMode.value;
           
           let scoreField, percentileField;
-          if (selectedYear === '2024 (DfT)') {
+          if (isDftVersion) {
             scoreField = `dft_${selectedPurpose}_${selectedMode}`;
             percentileField = `dft_${selectedPurpose}_${selectedMode}_100`;
           } else if (selectedYear.includes('-')) {
@@ -4918,13 +4995,14 @@ function updateFeatureVisibility() {
     });
   };
 
-  const selectedYear = AmenitiesCatchmentLayer ? AmenitiesYear.value : ScoresYear.value;
+  const isDftVersion = window.dataVersion === 'DfT';
+  const selectedYear = AmenitiesCatchmentLayer ? AmenitiesYear.value : getEffectiveYear();
   if (AmenitiesCatchmentLayer) {
     updateLayerVisibility(AmenitiesCatchmentLayer, feature => hexTimeMap[feature.properties.hex_id], selectedYear, 'time');
   } else if (ScoresLayer) {
     const showPercentiles = window.usePercentileClassification !== false;
     let fieldToDisplay;
-    if (selectedYear === '2024 (DfT)') {
+    if (isDftVersion) {
       fieldToDisplay = showPercentiles ? `dft_${ScoresPurpose.value}_${ScoresMode.value}_100` : `dft_${ScoresPurpose.value}_${ScoresMode.value}`;
     } else if (selectedYear.includes('-')) {
       fieldToDisplay = `${ScoresPurpose.value}_${ScoresMode.value}`;
@@ -4939,7 +5017,8 @@ function updateFeatureVisibility() {
 
 function updateLegend() {
   // console.log('Updating legend...');
-  const selectedYear = AmenitiesCatchmentLayer ? AmenitiesYear.value : ScoresYear.value;
+  const _isDftLegend = window.dataVersion === 'DfT';
+  const selectedYear = AmenitiesCatchmentLayer ? AmenitiesYear.value : getEffectiveYear();
   const legendContent = document.getElementById("legend-content");
   
   const dataLayerCategory = document.getElementById('data-layer-category');
@@ -4997,8 +5076,8 @@ function updateLegend() {
       // Score difference classes
       classes = [
         { range: `<= -20%`, color: "#FF0000" },
-        { range: `> -20% and <= -10%`, color: "#FF5500" },
-        { range: `> -10% and < 0`, color: "#FFAA00" },
+        { range: `> -20% and <= -10%`, color: "#ff8800" },
+        { range: `> -10% and < 0`, color: "#ffd900" },
         { range: `= 0`, color: "transparent" },
         { range: `> 0 and <= 10%`, color: "#B0E200" },
         { range: `>= 10% and < 20%`, color: "#6EC500" },
@@ -5068,13 +5147,7 @@ function updateLegend() {
   if (ScoresLayer && !selectedYear.includes('-')) {
     const percentileCheckboxDiv = document.createElement("div");
     
-    // Different label for DfT vs non-DfT scores
-    let checkboxLabel;
-    if (selectedYear === '2024 (DfT)') {
-      checkboxLabel = 'Show population-weighted percentiles';
-    } else {
-      checkboxLabel = 'Show population-weighted percentiles';
-    }
+    const checkboxLabel = 'Show population-weighted percentiles';
     
     percentileCheckboxDiv.innerHTML = `<input type="checkbox" id="legendPercentileCheckbox" ${window.usePercentileClassification !== false ? 'checked' : ''}> <i style="font-size: 1em;">${checkboxLabel}</i>`;
     percentileCheckboxDiv.style.marginBottom = '8px';
@@ -5718,7 +5791,7 @@ function sortedPercentile(sorted, p) {
  * Skips difference-year files (year contains '-').
  */
 function computeClassBreaksForYear(year, csvData) {
-  if (year.includes('-') || year === '2024 (DfT)') return;
+  if (year.includes('-') || year === 'DfT') return;
 
   const fourDistricts = ['BA', 'BS', 'SG', 'NS'];
   const lepHexIds = new Set(
@@ -5763,7 +5836,7 @@ function computeClassBreaksForYear(year, csvData) {
  * Return computed class breaks for the current selection, or null if not available.
  */
 function getCurrentClassBreaks() {
-  const year = ScoresYear ? ScoresYear.value : '';
+  const year = getEffectiveYear ? getEffectiveYear() : (ScoresYear ? ScoresYear.value : '');
   const purpose = ScoresPurpose ? ScoresPurpose.value : '';
   const mode = ScoresMode ? ScoresMode.value : '';
   if (!year || year.includes('-')) return null;
@@ -5776,7 +5849,8 @@ function updateScoresLayer() {
     return;
   }
   
-  const selectedYear = ScoresYear.value;
+  const isDftVersion = window.dataVersion === 'DfT';
+  const selectedYear = getEffectiveYear();
   const selectedPurpose = ScoresPurpose.value;
   const selectedMode = ScoresMode.value;
   const showPercentiles = window.usePercentileClassification !== false;
@@ -5795,12 +5869,12 @@ function updateScoresLayer() {
     fieldToDisplay = `${selectedPurpose}_${selectedMode}`;
   } else {
     // All single-year scores (DfT and non-DfT): toggle between _100 field and raw field based on checkbox
-    const prefix = selectedYear === '2024 (DfT)' ? 'dft_' : ''
+    const prefix = isDftVersion ? 'dft_' : ''
     const suffix = showPercentiles ? '_100' : '';
     fieldToDisplay = `${prefix}${selectedPurpose}_${selectedMode}${suffix}`;
     
     // For non-DfT raw scores, track the field for percentile-based classification
-    if (!showPercentiles && selectedYear !== '2024 (DfT)') {
+    if (!showPercentiles && !isDftVersion) {
       rawFieldForPercentiles = fieldToDisplay;
     }
   }
@@ -5889,7 +5963,7 @@ function applyScoresLayerStyling() {
   // console.log('applyScoresLayerStyling called');
   if (!ScoresLayer) return;
   
-  const selectedYear = ScoresYear.value;
+  const selectedYear = getEffectiveYear();
   const selectedPurpose = ScoresPurpose.value;
   const selectedMode = ScoresMode.value;
   const showPercentiles = window.usePercentileClassification !== false;
@@ -5902,7 +5976,7 @@ function applyScoresLayerStyling() {
     fieldToDisplay = `${selectedPurpose}_${selectedMode}`;
   } else {
     // All single-year scores: toggle between _100 and raw field based on checkbox
-    const prefix = selectedYear === '2024 (DfT)' ? 'dft_' : ''
+    const prefix = (window.dataVersion === 'DfT') ? 'dft_' : ''
     const suffix = showPercentiles ? '_100' : '';
     fieldToDisplay = `${prefix}${selectedPurpose}_${selectedMode}${suffix}`;
   }
@@ -6663,7 +6737,7 @@ function updateFilterValues() {
       return;
     }
   } else if (currentFilterType === 'Range') {
-    const selectedYear = ScoresLayer ? ScoresYear.value : AmenitiesYear.value;
+    const selectedYear = ScoresLayer ? getEffectiveYear() : AmenitiesYear.value;
     if (ScoresLayer) {
       if (selectedYear.includes('-')) {
         options = [
@@ -7065,10 +7139,11 @@ function applyFilters(features) {
 function applyRangeFilter(features, filterValue) {
   // console.log('applyRangeFilter called from:');
   if (ScoresLayer) {
-    const selectedYear = ScoresYear.value;
+    const _isDftFilter = window.dataVersion === 'DfT';
+    const selectedYear = getEffectiveYear();
     const showPercentiles = window.usePercentileClassification !== false;
     let fieldToDisplay;
-    if (selectedYear === '2024 (DfT)') {
+    if (_isDftFilter) {
       fieldToDisplay = showPercentiles ? `dft_${ScoresPurpose.value}_${ScoresMode.value}_100` : `dft_${ScoresPurpose.value}_${ScoresMode.value}`;
     } else if (selectedYear.includes('-')) {
       fieldToDisplay = `${ScoresPurpose.value}_${ScoresMode.value}`;
@@ -7300,12 +7375,13 @@ function calculateBaseStatistics(features) {
 
 function calculateScoreStatistics(features) {
   // console.log('calculateScoreStatistics called from:');
-  const selectedYear = ScoresYear.value;
+  const _isDftStats = window.dataVersion === 'DfT';
+  const selectedYear = getEffectiveYear();
   const selectedPurpose = ScoresPurpose.value;
   const selectedMode = ScoresMode.value;
   
   let scoreField, percentileField;
-  if (selectedYear === '2024 (DfT)') {
+  if (_isDftStats) {
     scoreField = `dft_${selectedPurpose}_${selectedMode}`;
     percentileField = `dft_${selectedPurpose}_${selectedMode}_100`;
   } else {

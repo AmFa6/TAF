@@ -23,14 +23,16 @@ const BASE_PATH = dataSource === 'legacy'
   ? legacyBasePath
   : (versionedBasePath || localBasePath);
 
-// Data version toggle: 'v2025.10' uses ./data/v0/, 'v2026.04' uses ./data/v1/
-// Default is v2025.10. Changed at runtime by the UI toggle.
-window.dataVersion = 'v2025.10';
+// Default is WoE v0. Changed at runtime by the UI toggle.
+window.dataVersion = 'WoE_v0';
 
 function getVersionedDataPath() {
-  return window.dataVersion === 'v2026.04'
-    ? `${BASE_PATH}/v1`
-    : `${BASE_PATH}/v0`;
+  if (window.dataVersion === 'WoE_v1') return `${BASE_PATH}/WoE_v1`;
+  return `${BASE_PATH}/WoE_v0`;
+}
+
+function getDftScorePath() {
+  return `${BASE_PATH}/dft_v0/grid_dft_scores.csv`;
 }
 
 function getScoresFiles() {
@@ -38,7 +40,7 @@ function getScoresFiles() {
   return [
     { year: '2025',      path: `${vp}/2025_connectscore.csv` },
     { year: '2024',      path: `${vp}/2024_connectscore.csv` },
-    { year: '2024 (DfT)', path: `${vp}/grid_dft_scores.csv` },
+    { year: 'DfT',       path: getDftScorePath() },
     { year: '2023',      path: `${vp}/2023_connectscore.csv` },
     { year: '2022',      path: `${vp}/2022_connectscore.csv` },
     { year: '2019',      path: `${vp}/2019_connectscore.csv` },

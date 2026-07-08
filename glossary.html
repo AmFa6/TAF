@@ -346,28 +346,25 @@
           </div>
           <ul>
             <li><strong>Service weights</strong> (from National Travel Survey): Schools 26.8, City Centres 38.6, Employment 29.9, Healthcare 4.7</li>
-            <li><strong>Mode weights:</strong> Walk 100, Cycle 75, PT 50, Car 1</li>
-            <li><strong>Threshold weight</strong> (hard power decay): Walk 2.0, Cycle 1.5, PT 1.1, Car 1.0. Scores set to zero beyond 60 minutes.</li>
-            <li><strong>Normalisation:</strong> Scores are normalised across all years together, enabling direct year-on-year comparison.</li>
+            <li><strong>Mode weights:</strong> Walk 100, Cycle 75, PT 50, Car 1. Aspirational sustainable travel hierarchy.</li>
+            <li><strong>Threshold weight:</strong> Walk 2.0, Cycle 1.5, PT 1.1, Car 1.0. A higher value means that each further destination gets more penalised.</li>
           </ul>
         </div>
         <div class="version-card v2026">
           <h5><span class="version-badge v2026">v2026.04</span> DfT-aligned methodology</h5>
-          <p class="formula-label">Formula:</p>
           <div class="highlight">
             <strong>Score = Service_Weight × Mode_Weight × e<sup>−Diminishing_Returns_Weight × Travel_Time</sup></strong>
           </div>
           <ul>
-            <li><strong>Service weights:</strong> As per DfT specification</li>
-            <li><strong>Mode weights:</strong> Revised to align with DfT modal preference assumptions (different from v2025.10)</li>
-            <li><strong>Diminishing returns weight</strong> (continuous exponential decay): replaces the hard threshold cutoff with a smooth decay that gradually reduces score as travel time increases, with no hard 60-minute cutoff.</li>
-            <li><strong>Normalisation:</strong> Scores are normalised independently for each year / purpose / mode combination.</li>
+            <li><strong>Service weights:</strong> As per WWoE methodology</li>
+            <li><strong>Mode weights:</strong> Revised to align with DfT modal preference assumptions, reflecting observed mode shares rather than aspirational sustainable travel hierarchy - Walk: 8, Cycle: 40, PT: 52, Car: 0</li>
+            <li><strong>Diminishing returns weight</strong>: This is applied to amenity types. This weight is used to calculate how much additional value a destination provides to a starting location, depending on how many other destinations of the same type are already within reach of that starting location.</li>
           </ul>
         </div>
       </div>
 
       <div class="warning-box">
-        <strong>⚠ Year-on-year comparisons:</strong> v2026.04 scores are normalised per year/purpose/mode combination. This means the absolute score values are not comparable across different years — a score of 50 in 2022 and 50 in 2025 do not represent the same level of connectivity. Use the <em>score difference</em> layer with caution under v2026.04. For trend analysis, use <strong>v2025.10</strong>.
+        <strong>⚠ Year-on-year comparisons:</strong> v2026.04 scores are normalised to a scale 0-100 for each year/purpose/mode combination. This means the absolute score values are not comparable across different years — a score of 50 in 2022 and 50 in 2025 do not represent the same level of connectivity. Use the <em>score difference</em> layer with caution under v2026.04. For trend analysis, use <strong>v2025.10</strong>.
       </div>
       
       <h4>Step 3: Aggregation by Origin and Mode</h4>
@@ -422,7 +419,6 @@
       <ul>
         <li>Analysis is based on network data that may not reflect all route variations or temporary closures</li>
         <li>Physical connectivity requirements (mobility impairments, disabilities) are not individually assessed</li>
-        <li>Real-world factors like weather, traffic incidents, and service disruptions are not modeled</li>
         <li>Personal factors (age, fitness, preferences) affect practical connectivity beyond quantitative measures</li>
         <li>Data accuracy depends on source data quality and currency</li>
         <li>Travel times for public transport are based on scheduled services and may not reflect real-time conditions or service disruptions</li>
