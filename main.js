@@ -798,6 +798,29 @@ ScoresVersion.addEventListener("change", () => {
 });
 ScoresPurpose.addEventListener("change", () => updateScoresLayer());
 
+// ---- Data version toggle ----
+function setDataVersion(version) {
+  window.dataVersion = version;
+  if (ScoresVersion) ScoresVersion.value = version;
+  // Clear cached score and journey time data so files are re-fetched from the new version folder
+  Object.keys(scoreLayers).forEach(k => delete scoreLayers[k]);
+  Object.keys(scoreClassBreaks).forEach(k => delete scoreClassBreaks[k]);
+  Object.keys(csvDataCache).forEach(k => delete csvDataCache[k]);
+  updateYearOptions();
+  updatePurposeOptions();
+  // Reload the active layer if visible
+  if (ScoresLayer) {
+    map.removeLayer(ScoresLayer);
+    ScoresLayer = null;
+    updateScoresLayer();
+  }
+  if (AmenitiesCatchmentLayer) {
+    map.removeLayer(AmenitiesCatchmentLayer);
+    AmenitiesCatchmentLayer = null;
+    updateAmenitiesCatchmentLayer();
+  }
+}
+
 // Returns the effective year key for score data based on current version/checkbox state
 function getEffectiveYear() {
   if (window.dataVersion === 'DfT') return 'DfT';
@@ -1398,27 +1421,6 @@ document.addEventListener('DOMContentLoaded', (event) => {
   setupAmenitiesToggle();
 
   // ---- Data version toggle ----
-  function setDataVersion(version) {
-    window.dataVersion = version;
-    if (ScoresVersion) ScoresVersion.value = version;
-    // Clear cached score and journey time data so files are re-fetched from the new version folder
-    Object.keys(scoreLayers).forEach(k => delete scoreLayers[k]);
-    Object.keys(scoreClassBreaks).forEach(k => delete scoreClassBreaks[k]);
-    Object.keys(csvDataCache).forEach(k => delete csvDataCache[k]);
-    updateYearOptions();
-    updatePurposeOptions();
-    // Reload the active layer if visible
-    if (ScoresLayer) {
-      map.removeLayer(ScoresLayer);
-      ScoresLayer = null;
-      updateScoresLayer();
-    }
-    if (AmenitiesCatchmentLayer) {
-      map.removeLayer(AmenitiesCatchmentLayer);
-      AmenitiesCatchmentLayer = null;
-      updateAmenitiesCatchmentLayer();
-    }
-  }
   // Set default active state (v2025.10)
   setDataVersion('v2025.10');
 
