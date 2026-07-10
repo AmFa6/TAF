@@ -414,30 +414,44 @@
   <div id="summary-panel">
     <button id="toggle-summary-panel" class="panel-header summary-header">Summary</button>
     <div id="summary-content" class="panel">
-      <div>
-        <label for="filterTypeDropdown">Area Type:</label>
-        <select id="filterTypeDropdown" class="small-font">
-          <option value="LA">Local Authority</option>
-          <option value="Ward">Ward</option>
-          <option value="GrowthZone">Growth Zone</option>
-          <option value="WestLinkZone">WESTlink Zone</option>
-          <option value="Range">Range (see Legend)</option>
-        </select>
+      <div id="filter-area-section">
+        <div class="filter-area-title">Filter Area</div>
+        <div id="filter-groups-container">
+          <div class="filter-group" data-group-id="filter-group-0">
+            <div class="filter-group-controls">
+              <div class="filter-field">
+                <label for="filterTypeDropdown">Type:</label>
+                <select id="filterTypeDropdown" class="small-font filter-type-dropdown">
+                  <option value="LA">Local Authority</option>
+                  <option value="Ward">Ward</option>
+                  <option value="GrowthZone">Growth Zone</option>
+                  <option value="WestLinkZone">WESTlink Zone</option>
+                  <option value="Range">Range (see Legend)</option>
+                </select>
+              </div>
+              <div class="filter-field">
+                <label for="filterValueDropdown">Name:</label>
+                <div class="filter-value-host">
+                  <select id="filterValueDropdown" class="small-font"></select>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <button type="button" id="add-filter-group" class="small-button">Add Filter</button>
       </div>
-      <div class="filter-area-row">
+      <div class="filter-area-row filter-area-highlight-row">
         <div class="filter-area-label-col">
-          <label for="filterValueDropdown">Area Name:</label>
+          <label for="highlightAreaCheckbox" class="highlight-area-label">Highlight Area on Map</label>
         </div>
         <div class="highlight-area-control">
-          <label for="highlightAreaCheckbox" class="highlight-area-label">Highlight Area on Map</label>
           <input type="checkbox" id="highlightAreaCheckbox">
         </div>
       </div>
-      <select id="filterValueDropdown" class="small-font"></select>  
       <div class="filter-spacer"></div>
       
       <!-- Statistics table collapsible section -->
-      <label id="toggle-statistics-table">Statistics table ▶</label>
+      <label id="toggle-statistics-table">Area statistics ▶</label>
       <div id="statistics-content" class="collapsible-content no-background">
         <table id="summary-table">
           <thead>
@@ -658,7 +672,6 @@
   </button>
 
   <script src="config.js"></script>
-  <script src="versioning.js"></script>
   <script src="main.js"></script>
   <script>
     // Info button functionality

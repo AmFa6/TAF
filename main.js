@@ -562,6 +562,8 @@ const amenityIcons = {
 };
 const filterTypeDropdown = document.getElementById('filterTypeDropdown');
 const filterValueDropdown = document.getElementById('filterValueDropdown');
+const filterGroupsContainer = document.getElementById('filter-groups-container');
+const addFilterGroupButton = document.getElementById('add-filter-group');
 
 GeographyFiles.forEach(file => {
   fetch(file.path)
@@ -753,12 +755,8 @@ let pendingFeature = null;
 let currentUserLayerId = null;
 let defaultAttributes = { "Name": "" };
 let previousFilterSelections = {
-  LA: null,
-  Ward: null,
-  GrowthZone: null,
-  WestLinkZone: null,
-  Range: null,
 };
+let filterGroupCounter = 1;
 
 // ============================================================================
 // INITIALIZATION
@@ -994,40 +992,12 @@ baseColorCensus.addEventListener("change", () => {
   else updateCensusLayer();
 });
 
-filterTypeDropdown.addEventListener('change', () => {
-  updateFilterValues();
-  updateSummaryStatistics(getCurrentFeatures());
-  
-  const highlightCheckbox = document.getElementById('highlightAreaCheckbox');
-  if (filterTypeDropdown.value === 'Range') {
-    highlightCheckbox.disabled = true;
-    highlightCheckbox.checked = false;
-    if (highlightLayer) {
-      map.removeLayer(highlightLayer);
-      highlightLayer = null;
-    }
-  } else {
-    highlightCheckbox.disabled = false;
-  }
-  
-  if (document.getElementById('highlightAreaCheckbox').checked) {
-    highlightSelectedArea();
-  }
-});
-filterValueDropdown.addEventListener('change', () => {
-  updateSummaryStatistics(getCurrentFeatures());
-  if (document.getElementById('highlightAreaCheckbox').checked) {
-    highlightSelectedArea();
-  }
-});
 document.getElementById('highlightAreaCheckbox').addEventListener('change', function() {
   if (this.checked) {
     highlightSelectedArea();
-  } else {
-    if (highlightLayer) {
-      map.removeLayer(highlightLayer);
-      highlightLayer = null;
-    }
+  } else if (highlightLayer) {
+    map.removeLayer(highlightLayer);
+    highlightLayer = null;
   }
 });
 
@@ -1412,8 +1382,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
     dataLayerCategory.style.display = 'none';
   }
 
-  updateFilterDropdown();
-  updateFilterValues();
+  setupFilterArea();
 
   initialLoadComplete = true;
   initializeFileUpload();
@@ -5858,7 +5827,14 @@ function updateScoresLayer() {
   const showPercentiles = window.usePercentileClassification !== false;
 
   if (!selectedYear) {
+    if (ScoresLayer) {
+      map.removeLayer(ScoresLayer);
+      ScoresLayer = null;
+    }
+    drawSelectedAmenities([]);
     updateLegend();
+    updateFilterDropdown();
+    updateFilterValues();
     updateSummaryStatistics([]);
     return;
   }
@@ -6568,194 +6544,135 @@ function applyCensusLayerStyling() {
   });
 }
 
-function updateFilterDropdown() {
-  if (isUpdatingFilters) return;
-  // console.log('updateFilterDropdown called from:');
-  isUpdatingFilters = true;
-  const filterTypeDropdown = document.getElementById('filterTypeDropdown');
-  if (!filterTypeDropdown) {
-    isUpdatingFilters = false;
-    return;
-  }
-  
-  const currentValue = filterTypeDropdown.value;
-  
-  filterTypeDropdown.innerHTML = '';
-  
-  const standardOptions = [
+function getFilterGroups() {
+  return Array.from(document.querySelectorAll('#filter-groups-container .filter-group'));
+}
+
+function getFilterSelectionKey(groupEl, filterType) {
+  return `${groupEl.dataset.groupId || 'filter-group'}::${filterType}`;
+}
+
+function getFilterFieldKey(groupEl, filterType) {
+  return `${getFilterSelectionKey(groupEl, filterType)}::field`;
+}
+
+function closeAllFilterValueMenus() {
+  document.querySelectorAll('.filter-value-container.show').forEach(menu => {
+    menu.classList.remove('show');
+  });
+}
+
+function buildAvailableFilterOptions() {
+  const options = [
     { value: 'LA', text: 'Local Authority' },
     { value: 'Ward', text: 'Ward' },
     { value: 'GrowthZone', text: 'Growth Zone' },
     { value: 'WestLinkZone', text: 'WESTlink Zone' }
   ];
-  
+
   if (ScoresLayer || AmenitiesCatchmentLayer) {
-    standardOptions.push({ value: 'Range', text: 'Range (see Legend)' });
+    options.push({ value: 'Range', text: 'Range (see Legend)' });
   }
-  
-  standardOptions.forEach(option => {
-    const optionElement = document.createElement('option');
-    optionElement.value = option.value;
-    optionElement.textContent = option.text;
-    filterTypeDropdown.appendChild(optionElement);
-  });
-  
+
   if (userLayers && userLayers.length > 0) {
     userLayers.forEach(userLayer => {
-      const option = document.createElement('option');
-      option.value = `UserLayer_${userLayer.id}`;
-      option.textContent = `User Layer - ${userLayer.name}`;
-      filterTypeDropdown.appendChild(option);
+      options.push({
+        value: `UserLayer_${userLayer.id}`,
+        text: `User Layer - ${userLayer.name}`
+      });
     });
   }
-  
-  if ((currentValue === 'Range' && !(ScoresLayer || AmenitiesCatchmentLayer)) ||
-      !Array.from(filterTypeDropdown.options).some(opt => opt.value === currentValue)) {
-    filterTypeDropdown.value = 'LA';
-  } else {
-    filterTypeDropdown.value = currentValue;
-  }
-  
-  isUpdatingFilters = false;
+
+  return options;
 }
 
-function updateFilterValues() {
-  if (isUpdatingFilterValues) return;
-  // console.log('updateFilterValues called from:');
-  isUpdatingFilterValues = true;
+function createFilterGroupElement() {
+  const groupEl = document.createElement('div');
+  groupEl.className = 'filter-group';
+  groupEl.dataset.groupId = `filter-group-${filterGroupCounter++}`;
+  groupEl.innerHTML = `
+    <div class="filter-group-actions-row">
+      <button type="button" class="small-button remove-filter-button">Remove</button>
+    </div>
+    <div class="filter-group-controls">
+      <div class="filter-field">
+        <label>Type:</label>
+        <select class="small-font filter-type-dropdown"></select>
+      </div>
+      <div class="filter-field">
+        <label>Name:</label>
+        <div class="filter-value-host">
+          <select class="small-font filter-value-dropdown-placeholder"></select>
+        </div>
+      </div>
+    </div>
+  `;
+  return groupEl;
+}
 
-  if (!filterTypeDropdown.value) {
-    filterTypeDropdown.value = AmenitiesCatchmentLayer ? 'Range' : 'LA';
-  }
-  
-  const currentFilterType = filterTypeDropdown.value;
-  
-  let filterValueButton = document.getElementById('filterValueButton');
-  const filterValueContainer = document.getElementById('filterValueContainer');
-  
-  if (filterValueContainer) {
-    filterValueContainer.innerHTML = '';
-  }
-  
-  if (!filterValueButton) {
-    if (filterValueDropdown && filterValueDropdown.parentNode) {
-      const dropdownButton = document.createElement('button');
-      dropdownButton.type = 'button';
-      dropdownButton.className = 'dropdown-toggle';
-      dropdownButton.id = 'filterValueButton';
-      dropdownButton.textContent = '';
-      dropdownButton.style.minHeight = '28px';
-      
-      const dropdownContainer = document.createElement('div');
-      dropdownContainer.className = 'dropdown';
-      dropdownContainer.style.width = '100%';
-      
-      const dropdownMenu = document.createElement('div');
-      dropdownMenu.className = 'dropdown-menu';
-      dropdownMenu.id = 'filterValueContainer';
-      dropdownMenu.style.width = '100%';
-      dropdownMenu.style.boxSizing = 'border-box';
-      
-      dropdownContainer.appendChild(dropdownButton);
-      dropdownContainer.appendChild(dropdownMenu);
-      
-      if (filterValueDropdown.parentNode) {
-        filterValueDropdown.parentNode.replaceChild(dropdownContainer, filterValueDropdown);
+function ensureFilterValueDropdown(groupEl) {
+  const host = groupEl.querySelector('.filter-value-host');
+  if (!host) return { button: null, container: null };
+
+  let button = host.querySelector('.filter-value-button');
+  let container = host.querySelector('.filter-value-container');
+
+  if (!button || !container) {
+    host.innerHTML = `
+      <div class="dropdown filter-value-dropdown">
+        <button type="button" class="dropdown-toggle filter-value-button">&nbsp;</button>
+        <div class="dropdown-menu filter-value-container"></div>
+      </div>
+    `;
+
+    button = host.querySelector('.filter-value-button');
+    container = host.querySelector('.filter-value-container');
+
+    button.addEventListener('click', event => {
+      event.preventDefault();
+      event.stopPropagation();
+      const shouldOpen = !container.classList.contains('show');
+      closeAllFilterValueMenus();
+      if (shouldOpen) {
+        container.classList.add('show');
       }
-      
-      dropdownButton.addEventListener('click', () => {
-        dropdownMenu.classList.toggle('show');
-      });
-      
-      window.addEventListener('click', (event) => {
-        if (!event.target.matches('#filterValueButton') && !event.target.closest('#filterValueContainer')) {
-          dropdownMenu.classList.remove('show');
-        }
-      });
-    }
+    });
+
+    container.addEventListener('click', event => event.stopPropagation());
   }
 
-  filterValueButton = document.getElementById('filterValueButton');
+  return { button, container };
+}
 
-  if (!filterValueContainer) {
-    isUpdatingFilterValues = false;
-    return;
+function setFilterValueButtonLabel(button, selectedValues) {
+  if (!button) return;
+
+  if (!selectedValues || selectedValues.length === 0) {
+    button.textContent = '\u00A0';
+  } else if (selectedValues.includes('__ALL__')) {
+    button.textContent = 'All features';
+  } else if (selectedValues.length === 1) {
+    button.textContent = selectedValues[0];
+  } else if (selectedValues.length <= 2) {
+    button.textContent = selectedValues.join(', ');
+  } else {
+    button.textContent = `${selectedValues.length} selected`;
   }
-  
-  filterValueContainer.innerHTML = '';
+}
 
+function getOptionsForFilterType(filterType) {
   let options = [];
-  let filterFieldSelector = null;
 
-  if (currentFilterType.startsWith('UserLayer_')) {
-    const layerId = currentFilterType.split('UserLayer_')[1];
-    const userLayer = userLayers.find(l => l.id === layerId);
-    
-    if (userLayer) {
-      const fieldSelectorDiv = document.createElement('div');
-      fieldSelectorDiv.className = 'filter-field-selector';
-      fieldSelectorDiv.style.marginBottom = '10px';
-      
-      const fieldLabel = document.createElement('label');
-      fieldLabel.textContent = 'Filter by field:';
-      fieldLabel.style.display = 'block';
-      fieldLabel.style.marginBottom = '5px';
-      fieldSelectorDiv.appendChild(fieldLabel);
-      
-      filterFieldSelector = document.createElement('select');
-      filterFieldSelector.id = 'user-layer-field-selector';
-      filterFieldSelector.className = 'small-font';
-      filterFieldSelector.style.width = '100%';
-      
-      const defaultOption = document.createElement('option');
-      defaultOption.value = '';
-      defaultOption.textContent = 'All features';
-      filterFieldSelector.appendChild(defaultOption);
-      
-      userLayer.fieldNames.forEach(fieldName => {
-        const option = document.createElement('option');
-        option.value = fieldName;
-        option.textContent = fieldName;
-        filterFieldSelector.appendChild(option);
-      });
-      
-      if (previousFilterSelections[`UserLayer_${layerId}_field`]) {
-        filterFieldSelector.value = previousFilterSelections[`UserLayer_${layerId}_field`];
-      }
-      
-      fieldSelectorDiv.appendChild(filterFieldSelector);
-      filterValueContainer.appendChild(fieldSelectorDiv);
-      
-      filterFieldSelector.addEventListener('change', function() {
-        previousFilterSelections[`UserLayer_${layerId}_field`] = this.value;
-        populateUserLayerFilterValues(userLayer, this.value);
-        if (document.getElementById('highlightAreaCheckbox').checked) {
-          highlightSelectedArea();
-        }
-      });
-      
-      populateUserLayerFilterValues(userLayer, filterFieldSelector.value);
-      isUpdatingFilterValues = false;
-      return;
-    }
-  } else if (currentFilterType === 'Range') {
+  if (filterType === 'Range') {
     const selectedYear = ScoresLayer ? getEffectiveYear() : AmenitiesYear.value;
-    if (ScoresLayer) {
-      if (selectedYear.includes('-')) {
-        options = [
-          '<= -20%', '> -20% and <= -10%', '> -10% and < 0', '= 0', '> 0 and <= 10%', '>= 10% and < 20%', '>= 20%'
-        ];
-      } else {
-        options = [
-          '0-10', '10-20', '20-30', '30-40', '40-50', '50-60', '60-70', '70-80', '80-90', '90-100'
-        ];
-      }
+    if (ScoresLayer && selectedYear) {
+      options = selectedYear.includes('-')
+        ? ['<= -20%', '> -20% and <= -10%', '> -10% and < 0', '= 0', '> 0 and <= 10%', '>= 10% and < 20%', '>= 20%']
+        : ['0-10', '10-20', '20-30', '30-40', '40-50', '50-60', '60-70', '70-80', '80-90', '90-100'];
     } else if (AmenitiesCatchmentLayer) {
-      options = [
-        '0-5', '5-10', '10-15', '15-20', '20-25', '25-30', '>30'
-      ];
+      options = ['0-5', '5-10', '10-15', '15-20', '20-25', '25-30', '>30'];
     }
-  } else if (currentFilterType === 'Ward') {
+  } else if (filterType === 'Ward') {
     const wardInfo = new Map();
     if (wardBoundariesLayer) {
       wardBoundariesLayer.getLayers().forEach(layer => {
@@ -6767,115 +6684,268 @@ function updateFilterValues() {
       });
       options = Array.from(wardInfo.keys()).sort();
     }
-  } else if (currentFilterType === 'GrowthZone') {
+  } else if (filterType === 'GrowthZone') {
     if (GrowthZonesLayer) {
       options = GrowthZonesLayer.getLayers().map(layer => layer.feature.properties.Name).sort();
     }
-  } else if (currentFilterType === 'WestLinkZone') {
+  } else if (filterType === 'WestLinkZone') {
     if (WestLinkZonesLayer) {
       options = WestLinkZonesLayer.getLayers().map(layer => layer.feature.properties.Name).sort();
     }
-  } else if (currentFilterType === 'LA') {
+  } else if (filterType === 'LA') {
     options = ['MCA', 'LEP'];
     if (uaBoundariesLayer) {
-      const uaOptions = uaBoundariesLayer.getLayers()
-        .map(layer => layer.feature.properties.LAD24NM)
-        .sort();
-      options = options.concat(uaOptions);
+      options = options.concat(
+        uaBoundariesLayer.getLayers().map(layer => layer.feature.properties.LAD24NM).sort()
+      );
     }
   }
 
+  return options;
+}
+
+function renderFilterValueCheckboxes(groupEl, options, selectionKey, button, container) {
+  const previouslySelected = previousFilterSelections[selectionKey] || [];
+  const checkboxes = [];
+
   const selectAllLabel = document.createElement('label');
   selectAllLabel.className = 'checkbox-label';
-  
+
   const selectAllCheckbox = document.createElement('input');
   selectAllCheckbox.type = 'checkbox';
-  selectAllCheckbox.id = 'select-all-filter';
-  selectAllCheckbox.checked = false;
-  
+
   const selectAllSpan = document.createElement('span');
   selectAllSpan.innerHTML = '<i>Select/Deselect All</i>';
-  
+
   selectAllLabel.appendChild(selectAllCheckbox);
   selectAllLabel.appendChild(selectAllSpan);
-  filterValueContainer.appendChild(selectAllLabel);
+  container.appendChild(selectAllLabel);
 
-  const previouslySelected = previousFilterSelections[currentFilterType] || [];
-
-  const checkboxes = [];
   options.forEach((option, index) => {
     const label = document.createElement('label');
     label.className = 'checkbox-label';
-    
+
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
-    checkbox.id = `filter-${option.replace(/\s+/g, '-').replace(/[^\w-]/g, '')}`;
     checkbox.value = option;
-    
-    checkbox.checked = previouslySelected.length > 0 ? 
-      previouslySelected.includes(option) : 
-      index === 0;
-    
     checkbox.className = 'filter-value-checkbox';
-    checkboxes.push(checkbox);
-    
+    checkbox.checked = previouslySelected.length > 0 ? previouslySelected.includes(option) : index === 0;
+
     const span = document.createElement('span');
-    span.textContent = option;
-    
+    span.textContent = option === '__ALL__' ? 'All features' : option;
+
     label.appendChild(checkbox);
     label.appendChild(span);
-    filterValueContainer.appendChild(label);
-    
-    checkbox.addEventListener('change', function() {
-      updateStoredSelections();
-      updateFilterButtonText();
-      updateSummaryStatistics(getCurrentFeatures());
-      if (document.getElementById('highlightAreaCheckbox').checked) {
-        highlightSelectedArea();
-      }
-    });
+    container.appendChild(label);
+    checkboxes.push(checkbox);
   });
-  
-  selectAllCheckbox.addEventListener('change', function() {
-    const isChecked = this.checked;
-    checkboxes.forEach(cb => cb.checked = isChecked);
+
+  function updateStoredSelections() {
+    previousFilterSelections[selectionKey] = checkboxes.filter(cb => cb.checked).map(cb => cb.value);
+  }
+
+  function updateSelectAllState() {
+    const allChecked = checkboxes.length > 0 && checkboxes.every(cb => cb.checked);
+    const anyChecked = checkboxes.some(cb => cb.checked);
+    selectAllCheckbox.checked = allChecked;
+    selectAllCheckbox.indeterminate = anyChecked && !allChecked;
+  }
+
+  function handleSelectionChange() {
     updateStoredSelections();
-    updateFilterButtonText();
+    setFilterValueButtonLabel(button, previousFilterSelections[selectionKey]);
+    updateSelectAllState();
     updateSummaryStatistics(getCurrentFeatures());
     if (document.getElementById('highlightAreaCheckbox').checked) {
       highlightSelectedArea();
     }
+  }
+
+  checkboxes.forEach(checkbox => checkbox.addEventListener('change', handleSelectionChange));
+
+  selectAllCheckbox.addEventListener('change', function() {
+    checkboxes.forEach(cb => {
+      cb.checked = this.checked;
+    });
+    handleSelectionChange();
   });
-  
-  function updateStoredSelections() {
-    const currentSelections = checkboxes
-      .filter(cb => cb.checked)
-      .map(cb => cb.value);
-    
-    previousFilterSelections[currentFilterType] = currentSelections;
-  }
-  
-  function updateFilterButtonText() {
-    const selectedValues = checkboxes
-      .filter(cb => cb.checked)
-      .map(cb => cb.value);
-    
-    if (selectedValues.length === 0) {
-      filterValueButton.textContent = '\u00A0';
-      filterValueButton.style.minHeight = '28px';
-    } else {
-      filterValueButton.textContent = selectedValues.join(', ');
+
+  updateStoredSelections();
+  updateSelectAllState();
+  setFilterValueButtonLabel(button, previousFilterSelections[selectionKey]);
+}
+
+function updateFilterValuesForGroup(groupEl) {
+  const typeSelect = groupEl.querySelector('.filter-type-dropdown');
+  if (!typeSelect) return;
+
+  const currentFilterType = typeSelect.value || 'LA';
+  const selectionKey = getFilterSelectionKey(groupEl, currentFilterType);
+  const { button, container } = ensureFilterValueDropdown(groupEl);
+  if (!button || !container) return;
+
+  container.innerHTML = '';
+
+  if (currentFilterType.startsWith('UserLayer_')) {
+    const layerId = currentFilterType.split('UserLayer_')[1];
+    const userLayer = userLayers.find(l => l.id === layerId);
+    if (!userLayer) {
+      setFilterValueButtonLabel(button, []);
+      return;
     }
+
+    const fieldSelectorDiv = document.createElement('div');
+    fieldSelectorDiv.className = 'filter-field-selector';
+    fieldSelectorDiv.style.marginBottom = '10px';
+
+    const fieldLabel = document.createElement('label');
+    fieldLabel.textContent = 'Filter by field:';
+    fieldLabel.style.display = 'block';
+    fieldLabel.style.marginBottom = '5px';
+    fieldSelectorDiv.appendChild(fieldLabel);
+
+    const fieldSelector = document.createElement('select');
+    fieldSelector.className = 'small-font filter-field-selector-input';
+    fieldSelector.style.width = '100%';
+
+    const defaultOption = document.createElement('option');
+    defaultOption.value = '';
+    defaultOption.textContent = 'All features';
+    fieldSelector.appendChild(defaultOption);
+
+    userLayer.fieldNames.forEach(fieldName => {
+      const option = document.createElement('option');
+      option.value = fieldName;
+      option.textContent = fieldName;
+      fieldSelector.appendChild(option);
+    });
+
+    const fieldKey = getFilterFieldKey(groupEl, currentFilterType);
+    if (previousFilterSelections[fieldKey]) {
+      fieldSelector.value = previousFilterSelections[fieldKey];
+    }
+
+    fieldSelector.addEventListener('change', function() {
+      previousFilterSelections[fieldKey] = this.value;
+      updateFilterValues(groupEl);
+    });
+
+    fieldSelectorDiv.appendChild(fieldSelector);
+    container.appendChild(fieldSelectorDiv);
+
+    if (!fieldSelector.value) {
+      renderFilterValueCheckboxes(groupEl, ['__ALL__'], selectionKey, button, container);
+      return;
+    }
+
+    const uniqueValues = new Set();
+    userLayer.originalData.features.forEach(feature => {
+      if (feature.properties && feature.properties[fieldSelector.value] !== undefined) {
+        uniqueValues.add(String(feature.properties[fieldSelector.value]));
+      }
+    });
+
+    renderFilterValueCheckboxes(groupEl, Array.from(uniqueValues).sort(), selectionKey, button, container);
+    return;
   }
-  
-  const allChecked = checkboxes.every(cb => cb.checked);
-  const anyChecked = checkboxes.some(cb => cb.checked);
-  selectAllCheckbox.checked = allChecked;
-  selectAllCheckbox.indeterminate = anyChecked && !allChecked;
-  
-  updateFilterButtonText();
+
+  renderFilterValueCheckboxes(groupEl, getOptionsForFilterType(currentFilterType), selectionKey, button, container);
+}
+
+function attachFilterGroupListeners(groupEl) {
+  if (!groupEl || groupEl.dataset.initialized === 'true') return;
+
+  const typeSelect = groupEl.querySelector('.filter-type-dropdown');
+  if (typeSelect) {
+    typeSelect.addEventListener('change', () => updateFilterValues(groupEl));
+  }
+
+  const removeButton = groupEl.querySelector('.remove-filter-button');
+  if (removeButton) {
+    removeButton.addEventListener('click', () => {
+      groupEl.remove();
+      updateFilterDropdown();
+      updateFilterValues();
+    });
+  }
+
+  groupEl.dataset.initialized = 'true';
+}
+
+function setupFilterArea() {
+  if (!filterGroupsContainer) return;
+
+  getFilterGroups().forEach(groupEl => attachFilterGroupListeners(groupEl));
+
+  if (addFilterGroupButton && addFilterGroupButton.dataset.initialized !== 'true') {
+    addFilterGroupButton.addEventListener('click', () => {
+      const groupEl = createFilterGroupElement();
+      filterGroupsContainer.appendChild(groupEl);
+      attachFilterGroupListeners(groupEl);
+      updateFilterDropdown();
+      updateFilterValues(groupEl);
+    });
+    addFilterGroupButton.dataset.initialized = 'true';
+  }
+
+  if (!document.body.dataset.filterDropdownCloseBound) {
+    document.addEventListener('click', event => {
+      if (!event.target.closest('.filter-value-dropdown')) {
+        closeAllFilterValueMenus();
+      }
+    });
+    document.body.dataset.filterDropdownCloseBound = 'true';
+  }
+
+  updateFilterDropdown();
+  updateFilterValues();
+}
+
+function updateFilterDropdown() {
+  if (isUpdatingFilters) return;
+  isUpdatingFilters = true;
+
+  const availableOptions = buildAvailableFilterOptions();
+  const filterGroups = getFilterGroups();
+  if (filterGroups.length === 0) {
+    isUpdatingFilters = false;
+    return;
+  }
+
+  filterGroups.forEach(groupEl => {
+    const typeSelect = groupEl.querySelector('.filter-type-dropdown');
+    if (!typeSelect) return;
+
+    const currentValue = typeSelect.value;
+    typeSelect.innerHTML = '';
+
+    availableOptions.forEach(option => {
+      const optionElement = document.createElement('option');
+      optionElement.value = option.value;
+      optionElement.textContent = option.text;
+      typeSelect.appendChild(optionElement);
+    });
+
+    typeSelect.value = Array.from(typeSelect.options).some(opt => opt.value === currentValue)
+      ? currentValue
+      : 'LA';
+  });
+
+  isUpdatingFilters = false;
+}
+
+function updateFilterValues(targetGroup = null) {
+  if (isUpdatingFilterValues) return;
+  isUpdatingFilterValues = true;
+
+  const groups = targetGroup ? [targetGroup] : getFilterGroups();
+  groups.forEach(groupEl => updateFilterValuesForGroup(groupEl));
+
   requestAnimationFrame(() => {
     updateSummaryStatistics(getCurrentFeatures());
+    if (document.getElementById('highlightAreaCheckbox').checked) {
+      highlightSelectedArea();
+    }
     isUpdatingFilterValues = false;
   });
 }
@@ -6890,7 +6960,6 @@ function updateFilterValues() {
 
 function updateSummaryStatistics(features) {
   if (isCalculatingStats) return;
-  // console.log('updateSummaryStatistics called from:');
   isCalculatingStats = true;
   
   requestAnimationFrame(() => {
@@ -6899,17 +6968,27 @@ function updateSummaryStatistics(features) {
       isCalculatingStats = false;
       return;
     }
-    
-    const filterValueContainer = document.getElementById('filterValueContainer');
-    if (filterValueContainer) {
-      const selectedValues = Array.from(filterValueContainer.querySelectorAll('.filter-value-checkbox:checked'))
+
+    const hasEmptyFilterGroup = getFilterGroups().some(groupEl => {
+      const typeSelect = groupEl.querySelector('.filter-type-dropdown');
+      if (!typeSelect) return false;
+
+      const filterType = typeSelect.value;
+      const selectedValues = Array.from(groupEl.querySelectorAll('.filter-value-checkbox:checked'))
         .map(checkbox => checkbox.value);
-      
-      if (selectedValues.length === 0) {
-        displayEmptyStatistics();
-        isCalculatingStats = false;
-        return;
+
+      if (filterType.startsWith('UserLayer_')) {
+        const fieldSelector = groupEl.querySelector('.filter-field-selector-input');
+        return fieldSelector && fieldSelector.value ? selectedValues.length === 0 : !selectedValues.includes('__ALL__');
       }
+
+      return selectedValues.length === 0;
+    });
+
+    if (hasEmptyFilterGroup) {
+      displayEmptyStatistics();
+      isCalculatingStats = false;
+      return;
     }
     
     const filteredFeatures = applyFilters(features);
@@ -6954,187 +7033,142 @@ function displayEmptyStatistics() {
   });
 }
 
+function getFilterGroupState(groupEl) {
+  const typeSelect = groupEl.querySelector('.filter-type-dropdown');
+  if (!typeSelect) return null;
+
+  return {
+    groupId: groupEl.dataset.groupId,
+    type: typeSelect.value,
+    selectedValues: Array.from(groupEl.querySelectorAll('.filter-value-checkbox:checked')).map(checkbox => checkbox.value),
+    fieldValue: groupEl.querySelector('.filter-field-selector-input')?.value || ''
+  };
+}
+
+function mergeFeatureSets(primaryFeatures, secondaryFeatures) {
+  const seen = new Set();
+  const merged = [];
+
+  [primaryFeatures, secondaryFeatures].forEach(featureList => {
+    featureList.forEach(feature => {
+      const key = feature.properties?.hex_id || JSON.stringify(feature.geometry);
+      if (!seen.has(key)) {
+        seen.add(key);
+        merged.push(feature);
+      }
+    });
+  });
+
+  return merged;
+}
+
+function filterFeaturesByHexIds(features, allowedHexIds) {
+  return features.filter(feature => allowedHexIds.has(feature.properties?.hex_id));
+}
+
+function userFeatureMatchesHex(feature, userFeature) {
+  const hexPolygon = turf.polygon(feature.geometry.coordinates);
+
+  if (userFeature.geometry.type === 'Polygon') {
+    const poly = turf.polygon(userFeature.geometry.coordinates);
+    const hexCenter = turf.center(hexPolygon);
+    return turf.booleanPointInPolygon(hexCenter, poly);
+  }
+
+  if (userFeature.geometry.type === 'MultiPolygon') {
+    const hexCenter = turf.center(hexPolygon);
+    return userFeature.geometry.coordinates.some(coords => {
+      const poly = turf.polygon(coords);
+      return turf.booleanPointInPolygon(hexCenter, poly);
+    });
+  }
+
+  if (userFeature.geometry.type === 'Point') {
+    const point = turf.point(userFeature.geometry.coordinates);
+    return turf.booleanPointInPolygon(point, hexPolygon);
+  }
+
+  if (userFeature.geometry.type === 'LineString') {
+    const line = turf.lineString(userFeature.geometry.coordinates);
+    return turf.booleanIntersects(line, hexPolygon);
+  }
+
+  if (userFeature.geometry.type === 'MultiLineString') {
+    return userFeature.geometry.coordinates.some(coords => {
+      const line = turf.lineString(coords);
+      return turf.booleanIntersects(line, hexPolygon);
+    });
+  }
+
+  return false;
+}
+
+function applyUserLayerGroupFilter(features, groupState) {
+  const layerId = groupState.type.split('UserLayer_')[1];
+  const userLayer = userLayers.find(l => l.id === layerId);
+  if (!userLayer) return features;
+
+  if (!groupState.fieldValue) {
+    if (!groupState.selectedValues.includes('__ALL__')) return [];
+    return features.filter(feature => userLayer.originalData.features.some(userFeature => userFeatureMatchesHex(feature, userFeature)));
+  }
+
+  if (groupState.selectedValues.length === 0) return [];
+
+  return features.filter(feature => userLayer.originalData.features.some(userFeature => {
+    return groupState.selectedValues.includes(String(userFeature.properties?.[groupState.fieldValue])) &&
+      userFeatureMatchesHex(feature, userFeature);
+  }));
+}
+
+function applySingleFilter(features, groupState) {
+  if (!groupState || !groupState.type) return features;
+
+  if (groupState.type.startsWith('UserLayer_')) {
+    return applyUserLayerGroupFilter(features, groupState);
+  }
+
+  if (groupState.type === 'Range') {
+    if (groupState.selectedValues.length === 0) return [];
+
+    return groupState.selectedValues.reduce((combinedFeatures, filterValue) => {
+      return mergeFeatureSets(combinedFeatures, applyRangeFilter(features, filterValue));
+    }, []);
+  }
+
+  if (['Ward', 'GrowthZone', 'WestLinkZone', 'LA'].includes(groupState.type)) {
+    if (groupState.selectedValues.length === 0) return [];
+
+    return groupState.selectedValues.reduce((combinedFeatures, filterValue) => {
+      return mergeFeatureSets(combinedFeatures, applyGeographicFilter(features, groupState.type, filterValue));
+    }, []);
+  }
+
+  return features;
+}
+
 function applyFilters(features) {
-  // console.log('applyFilters called from:');
-  const filterType = filterTypeDropdown.value;
-  
-  let filteredFeatures = features && features.length ? features : (hexes ? hexes.features : []);
-  
+  let sourceFeatures = features && features.length ? features : (hexes ? hexes.features : []);
+
   if ((ScoresLayer || AmenitiesCatchmentLayer) && (!features || features.length === 0)) {
     if (ScoresLayer) {
-      filteredFeatures = ScoresLayer.toGeoJSON().features;
+      sourceFeatures = ScoresLayer.toGeoJSON().features;
     } else if (AmenitiesCatchmentLayer) {
-      filteredFeatures = AmenitiesCatchmentLayer.toGeoJSON().features;
+      sourceFeatures = AmenitiesCatchmentLayer.toGeoJSON().features;
     }
   }
-  
-  if (filterType.startsWith('UserLayer_')) {
-    const layerId = filterType.split('UserLayer_')[1];
-    const userLayer = userLayers.find(l => l.id === layerId);
-    
-    if (userLayer) {
-      const fieldSelector = document.getElementById('user-layer-field-selector');
-      if (fieldSelector && fieldSelector.value) {
-        const selectedField = fieldSelector.value;
-        const filterCheckboxes = document.querySelectorAll('.filter-value-checkbox:checked');
-        const selectedValues = Array.from(filterCheckboxes).map(cb => cb.value);
-        
-        if (selectedValues.length === 0) return [];
-        
-        const combinedFeatures = [];
-        
-        filteredFeatures.forEach(feature => {
-          const hexPolygon = turf.polygon(feature.geometry.coordinates);
-          
-          for (const userFeature of userLayer.originalData.features) {
-            if (selectedValues.includes(String(userFeature.properties[selectedField]))) {
-              if (userFeature.geometry.type === 'Polygon') {
-                const poly = turf.polygon(userFeature.geometry.coordinates);
-                const hexCenter = turf.center(hexPolygon);
-                if (turf.booleanPointInPolygon(hexCenter, poly)) {
-                  combinedFeatures.push(feature);
-                  break;
-                }
-              } 
-              else if (userFeature.geometry.type === 'MultiPolygon') {
-                const hexCenter = turf.center(hexPolygon);
-                const isInside = userFeature.geometry.coordinates.some(coords => {
-                  const poly = turf.polygon(coords);
-                  return turf.booleanPointInPolygon(hexCenter, poly);
-                });
-                
-                if (isInside) {
-                  combinedFeatures.push(feature);
-                  break;
-                }
-              }
-              else if (userFeature.geometry.type === 'Point') {
-                const point = turf.point(userFeature.geometry.coordinates);
-                if (turf.booleanPointInPolygon(point, hexPolygon)) {
-                  combinedFeatures.push(feature);
-                  break;
-                }
-              }
-              else if (userFeature.geometry.type === 'LineString') {
-                const line = turf.lineString(userFeature.geometry.coordinates);
-                if (turf.booleanIntersects(line, hexPolygon)) {
-                  combinedFeatures.push(feature);
-                  break;
-                }
-              }
-              else if (userFeature.geometry.type === 'MultiLineString') {
-                const isIntersecting = userFeature.geometry.coordinates.some(coords => {
-                  const line = turf.lineString(coords);
-                  return turf.booleanIntersects(line, hexPolygon);
-                });
-                if (isIntersecting) {
-                  combinedFeatures.push(feature);
-                  break;
-                }
-              }
-            }
-          }
-        });
-        return combinedFeatures;
-      } else {
-        const userLayerFeatures = userLayer.originalData.features;
-        const combinedFeatures = [];
-        for (const feature of filteredFeatures) {
-          const hexPolygon = turf.polygon(feature.geometry.coordinates);
-          for (const userFeature of userLayerFeatures) {
-            if (userFeature.geometry.type === 'Polygon') {
-              const poly = turf.polygon(userFeature.geometry.coordinates);
-              const hexCenter = turf.center(hexPolygon);
-              if (turf.booleanPointInPolygon(hexCenter, poly)) {
-                combinedFeatures.push(feature);
-                break;
-              }
-            } 
-            else if (userFeature.geometry.type === 'MultiPolygon') {
-              const hexCenter = turf.center(hexPolygon);
-              const isInside = userFeature.geometry.coordinates.some(coords => {
-                const poly = turf.polygon(coords);
-                return turf.booleanPointInPolygon(hexCenter, poly);
-              });
-              if (isInside) {
-                combinedFeatures.push(feature);
-                break;
-              }
-            }
-            else if (userFeature.geometry.type === 'Point') {
-              const point = turf.point(userFeature.geometry.coordinates);
-              if (turf.booleanPointInPolygon(point, hexPolygon)) {
-                combinedFeatures.push(feature);
-                break;
-              }
-            }
-            else if (userFeature.geometry.type === 'LineString') {
-              const line = turf.lineString(userFeature.geometry.coordinates);
-              if (turf.booleanIntersects(line, hexPolygon)) {
-                combinedFeatures.push(feature);
-                break;
-              }
-            }
-            else if (userFeature.geometry.type === 'MultiLineString') {
-              const isIntersecting = userFeature.geometry.coordinates.some(coords => {
-                const line = turf.lineString(coords);
-                return turf.booleanIntersects(line, hexPolygon);
-              });
-              
-              if (isIntersecting) {
-                combinedFeatures.push(feature);
-                break;
-              }
-            }
-          }
-        }
-        return combinedFeatures;
-      }
-    }
+
+  const filterGroups = getFilterGroups().map(getFilterGroupState).filter(Boolean);
+  if (filterGroups.length === 0) {
+    return sourceFeatures;
   }
-  else if (filterType === 'Range') {
-    const filterValueContainer = document.getElementById('filterValueContainer');
-    if (!filterValueContainer) return filteredFeatures;
-    
-    const selectedValues = Array.from(filterValueContainer.querySelectorAll('.filter-value-checkbox:checked'))
-      .map(checkbox => checkbox.value);
-    
-    if (selectedValues.length === 0) return [];
-    
-    const combinedFeatures = [];
-    selectedValues.forEach(filterValue => {
-      const rangeFiltered = applyRangeFilter(filteredFeatures, filterValue);
-      rangeFiltered.forEach(feature => {
-        if (!combinedFeatures.includes(feature)) {
-          combinedFeatures.push(feature);
-        }
-      });
-    });
-    
-    filteredFeatures = combinedFeatures;
-  } 
-  else if (['Ward', 'GrowthZone', 'WestLinkZone', 'LA'].includes(filterType)) {
-    const filterValueContainer = document.getElementById('filterValueContainer');
-    if (!filterValueContainer) return filteredFeatures;
-    
-    const selectedValues = Array.from(filterValueContainer.querySelectorAll('.filter-value-checkbox:checked'))
-      .map(checkbox => checkbox.value);
-    
-    if (selectedValues.length === 0) return [];
-    
-    const combinedFeatures = [];
-    selectedValues.forEach(filterValue => {
-      const geographicFiltered = applyGeographicFilter(filteredFeatures, filterType, filterValue);
-      geographicFiltered.forEach(feature => {
-        if (!combinedFeatures.some(f => f.properties.hex_id === feature.properties.hex_id)) {
-          combinedFeatures.push(feature);
-        }
-      });
-    });
-    
-    filteredFeatures = combinedFeatures;
+
+  let filteredFeatures = applySingleFilter(sourceFeatures, filterGroups[0]);
+
+  for (let index = 1; index < filterGroups.length; index++) {
+    filteredFeatures = applySingleFilter(filteredFeatures, filterGroups[index]);
   }
-  
+
   return filteredFeatures;
 }
 
@@ -7331,7 +7365,7 @@ function calculateBaseStatistics(features) {
 
   const stats = {
     totalPopulation: metrics.population.reduce((a, b) => a + b, 0),
-    minPopulation: Math.min(...metrics.population.filter(val => val > 0), Infinity) || 0,
+    minPopulation: metrics.population.length > 0 ? Math.min(...metrics.population) : 0,
     maxPopulation: Math.max(...metrics.population, 0),
     avgImdScore: calculateWeightedAverage(metrics.imd_score, metrics.population),
     minImdScore: Math.min(...metrics.imd_score.filter((val, index) => val > 0 && metrics.population[index] > 0), Infinity) || 0,
@@ -7406,8 +7440,8 @@ function calculateScoreStatistics(features) {
 
   return {
     avgScore: calculateWeightedAverage(metrics.score, metrics.population),
-    minScore: Math.min(...metrics.score.filter(val => val > 0)),
-    maxScore: Math.max(...metrics.score),
+    minScore: metrics.score.length > 0 ? Math.min(...metrics.score) : 0,
+    maxScore: metrics.score.length > 0 ? Math.max(...metrics.score) : 0,
     avgPercentile: calculateWeightedAverage(metrics.percentile, metrics.population),
     minPercentile: Math.min(...metrics.percentile.filter(val => val > 0)),
     maxPercentile: Math.max(...metrics.percentile),
@@ -7692,9 +7726,6 @@ function calculateWeightedAverage(values, weights) {
 }
 
 function getCurrentFeatures() {
-  // console.log('getCurrentFeatures called from:');
-  const filterType = filterTypeDropdown.value;
-  
   let sourceFeatures = [];
   if (ScoresLayer) {
     sourceFeatures = ScoresLayer.toGeoJSON().features;
@@ -7703,21 +7734,74 @@ function getCurrentFeatures() {
   } else if (hexes) {
     sourceFeatures = hexes.features;
   }
-  
-  if (filterType.startsWith('UserLayer_')) {
-    const layerId = filterType.split('UserLayer_')[1];
-    const userLayer = userLayers.find(l => l.id === layerId);
-    
-    if (userLayer) {
-      return applyFilters(sourceFeatures);
-    }
-  } 
-  
+
   return sourceFeatures;
 }
 
+function getHighlightPolygonForGroup(groupState) {
+  if (!groupState || groupState.type === 'Range' || groupState.selectedValues.length === 0) {
+    return null;
+  }
+
+  let selectedPolygons = [];
+
+  if (groupState.type.startsWith('UserLayer_')) {
+    const layerId = groupState.type.split('UserLayer_')[1];
+    const userLayer = userLayers.find(l => l.id === layerId);
+    if (!userLayer) return null;
+
+    const matchingFeatures = groupState.fieldValue
+      ? userLayer.originalData.features.filter(feature =>
+          groupState.selectedValues.includes(String(feature.properties?.[groupState.fieldValue]))
+        )
+      : userLayer.originalData.features;
+
+    selectedPolygons = matchingFeatures.map(feature => ({
+      type: 'Feature',
+      geometry: feature.geometry,
+      properties: feature.properties
+    }));
+  } else if (groupState.type === 'Ward') {
+    if (!wardBoundariesLayer) return null;
+    groupState.selectedValues.forEach(filterValue => {
+      const wardLayers = wardBoundariesLayer.getLayers().filter(layer => layer.feature.properties.WD24NM === filterValue);
+      selectedPolygons = selectedPolygons.concat(wardLayers.map(layer => layer.toGeoJSON()));
+    });
+  } else if (groupState.type === 'GrowthZone') {
+    if (!GrowthZonesLayer) return null;
+    groupState.selectedValues.forEach(filterValue => {
+      const growthZoneLayers = GrowthZonesLayer.getLayers().filter(layer => layer.feature.properties.Name === filterValue);
+      selectedPolygons = selectedPolygons.concat(growthZoneLayers.map(layer => layer.toGeoJSON()));
+    });
+  } else if (groupState.type === 'WestLinkZone') {
+    if (!WestLinkZonesLayer) return null;
+    groupState.selectedValues.forEach(filterValue => {
+      const zoneLayers = WestLinkZonesLayer.getLayers().filter(layer => layer.feature.properties.Name === filterValue);
+      selectedPolygons = selectedPolygons.concat(zoneLayers.map(layer => layer.toGeoJSON()));
+    });
+  } else if (groupState.type === 'LA') {
+    if (!uaBoundariesLayer) return null;
+    groupState.selectedValues.forEach(filterValue => {
+      if (filterValue === 'MCA') {
+        const mcaLayers = uaBoundariesLayer.getLayers().filter(layer => layer.feature.properties.LAD24NM !== 'North Somerset');
+        selectedPolygons = selectedPolygons.concat(mcaLayers.map(layer => layer.toGeoJSON()));
+      } else if (filterValue === 'LEP') {
+        selectedPolygons = selectedPolygons.concat(uaBoundariesLayer.getLayers().map(layer => layer.toGeoJSON()));
+      } else {
+        const uaLayers = uaBoundariesLayer.getLayers().filter(layer => layer.feature.properties.LAD24NM === filterValue);
+        selectedPolygons = selectedPolygons.concat(uaLayers.map(layer => layer.toGeoJSON()));
+      }
+    });
+  }
+
+  if (selectedPolygons.length === 0) return null;
+
+  return selectedPolygons.reduce((acc, polygon) => {
+    return acc ? turf.union(acc, polygon) : polygon;
+  }, null);
+}
+
 function highlightSelectedArea() {
-  // console.log('highlightSelectedArea called from:');
   const highlightAreaCheckbox = document.getElementById('highlightAreaCheckbox');
   if (!highlightAreaCheckbox.checked) {
     if (highlightLayer) {
@@ -7726,15 +7810,9 @@ function highlightSelectedArea() {
     }
     return;
   }
-  const filterType = filterTypeDropdown.value;
-  
-  const filterValueContainer = document.getElementById('filterValueContainer');
-  if (!filterValueContainer) return;
-  
-  const selectedValues = Array.from(filterValueContainer.querySelectorAll('.filter-value-checkbox:checked'))
-    .map(checkbox => checkbox.value);
-  
-  if (selectedValues.length === 0) {
+
+  const filterGroups = getFilterGroups().map(getFilterGroupState).filter(Boolean);
+  if (filterGroups.length === 0) {
     if (highlightLayer) {
       map.removeLayer(highlightLayer);
       highlightLayer = null;
@@ -7742,99 +7820,107 @@ function highlightSelectedArea() {
     return;
   }
 
-  let selectedPolygons = [];
+  const hasRangeFilter = filterGroups.some(groupState => groupState.type === 'Range');
 
-  if (filterType.startsWith('UserLayer_')) {
-    const layerId = filterType.split('UserLayer_')[1];
-    const userLayer = userLayers.find(l => l.id === layerId);
-    
-    if (userLayer) {
-      const fieldSelector = document.getElementById('user-layer-field-selector');
-      if (fieldSelector && fieldSelector.value) {
-        const selectedField = fieldSelector.value;
-        
-        const matchingFeatures = userLayer.originalData.features.filter(feature => 
-          selectedValues.includes(String(feature.properties[selectedField]))
-        );
-        
-        selectedPolygons = matchingFeatures.map(feature => {
-          return {
-            type: 'Feature',
-            geometry: feature.geometry,
-            properties: feature.properties
-          };
-        });
-      } else {
-        selectedPolygons = userLayer.originalData.features.map(feature => {
-          return {
-            type: 'Feature',
-            geometry: feature.geometry,
-            properties: feature.properties
-          };
-        });
+  if (hasRangeFilter) {
+    const sourceFeatures = getCurrentFeatures();
+    if (!sourceFeatures || sourceFeatures.length === 0) {
+      if (highlightLayer) {
+        map.removeLayer(highlightLayer);
+        highlightLayer = null;
       }
+      return;
     }
-  } else if (filterType === 'Ward') {
-    if (!wardBoundariesLayer) return;
-    
-    selectedValues.forEach(filterValue => {
-      const wardLayers = wardBoundariesLayer.getLayers().filter(layer => layer.feature.properties.WD24NM === filterValue);
-      selectedPolygons = [...selectedPolygons, ...wardLayers.map(layer => layer.toGeoJSON())];
-    });
-  } else if (filterType === 'GrowthZone') {
-    if (!GrowthZonesLayer) return;
-    
-    selectedValues.forEach(filterValue => {
-      const growthZoneLayers = GrowthZonesLayer.getLayers().filter(layer => layer.feature.properties.Name === filterValue);
-      selectedPolygons = [...selectedPolygons, ...growthZoneLayers.map(layer => layer.toGeoJSON())];
-    });
-  } else if (filterType === 'WestLinkZone') {
-    if (!WestLinkZonesLayer) return;
-    
-    selectedValues.forEach(filterValue => {
-      const WestLinkZoneLayers = WestLinkZonesLayer.getLayers().filter(layer => layer.feature.properties.Name === filterValue);
-      selectedPolygons = [...selectedPolygons, ...WestLinkZoneLayers.map(layer => layer.toGeoJSON())];
-    });
-  } else if (filterType === 'LA') {
-    if (!uaBoundariesLayer) return;
-    
-    selectedValues.forEach(filterValue => {
-      if (filterValue === 'MCA') {
-        const mcaLayers = uaBoundariesLayer.getLayers().filter(layer => layer.feature.properties.LAD24NM !== 'North Somerset');
-        selectedPolygons = [...selectedPolygons, ...mcaLayers.map(layer => layer.toGeoJSON())];
-      } else if (filterValue === 'LEP') {
-        const lepLayers = uaBoundariesLayer.getLayers();
-        selectedPolygons = [...selectedPolygons, ...lepLayers.map(layer => layer.toGeoJSON())];
-      } else {
-        const uaLayers = uaBoundariesLayer.getLayers().filter(layer => layer.feature.properties.LAD24NM === filterValue);
-        selectedPolygons = [...selectedPolygons, ...uaLayers.map(layer => layer.toGeoJSON())];
+
+    const filteredFeatures = applyFilters(sourceFeatures);
+    if (!filteredFeatures || filteredFeatures.length === 0 || filteredFeatures.length === sourceFeatures.length) {
+      if (highlightLayer) {
+        map.removeLayer(highlightLayer);
       }
+      highlightLayer = null;
+      return;
+    }
+
+    const selectedHexIds = new Set(
+      filteredFeatures
+        .map(feature => feature?.properties?.hex_id)
+        .filter(Boolean)
+    );
+
+    const dimmedFeatures = sourceFeatures.filter(feature => {
+      const hexId = feature?.properties?.hex_id;
+      if (hexId) {
+        return !selectedHexIds.has(hexId);
+      }
+      return !filteredFeatures.includes(feature);
     });
-  }
-
-  if (selectedPolygons.length > 0) {
-    const unionPolygon = selectedPolygons.reduce((acc, polygon) => {
-      return acc ? turf.union(acc, polygon) : polygon;
-    }, null);
-
-    const mapBounds = [-6.38, 49.87, 1.77, 55.81];
-    const mapPolygon = turf.bboxPolygon(mapBounds);
-
-    const inversePolygon = turf.difference(mapPolygon, unionPolygon);
 
     if (highlightLayer) {
       map.removeLayer(highlightLayer);
     }
 
-    highlightLayer = L.geoJSON(inversePolygon, {
+    if (dimmedFeatures.length === 0) {
+      highlightLayer = null;
+      return;
+    }
+
+    highlightLayer = L.geoJSON({
+      type: 'FeatureCollection',
+      features: dimmedFeatures
+    }, {
+      pane: 'polygonLayers',
+      interactive: false,
       style: {
-        color: 'rgba(118,118,118,1)',
-        weight: 1,
+        stroke: false,
         fillColor: 'grey',
         fillOpacity: 0.75
       }
     }).addTo(map);
+
+    return;
   }
+
+  let combinedPolygon = null;
+  filterGroups.forEach((groupState, index) => {
+    const groupPolygon = getHighlightPolygonForGroup(groupState);
+    if (!groupPolygon) return;
+
+    if (!combinedPolygon || index === 0) {
+      combinedPolygon = groupPolygon;
+    } else {
+      combinedPolygon = turf.intersect(combinedPolygon, groupPolygon);
+    }
+  });
+
+  if (!combinedPolygon) {
+    if (highlightLayer) {
+      map.removeLayer(highlightLayer);
+      highlightLayer = null;
+    }
+    return;
+  }
+
+  const mapBounds = [-6.38, 49.87, 1.77, 55.81];
+  const mapPolygon = turf.bboxPolygon(mapBounds);
+  const inversePolygon = turf.difference(mapPolygon, combinedPolygon);
+
+  if (highlightLayer) {
+    map.removeLayer(highlightLayer);
+  }
+
+  if (!inversePolygon) {
+    highlightLayer = null;
+    return;
+  }
+
+  highlightLayer = L.geoJSON(inversePolygon, {
+    style: {
+      color: 'rgba(118,118,118,1)',
+      weight: 1,
+      fillColor: 'grey',
+      fillOpacity: 0.75
+    }
+  }).addTo(map);
 }
 
 // ============================================================================
@@ -8036,7 +8122,7 @@ function setupAmenitiesToggle() {
     newAmenitiesBtn.addEventListener('click', function(e) {
       e.preventDefault();
       e.stopPropagation();
-      const isOpen = amenitiesContent.style.display !== 'none';
+      const isOpen = window.getComputedStyle(amenitiesContent).display !== 'none';
       amenitiesContent.style.display = isOpen ? 'none' : 'block';
       this.textContent = isOpen ? 'Amenities within Area ▶' : 'Amenities within Area ▼';
     });
@@ -8053,9 +8139,9 @@ function setupAmenitiesToggle() {
     newStatisticsBtn.addEventListener('click', function(e) {
       e.preventDefault();
       e.stopPropagation();
-      const isOpen = statisticsContent.style.display !== 'none';
+      const isOpen = window.getComputedStyle(statisticsContent).display !== 'none';
       statisticsContent.style.display = isOpen ? 'none' : 'block';
-      this.textContent = isOpen ? 'Statistics table ▶' : 'Statistics table ▼';
+      this.textContent = isOpen ? 'Area statistics ▶' : 'Area statistics ▼';
     });
   }
 }

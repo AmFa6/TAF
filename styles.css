@@ -391,7 +391,16 @@ html, body {
   background-color: white;
 }
 #summary-table th {
-  background-color: #f2f2f2;
+  background-color: white;
+  color: inherit;
+  font-weight: bold;
+}
+
+#summary-table tr,
+#summary-table thead tr,
+#summary-table tbody tr,
+#summary-table tbody tr:nth-child(even) {
+  background-color: white;
 }
 .leaflet-popup-content {
   font-family: 'Trebuchet MS', sans-serif;
@@ -799,13 +808,20 @@ h4.legend-title {
   background-color: white;
 }
 #amenities-table th {
-  background-color: #f2f2f2;
+  background-color: white;
+  color: inherit;
+  font-weight: bold;
 }
 #amenities-table .total-row {
-  background-color: #f5f5f5;
+  background-color: white;
 }
 #amenities-table tr:hover {
-  background-color: #f9f9f9;
+  background-color: white;
+}
+#amenities-table tr,
+#amenities-table tbody tr,
+#amenities-table tbody tr:nth-child(even) {
+  background-color: white;
 }
 .user-layer-label {
   background: transparent !important;
@@ -1171,11 +1187,67 @@ h4.legend-title {
   margin-right: 5px;
 }
 
-/* Summary panel filter row */
+/* Summary panel filter area */
+#filter-area-section {
+  margin-bottom: 10px;
+}
+
+.filter-area-title {
+  font-size: 1.05em;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+#filter-groups-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.filter-group {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 8px;
+  background-color: white;
+}
+
+.filter-group-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.filter-group-actions-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.filter-group-actions-row .remove-filter-button {
+  margin-left: auto;
+}
+
+.filter-field label {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.filter-value-host,
+.filter-value-host .dropdown,
+.filter-value-host .dropdown-toggle,
+.filter-value-host .dropdown-menu {
+  width: 100%;
+  box-sizing: border-box;
+}
+
 .filter-area-row {
   display: flex;
   align-items: center;
   margin-bottom: 5px;
+}
+
+.filter-area-highlight-row {
+  margin-top: 8px;
 }
 
 .filter-area-label-col {
@@ -1204,10 +1276,8 @@ h4.legend-title {
   height: auto;
 }
 
-#filterValueDropdown {
-  width: 100%;
-  margin-bottom: 10px;
-  margin-top: 2px;
+#add-filter-group {
+  margin-top: 8px;
 }
 
 .filter-spacer {
@@ -1229,7 +1299,7 @@ h4.legend-title {
 }
 
 #summary-table thead tr {
-  background-color: #f2f2f2;
+  background-color: transparent;
 }
 
 .th-delete-col {
@@ -1237,7 +1307,7 @@ h4.legend-title {
 }
 
 #add-metric-row {
-  background-color: #f9f9f9;
+  background-color: white;
 }
 
 #addMetricSearch {
