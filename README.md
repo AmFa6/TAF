@@ -2,7 +2,7 @@
 
 ## Repository Layout
 
-- `index.html`, `main.js`, `styles.css`, `config.js`, `glossary.html`: Current public version (latest).
+- `index.html`, `main.js`, `styles.css`, `config.js`, `doc.html`: Current public version (latest).
 - `data/`: Current dataset used by the app.
 - `versions/`: Immutable snapshots of released versions.
 - `releases/versions.json`: Version registry used by the in-app version selector.

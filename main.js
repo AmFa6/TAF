@@ -674,7 +674,6 @@ InfrastructureFiles.forEach(file => {
     });
 });
 
-ScoresYear.value = "";
 ScoresOpacity.value = "None";
 ScoresOutline.value = "None";
 AmenitiesOpacity.value = "None";
@@ -789,10 +788,6 @@ setTimeout(() => {
 // EVENT LISTENERS
 // ============================================================================
 
-ScoresYear.addEventListener("change", () => {
-  updatePurposeOptions();
-  updateScoresLayer();
-});
 ScoresVersion.addEventListener("change", () => {
   setDataVersion(ScoresVersion.value);
 });
@@ -824,44 +819,30 @@ function setDataVersion(version) {
 // Returns the effective year key for score data based on current version/checkbox state
 function getEffectiveYear() {
   if (window.dataVersion === 'DfT') return 'DfT';
-  if (window.dataVersion === 'woe_v0') {
-    const checked = Array.from(document.querySelectorAll('#yearScoresCheckboxes input[type="checkbox"]:checked'))
-      .map(cb => cb.value);
-    if (checked.length === 2) {
-      checked.sort((a, b) => Number(a) - Number(b));
-      return `${checked[0]}-${checked[1]}`;
-    } else if (checked.length === 1) {
-      return checked[0];
-    }
-    return null;
+  const checked = Array.from(document.querySelectorAll('#yearScoresCheckboxes input[type="checkbox"]:checked'))
+    .map(cb => cb.value);
+  if (checked.length === 2) {
+    checked.sort((a, b) => Number(a) - Number(b));
+    return `${checked[0]}-${checked[1]}`;
+  } else if (checked.length === 1) {
+    return checked[0];
   }
-  return ScoresYear.value; // woe_v1 uses dropdown
+  return null;
 }
 
 function updateYearSelector() {
-  const version = window.dataVersion;
   const container = document.getElementById('yearScoresContainer');
-  const dropdown = document.getElementById('yearScoresDropdown');
-  const checkboxes = document.getElementById('yearScoresCheckboxes');
-
-  if (version === 'DfT') {
+  if (window.dataVersion === 'DfT') {
     container.style.display = 'none';
   } else {
     container.style.display = '';
-    if (version === 'woe_v0') {
-      dropdown.style.display = 'none';
-      checkboxes.style.display = 'flex';
-      // Default to 2025 checked if nothing selected
-      const anyChecked = checkboxes.querySelectorAll('input:checked').length;
-      if (anyChecked === 0) {
-        const cb2025 = checkboxes.querySelector('input[value="2025"]');
-        if (cb2025) cb2025.checked = true;
-      }
-      updateYearCheckStatus();
-    } else {
-      dropdown.style.display = '';
-      checkboxes.style.display = 'none';
+    // Default to 2025 checked if nothing selected
+    const checkboxes = document.getElementById('yearScoresCheckboxes');
+    if (checkboxes && checkboxes.querySelectorAll('input:checked').length === 0) {
+      const cb2025 = checkboxes.querySelector('input[value="2025"]');
+      if (cb2025) cb2025.checked = true;
     }
+    updateYearCheckStatus();
   }
 }
 
@@ -869,14 +850,18 @@ function updateYearCheckStatus() {
   const checked = Array.from(document.querySelectorAll('#yearScoresCheckboxes input[type="checkbox"]:checked'))
     .map(cb => cb.value);
   const statusEl = document.getElementById('yearCheckStatus');
-  if (!statusEl) return;
+  const btn = document.getElementById('yearScoresDropdownBtn');
   if (checked.length === 2) {
     checked.sort((a, b) => Number(a) - Number(b));
-    statusEl.textContent = `Showing change: ${checked[0]} → ${checked[1]}`;
+    const label = `${checked[0]} → ${checked[1]}`;
+    if (btn) btn.textContent = label;
+    if (statusEl) statusEl.textContent = `Showing change: ${label}`;
   } else if (checked.length === 1) {
-    statusEl.textContent = '';
+    if (btn) btn.textContent = checked[0];
+    if (statusEl) statusEl.textContent = '';
   } else {
-    statusEl.textContent = 'Select at least one year';
+    if (btn) btn.textContent = 'Select year';
+    if (statusEl) statusEl.textContent = 'Select at least one year';
   }
 }
 
@@ -914,6 +899,21 @@ function updatePurposeOptions() {
   }
 }
 ScoresMode.addEventListener("change", () => updateScoresLayer());
+
+// Year dropdown toggle
+const _yearDropdownBtn = document.getElementById('yearScoresDropdownBtn');
+const _yearDropdownMenu = document.getElementById('yearScoresCheckboxes');
+if (_yearDropdownBtn && _yearDropdownMenu) {
+  _yearDropdownBtn.addEventListener('click', () => {
+    _yearDropdownMenu.classList.toggle('show');
+  });
+  _yearDropdownMenu.addEventListener('click', (e) => e.stopPropagation());
+  window.addEventListener('click', (e) => {
+    if (!e.target.matches('#yearScoresDropdownBtn') && _yearDropdownMenu.classList.contains('show')) {
+      _yearDropdownMenu.classList.remove('show');
+    }
+  });
+}
 
 // Year checkbox listeners (woe_v0 mode)
 document.querySelectorAll('#yearScoresCheckboxes input[type="checkbox"]').forEach(cb => {

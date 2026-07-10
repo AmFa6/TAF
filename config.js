@@ -27,7 +27,6 @@ const BASE_PATH = dataSource === 'legacy'
 window.dataVersion = 'woe_v0';
 
 function getVersionedDataPath() {
-  if (window.dataVersion === 'woe_v1') return `${BASE_PATH}/woe_v1`;
   return `${BASE_PATH}/woe_v0`;
 }
 

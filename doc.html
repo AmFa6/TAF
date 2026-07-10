@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Documentation - West of England Connectivity Tool</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="doc-page">
+  <header>
+    <h1><i class="fas fa-book"></i> Documentation</h1>
+    <p>West of England Connectivity Tool</p>
+  </header>
+
+  <div class="container doc-layout">
+    <div class="doc-main">
+      <nav class="section-nav" aria-label="Section navigation">
+        <ul>
+          <li><a href="#about">About</a></li>
+          <li><a href="#glossary">Glossary</a></li>
+          <li><a href="#methodology">Methodology</a></li>
+          <li><a href="#examples">Examples</a></li>
+        </ul>
+      </nav>
+
+      <div class="section-content">
+
+    <div id="about" class="section">
+      <h2>About This Tool</h2>
+      <p>The West of England Connectivity Tool was developed to support strategic planning and policy-making around connectivity across the West of England Combined Authority region.</p>
+      <p>The tool enables users to:</p>
+      <ul>
+        <li>Visualize connectivity to key services and amenities</li>
+        <li>Identify connectivity gaps and underserved areas</li>
+        <li>Support evidence-based transport and land-use planning</li>
+        <li>Engage stakeholders in connectivity discussions</li>
+      </ul>
+      <p> This tool provides <u><i><strong>indicative</u></strong></i> analysis for planning and policy purposes. For specific travel planning or connectivity assessments, users should consult current transport schedules, service providers, and detailed local knowledge.</p>
+
+      <h3 id="versions">Versions</h3>
+      <p><strong>West of England (May 2025)</strong> is the current methodology used for connectivity score outputs in this tool, as it was developed following extensive consultation and review in 2021-2023.</p>
+      <p>Between December 2025 and July 2026, an interim scoring approach was used to test alignment with DfT methodology assumptions. After review, this approach was not retained and the tool reverted to the original West of England methodology.</p>
+
+      <div class="highlight">
+        <strong>⚠ If you have used outputs from the tool relating to connectivity scores between December 2025 and July 2026, please review.</strong>
+      </div>
+
+      <p><strong>DfT (June 2025)</strong> has been derived from the Department of Transport Connectivity tool. Output area level scores have been aggregated to the same grid as the West of England tool. Please refer to the official documentation for any further details.</p>
+
+      <h3 id="updates">Updates</h3>
+      <p>The connectivity tool has been updated for multiple years (2019, 2022, 2023, 2024, 2025) to reflect changes in public transport networks and schedules (reflecting Q4 - October-December timetables). The amenities, and the road & active travel networks aren't updated.</p>
+      <p>Year-on-year comparisons are available to identify improvements or deteriorations in connectivity over time.</p>
+
+      <h3 id="limitations">Limitations</h3>
+      <ul>
+        <li>This tool assesses the potential for people to access amenities, it doesn't reflect people's actual behaviours.</li>
+        <li>Travel times for public transport are based on scheduled services and may not reflect real-time conditions or service disruptions</li>
+        <li>Travel times for cars are based on national average speeds per road type and do not account for congestion</li>
+        <li>Travel times for walking and cycling are based on average speeds and do not account for terrain</li>
+        <li>Public transport routes' frequencies and capacities aren't reflected in the scores</li>
+        <li>Infrastructure quality isn't reflected in the scores</li>
+      </ul>
+    </div>
+
+    <div id="glossary" class="section">
+      <h2>Glossary</h2>
+
+      <h3>Key Terms</h3>
+
+      <div class="doc-item">
+        <div class="term">Connectivity</div>
+        <div class="definition">The ability to access essential services and amenities by public transport, walking, or cycling within a reasonable timeframe.</div>
+      </div>
+
+      <div class="doc-item">
+        <div class="term">Connectivity Score</div>
+        <div class="definition">A quantitative measure representing the ease of access to essential amenities from a given location.</div>
+      </div>
+
+      <div class="doc-item">
+        <div class="term">Amenity</div>
+        <div class="definition">Essential facilities and services including education, employment, healthcare, and high street (shopping, hospitality and leisure activities).</div>
+      </div>
+
+      <div class="doc-item">
+        <div class="term">Active Travel</div>
+        <div class="definition">Transportation methods that rely on physical activity, such as walking and cycling.</div>
+      </div>
+
+      <div class="doc-item">
+        <div class="term">Public Transport</div>
+        <div class="definition">Shared passenger transportation services available to the general public, including buses, trains, and other transit systems.</div>
+      </div>
+
+      <div class="doc-item">
+        <div class="term">MCA</div>
+        <div class="definition">West of England Mayoral Combined Authority - Bath and North East Somerset, Bristol City Council, and South Gloucestershire Council.</div>
+      </div>
+      <div class="doc-item">
+        <div class="term">LEP</div>
+        <div class="definition">Local Entreprise Partnership - MCA + North Somerset Council</div>
+      </div>
+      <div class="doc-item">
+        <div class="term">Travel Time</div>
+        <div class="definition">The estimated duration required to travel from a specific location to a given amenity using the specified transport mode.</div>
+      </div>
+
+      <h3>Amenity Categories</h3>
+
+      <div class="doc-item">
+        <div class="term">Education</div>
+        <div class="definition">Schools and educational facilities, including primary, secondary, and college institutions.</div>
+      </div>
+
+      <div class="doc-item">
+        <div class="term">Employment</div>
+        <div class="definition">Employment centers and business districts offering diverse job opportunities. Strategic employment refers to identified employment growth sites (outdated).</div>
+      </div>
+
+      <div class="doc-item">
+        <div class="term">Health</div>
+        <div class="definition">Healthcare facilities including hospitals, clinics, and GPs.</div>
+      </div>
+
+      <div class="doc-item">
+        <div class="term">High Street</div>
+        <div class="definition">Town centers and commercial areas with diverse retail and service offerings.</div>
+      </div>
+    </div>
+
+    <!-- METHODOLOGY SECTION -->
+    <div id="methodology" class="section">
+      <h2>Methodology</h2>
+
+      <h3>Overview</h3>
+      <p>The West of England Connectivity Tool uses connectivity analysis to evaluate how easily residents can access essential services and amenities. This analysis considers multiple transport modes and time-based thresholds to determine connectivity levels.</p>
+
+      <h3>Data Sources</h3>
+      <ul>
+        <li><strong>Transport Networks:</strong> Ordnance Survey road and public transit networks</li>
+        <li><strong>Amenity Locations:</strong> Geographic databases of schools, hospitals, employment centers, and other facilities, such as ONS, OS, NHS, and constituent local authorities. </li>
+        <li><strong>Socioeconomical datasets</strong> Census 2021 has been used for the majority of these datasets. Deprivation derives from MHCLG, and future population / employment  growth derive from Local Plans.</li>
+      </ul>
+      
+      <h3>Score Calculation Method</h3>
+      <p>This section outlines the West of England connectivity score methodology used in the current tool.</p>
+      <h4>Step 1: Travel Time Calculation</h4>
+      <p>For each hexagonal origin point, the tool calculates travel times to the closest destinations for each amenity type using multiple transport modes (Walk, Cycle, Public Transport, Car). Travel times are sourced from two datasets:</p>
+      <ul>
+        <li><strong>TRACC:</strong> Public Transport travel times based on timetables (Q4 - October-December schedule)</li>
+        <li><strong>Network Analyst:</strong> Industry standards of 4.8 km/h for walking and 16 km/h for cycling speeds, excluding rural roads and dual carriageway as a default. For cars, DfT's average speeds per road type are used.</li>
+      </ul>
+      <p>For each origin-mode-amenity combination, only the closest 20 destinations are retained to reduce computational complexity.</p>
+      
+      <h4>Step 2: Score Calculation</h4>
+      <p>For each destination, a weighted score contribution is calculated and then aggregated by origin.</p>
+
+      <div class="highlight">
+        <strong>Score = Service_Weight × Mode_Weight / (Travel_Time ^ Threshold_Weight)</strong>
+      </div>
+
+      <ul>
+        <li><strong>Service weights</strong> (from National Travel Survey): Schools 26.8, City Centres 38.6, Employment 29.9, Healthcare 4.7</li>
+        <li><strong>Mode weights:</strong> Walk 100, Cycle 75, PT 50, Car 1. The tool prioritizes sustainable and equitable transport modes by applying higher weights to walking, cycling, and public transport over private vehicle access.</li>
+        <li><strong>Threshold weight:</strong> Walk 2.0, Cycle 1.5, PT 1.1, Car 1.0. The threshold weights determine how quickly accessibility decreases with distance for each mode.</li>
+      </ul>
+
+      <h4>Step 3: Aggregation by Origin and Mode</h4>
+      <p>Revised scores are aggregated by summing all destination scores for each origin-mode combination, creating a total accessibility score per transport mode.</p>
+      
+      <h4>Step 4: Purpose-Level Aggregation</h4>
+      <p>Amenity types are grouped into strategic purposes:</p>
+      <ul>
+        <li><strong>Education:</strong> Primary Schools, Secondary Schools, Further Education</li>
+        <li><strong>Employment:</strong> Employment sites (500+ jobs), Employment sites (5000+ jobs), Strategic Employment Sites</li>
+        <li><strong>Health:</strong> GPs, Hospitals</li>
+        <li><strong>High Street:</strong> City Centres, Major Centres, District Centres</li>
+        <li><strong>All Amenities:</strong> Aggregate of all above categories</li>
+      </ul>
+      <p>For each purpose, scores are summed across all transport modes to create a total connectivity score.</p>
+      
+      <h4>Step 5: Population-Weighted Percentiles</h4>
+      <p>Connectivity scores are converted to population-weighted percentiles (0-100) based on the distribution across the four local authorities (Bath & North East Somerset, Bristol, North Somerset, South Gloucestershire). This percentile ranking reflects how well-connected each hexagon is relative to the rest of the region, weighted by population distribution.</p>
+    </div>
+
+    <div id="examples" class="section">
+      <h2>Examples</h2>
+
+      <h3>Connectivity Scores - Example 1</h3>
+      <img src="examples_images/example1.png" alt="Connectivity Scores Example 1" class="doc-example-image" loading="lazy">
+      <p>This example shows connectivity scores for 2024, all amenities, and all transport modes (1). The map styling is configured to highlight where people live and where deprivation is highest:</p>
+      <ul>
+        <li>Colour ramp: yellow shows the best-connected 10% of the population, purple the worst-connected 10%. (2)</li>
+        <li>Transparency slider: based on population, so low/no-population hexagons are more faded. (3)</li>
+        <li>Outline slider: based on IMD, so hexagons with higher deprivation scores have thicker outlines. (4)</li>
+      </ul>
+      <p>Interpretation: where connectivity is low and population/deprivation are high, there may be a need for improved local amenity provision or better transport links to existing amenities further afield.</p>
+
+      <h3>Connectivity Scores - Example 2</h3>
+      <img src="examples_images/example2.png" alt="Connectivity Scores Example 2" class="doc-example-image" loading="lazy">
+      <p>This example starts from the same 2024 score layer (1) but filters to stronger-performing score bands and changes styling to highlight places with potential growth opportunities:</p>
+      <ul>
+        <li>Lower score percentile ranges are unticked to focus on better-connected areas. (2)</li>
+        <li>Transparency slider: based on inverse population, so lower-density places are more visible. (3)</li>
+        <li>Outline slider: based on inverse car availability, so areas with lower car ownership are highlighted. (4)</li>
+      </ul>
+      <p>Interpretation: places with low population density, low car ownership, and good connectivity may indicate opportunities for future growth with relatively limited additional community infrastructure investment.</p>
+
+      <h3>Statistics Summary - Further Analysis</h3>
+      <img src="examples_images/stat.png" alt="Statistics Summary Example" class="doc-example-image doc-example-image-medium" loading="lazy">
+      <p>The Statistics Summary panel supports area-based analysis for Local Authorities, Wards, score ranges (colours), and custom areas (uploaded or drawn). For the selected area, the tool summarises:</p>
+      <ul>
+        <li>Average, highest, and lowest values for key metrics.</li>
+        <li>Counts of amenity types located within that area.</li>
+      </ul>
+
+      <h3>Journey Time Catchment - Example 3</h3>
+      <img src="examples_images/example3.png" alt="Journey Time Catchment Example 3" class="doc-example-image" loading="lazy">
+      <p>This example shows public transport journey time catchments to City Centres and Major Centres in 2024 (1):</p>
+      <ul>
+        <li>Colour ramp: yellow represents up to 5 minutes, purple represents over 30 minutes. (2)</li>
+        <li>Transparency slider: based on population, highlighting higher-population places. (3)</li>
+        <li>Outline slider: not used in this example. (4)</li>
+      </ul>
+      <img src="examples_images/example3stats.png" alt="Journey Time Catchment Example 3 Statistics Summary" class="doc-example-image doc-example-image-stats" loading="lazy">
+      <p>The Statistics Summary (5) can then be used to profile areas within selected catchments, such as places within 30 minutes by public transport.</p>
+
+      <h3>Journey Time Catchment - Example 4</h3>
+      <img src="examples_images/example4.png" alt="Journey Time Catchment Example 4" class="doc-example-image" loading="lazy">
+      <p>This example shows journey time catchments to an individual amenity (Winterbourne Academy, by public transport):</p>
+      <ul>
+        <li>Enable Amenities in the Infrastructure section of the legend. (1)</li>
+        <li>Click the amenity and use Show Amenity Journey Time Catchment.</li>
+        <li>Filter out the over-30-minute band to isolate the 30-minute catchment. (2)</li>
+        <li>Use population-based transparency to emphasise where more residents are affected. (3)</li>
+        <li>Outline slider: not used in this example. (4)</li>
+      </ul>
+      <p>The Statistics Summary (5) can be used to examine the make-up of the area within the selected threshold.</p>
+      <div class="highlight">
+        <strong>Caveat:</strong> Due to an issue in the underlying data, individual amenity catchments are not correct for all amenities in non-public-transport modes. For walking, cycling, and car, individual catchments are currently reliable for City and Major Centres.
+      </div>
+
+      <h3>Context</h3>
+      <img src="examples_images/context.png" alt="Context Example" class="doc-example-image doc-example-image-medium" loading="lazy">
+      <p>Additional boundaries (for example UA and wards) and infrastructure layers can be enabled from the legend panel. For bus layers, map clicks open a pop-up showing combined AM peak frequencies and individual services/frequencies at that location.</p>
+
+      <h3>Adding Custom Elements</h3>
+      <img src="examples_images/newfeature.png" alt="Adding Custom Elements Example" class="doc-example-image doc-example-image-medium" loading="lazy">
+      <p>Users can upload custom layers (<strong>.kml</strong> and <strong>.geojson</strong>) or draw directly on the map (points, lines, polygons).</p>
+      <img src="examples_images/newfeaturestats.png" alt="Adding Custom Elements Example" class="doc-example-image doc-example-image-stats" loading="lazy">
+      <p>These custom features can then be used in Statistics Summary analysis to profile areas within or along proposed sites/corridors.</p>
+
+    </div>
+  <footer>
+    <p>&copy; 2025 West of England Mayoral Combined Authority. All rights reserved.</p>
+    <p>For feedback / questions, please fill in the <a href="https://forms.microsoft.com/pages/responsepage.aspx?id=yMHJPgLkaEmP9KEN614Ekx4RA9PhbVNCqCjLymArgf9UMEVVMDNaSTBNUktaUU4xTUNDMkQ2UFJZWS4u&route=shorturl">West of England Connectivity Tool Feedback</a> or get in touch with <a href="mailto:amaia.fagalde@westofengland-ca.gov.uk">amaia.fagalde@westofengland-ca.gov.uk</a></p>
+    <p>For more information, visit <a href="https://www.westofengland-ca.gov.uk/" target="_blank" rel="noopener">West of England Mayoral Combined Authority</a></p>
+  </footer>
+  </div>
+
+</body>
+</html>

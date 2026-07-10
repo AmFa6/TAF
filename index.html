@@ -27,27 +27,22 @@
       <div id="panel-content">
         <label for="versionScoresDropdown" class="large-font">Version:</label>
         <select id="versionScoresDropdown" class="medium-font">
-          <option value="woe_v0">West of England - v0 - May 2025</option>
-          <option value="woe_v1">West of England - v1 - April 2026</option>
-          <option value="dft_v0">DfT Tool - June 2025</option>
+          <option value="woe_v0">West of England (May 2025)</option>
+          <option value="DfT">DfT Tool (Jun 2025)</option>
         </select>
         <br>
         <div id="yearScoresContainer">
-          <label class="large-font" id="yearScoresLabel" for="yearScoresDropdown">Year:</label>
-          <select id="yearScoresDropdown" class="medium-font">
-            <option value="2025">2025</option>
-            <option value="2024">2024</option>
-            <option value="2023">2023</option>
-            <option value="2022">2022</option>
-            <option value="2019">2019</option>
-          </select>
-          <div id="yearScoresCheckboxes">
-            <label class="checkbox-label"><input type="checkbox" name="yearCheck" value="2025"> <span>2025</span></label>
-            <label class="checkbox-label"><input type="checkbox" name="yearCheck" value="2024"> <span>2024</span></label>
-            <label class="checkbox-label"><input type="checkbox" name="yearCheck" value="2023"> <span>2023</span></label>
-            <label class="checkbox-label"><input type="checkbox" name="yearCheck" value="2022"> <span>2022</span></label>
-            <label class="checkbox-label"><input type="checkbox" name="yearCheck" value="2019"> <span>2019</span></label>
-            <div id="yearCheckStatus" class="small-font"></div>
+          <label class="large-font">Year:</label>
+          <div class="dropdown panel-form-control">
+            <button type="button" class="dropdown-toggle" id="yearScoresDropdownBtn">2025</button>
+            <div class="dropdown-menu" id="yearScoresCheckboxes">
+              <label class="checkbox-label"><input type="checkbox" name="yearCheck" value="2025"> <span>2025</span></label>
+              <label class="checkbox-label"><input type="checkbox" name="yearCheck" value="2024"> <span>2024</span></label>
+              <label class="checkbox-label"><input type="checkbox" name="yearCheck" value="2023"> <span>2023</span></label>
+              <label class="checkbox-label"><input type="checkbox" name="yearCheck" value="2022"> <span>2022</span></label>
+              <label class="checkbox-label"><input type="checkbox" name="yearCheck" value="2019"> <span>2019</span></label>
+              <div id="yearCheckStatus" class="small-font"></div>
+            </div>
           </div>
         </div>
         <br>
@@ -658,7 +653,7 @@
     </div>
   </template>
   <!-- Info Button -->
-  <button id="info-btn" class="info-btn" title="View Glossary & Methodology">
+  <button id="info-btn" class="info-btn" title="View Documentation">
     <i class="fas fa-info-circle"></i>
   </button>
 
@@ -668,7 +663,7 @@
   <script>
     // Info button functionality
     document.getElementById('info-btn').addEventListener('click', function() {
-      window.open('glossary.html', '_blank');
+      window.open('doc.html', '_blank');
     });
   </script>
 </body>
