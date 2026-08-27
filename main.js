@@ -573,6 +573,12 @@ GeographyFiles.forEach(file => {
         const convertedData = convertMultiPolygonToPolygons(data);
         convertedData.features = convertedData.features.map(adjustSpecialHexCenters);
         hexes = convertedData;
+        serviceHexIdsCache.clear();
+        serviceSegmentsCache.clear();
+        hexBoundingBoxesCache = null;
+        if (ScoresLayer || isPanelOpen("Connectivity Scores")) {
+          updateScoresLayer();
+        }
         if (initialLoadComplete) {
           updateSummaryStatistics(hexes.features);
         }
@@ -621,6 +627,8 @@ InfrastructureFiles.forEach(file => {
             };
           },
         }).addTo(map);
+        serviceHexIdsCache.clear();
+        serviceSegmentsCache.clear();
       } else if (file.type === 'BusStops') {
         busStopsLayer = L.geoJSON(data, {
           pane: 'busLayers',
@@ -729,6 +737,9 @@ let wasAboveZoomThreshold = false;
 let hexLayer = null;
 let busLinesLayer;
 let busStopsLayer;
+const serviceHexIdsCache = new Map();
+const serviceSegmentsCache = new Map();
+let hexBoundingBoxesCache = null;
 let roadNetworkLayer;
 let WestLinkZonesLayer;
 let userLayers = [];
@@ -742,6 +753,11 @@ drawFeatureGroup = L.featureGroup({
 }).addTo(map);
 let isUpdatingStyles = false;
 let isCalculatingStats = false;
+const tafDebug = true;
+
+function tafDebugLog(...args) {
+  if (tafDebug) console.log('[TAF]', ...args);
+}
 let isUpdatingVisibility = false;
 let isUpdatingFilters = false;
 let isUpdatingFilterValues = false;
@@ -5880,7 +5896,7 @@ function updateScoresLayer() {
   }
 
   const selectedCsvData = scoreLayers[selectedYear];
-  if (!selectedCsvData) {
+  if (!selectedCsvData || !hexes) {
     return;
   }
 
@@ -6567,7 +6583,8 @@ function buildAvailableFilterOptions() {
     { value: 'LA', text: 'Local Authority' },
     { value: 'Ward', text: 'Ward' },
     { value: 'GrowthZone', text: 'Growth Zone' },
-    { value: 'WestLinkZone', text: 'WESTlink Zone' }
+    { value: 'WestLinkZone', text: 'WESTlink Zone' },
+    { value: 'PublicTransportService', text: 'Public Transport service' }
   ];
 
   if (ScoresLayer || AmenitiesCatchmentLayer) {
@@ -6692,6 +6709,12 @@ function getOptionsForFilterType(filterType) {
     if (WestLinkZonesLayer) {
       options = WestLinkZonesLayer.getLayers().map(layer => layer.feature.properties.Name).sort();
     }
+  } else if (filterType === 'PublicTransportService') {
+    if (busLinesLayer) {
+      options = Array.from(new Set(busLinesLayer.getLayers()
+        .map(layer => layer.feature?.properties?.service_name)
+        .filter(Boolean))).sort();
+    }
   } else if (filterType === 'LA') {
     options = ['MCA', 'LEP'];
     if (uaBoundariesLayer) {
@@ -6707,6 +6730,24 @@ function getOptionsForFilterType(filterType) {
 function renderFilterValueCheckboxes(groupEl, options, selectionKey, button, container) {
   const previouslySelected = previousFilterSelections[selectionKey] || [];
   const checkboxes = [];
+
+  const searchInput = document.createElement('input');
+  searchInput.type = 'search';
+  searchInput.className = 'filter-name-search small-font';
+  searchInput.placeholder = 'Search names...';
+  searchInput.setAttribute('aria-label', 'Search names');
+  searchInput.style.width = '100%';
+  searchInput.style.boxSizing = 'border-box';
+  searchInput.style.marginBottom = '6px';
+  searchInput.addEventListener('input', () => {
+    const searchText = searchInput.value.trim().toLowerCase();
+    container.querySelectorAll('label[data-filter-option="true"]').forEach(label => {
+      const isMatch = !searchText || label.textContent.toLowerCase().includes(searchText);
+      label.style.setProperty('display', isMatch ? 'flex' : 'none', 'important');
+    });
+    updateSelectAllState();
+  });
+  container.appendChild(searchInput);
 
   const selectAllLabel = document.createElement('label');
   selectAllLabel.className = 'checkbox-label';
@@ -6724,6 +6765,8 @@ function renderFilterValueCheckboxes(groupEl, options, selectionKey, button, con
   options.forEach((option, index) => {
     const label = document.createElement('label');
     label.className = 'checkbox-label';
+    label.dataset.filterOption = 'true';
+    label.dataset.searchText = String(option === '__ALL__' ? 'All features' : option).toLowerCase();
 
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
@@ -6744,9 +6787,14 @@ function renderFilterValueCheckboxes(groupEl, options, selectionKey, button, con
     previousFilterSelections[selectionKey] = checkboxes.filter(cb => cb.checked).map(cb => cb.value);
   }
 
+  function getVisibleCheckboxes() {
+    return checkboxes.filter(checkbox => checkbox.closest('label')?.style.display !== 'none');
+  }
+
   function updateSelectAllState() {
-    const allChecked = checkboxes.length > 0 && checkboxes.every(cb => cb.checked);
-    const anyChecked = checkboxes.some(cb => cb.checked);
+    const visibleCheckboxes = getVisibleCheckboxes();
+    const allChecked = visibleCheckboxes.length > 0 && visibleCheckboxes.every(cb => cb.checked);
+    const anyChecked = visibleCheckboxes.some(cb => cb.checked);
     selectAllCheckbox.checked = allChecked;
     selectAllCheckbox.indeterminate = anyChecked && !allChecked;
   }
@@ -6764,7 +6812,7 @@ function renderFilterValueCheckboxes(groupEl, options, selectionKey, button, con
   checkboxes.forEach(checkbox => checkbox.addEventListener('change', handleSelectionChange));
 
   selectAllCheckbox.addEventListener('change', function() {
-    checkboxes.forEach(cb => {
+    getVisibleCheckboxes().forEach(cb => {
       cb.checked = this.checked;
     });
     handleSelectionChange();
@@ -7013,11 +7061,16 @@ function displayEmptyStatistics() {
     'avg-car-availability', 'min-car-availability', 'max-car-availability',
     'avg-score', 'min-score', 'max-score',
     'avg-percentile', 'min-percentile', 'max-percentile',
-    'metric-row-1', 'metric-row-2'
+    'metric-row-1', 'metric-row-2',
+    'total-amenity_PriSch', 'total-amenity_SecSch', 'total-amenity_FurEd',
+    'total-amenity_Em500', 'total-amenity_Em5000', 'total-amenity_StrEmp',
+    'total-amenity_CitCtr', 'total-amenity_MajCtr', 'total-amenity_DisCtr',
+    'total-amenity_GP', 'total-amenity_Hos'
   ];
   
   statisticIds.forEach(id => {
-    document.getElementById(id).textContent = '-';
+    const element = document.getElementById(id);
+    if (element) element.textContent = '-';
   });
 
   // Hide score / percentile rows when nothing is selected
@@ -7068,15 +7121,16 @@ function filterFeaturesByHexIds(features, allowedHexIds) {
 
 function userFeatureMatchesHex(feature, userFeature) {
   const hexPolygon = turf.polygon(feature.geometry.coordinates);
+  const hexCenter = feature.properties?._adjustedCenter
+    ? turf.point(feature.properties._adjustedCenter)
+    : turf.center(hexPolygon);
 
   if (userFeature.geometry.type === 'Polygon') {
     const poly = turf.polygon(userFeature.geometry.coordinates);
-    const hexCenter = turf.center(hexPolygon);
     return turf.booleanPointInPolygon(hexCenter, poly);
   }
 
   if (userFeature.geometry.type === 'MultiPolygon') {
-    const hexCenter = turf.center(hexPolygon);
     return userFeature.geometry.coordinates.some(coords => {
       const poly = turf.polygon(coords);
       return turf.booleanPointInPolygon(hexCenter, poly);
@@ -7085,7 +7139,14 @@ function userFeatureMatchesHex(feature, userFeature) {
 
   if (userFeature.geometry.type === 'Point') {
     const point = turf.point(userFeature.geometry.coordinates);
-    return turf.booleanPointInPolygon(point, hexPolygon);
+    return turf.distance(hexCenter, point, {units: 'meters'}) <= 330;
+  }
+
+  if (userFeature.geometry.type === 'MultiPoint') {
+    return userFeature.geometry.coordinates.some(coordinates => {
+      const point = turf.point(coordinates);
+      return turf.distance(hexCenter, point, {units: 'meters'}) <= 330;
+    });
   }
 
   if (userFeature.geometry.type === 'LineString') {
@@ -7144,7 +7205,155 @@ function applySingleFilter(features, groupState) {
     }, []);
   }
 
+  if (groupState.type === 'PublicTransportService') {
+    if (groupState.selectedValues.length === 0) return [];
+
+    return groupState.selectedValues.reduce((combinedFeatures, serviceName) => {
+      return mergeFeatureSets(combinedFeatures, applyServiceFilter(features, serviceName));
+    }, []);
+  }
+
   return features;
+}
+
+function applyServiceFilter(features, serviceName) {
+  const serviceHexIds = getServiceHexIds(serviceName);
+  return features.filter(feature => serviceHexIds.has(feature.properties?.hex_id));
+}
+
+function boundingBoxesOverlap(firstBbox, secondBbox) {
+  return firstBbox[0] <= secondBbox[2] &&
+    firstBbox[2] >= secondBbox[0] &&
+    firstBbox[1] <= secondBbox[3] &&
+    firstBbox[3] >= secondBbox[1];
+}
+
+function expandBboxByMeters(bbox, distanceMeters) {
+  const midpointLatitude = (bbox[1] + bbox[3]) / 2;
+  const latitudeDegrees = distanceMeters / 110540;
+  const longitudeDegrees = distanceMeters / (111320 * Math.cos(midpointLatitude * Math.PI / 180));
+
+  return [
+    bbox[0] - longitudeDegrees,
+    bbox[1] - latitudeDegrees,
+    bbox[2] + longitudeDegrees,
+    bbox[3] + latitudeDegrees
+  ];
+}
+
+function getLineSegments(line) {
+  const segments = [];
+  const coordinateGroups = line.geometry.type === 'MultiLineString'
+    ? line.geometry.coordinates
+    : [line.geometry.coordinates];
+
+  coordinateGroups.forEach(coordinates => {
+    for (let index = 0; index < coordinates.length - 1; index++) {
+      const start = coordinates[index];
+      const end = coordinates[index + 1];
+      segments.push({
+        start,
+        end,
+        bbox: [
+          Math.min(start[0], end[0]),
+          Math.min(start[1], end[1]),
+          Math.max(start[0], end[0]),
+          Math.max(start[1], end[1])
+        ]
+      });
+    }
+  });
+
+  return segments;
+}
+
+function pointWithinDistanceOfSegments(point, segments, distanceMeters) {
+  const [pointLongitude, pointLatitude] = point.geometry.coordinates;
+  const pointBbox = expandBboxByMeters(
+    [pointLongitude, pointLatitude, pointLongitude, pointLatitude],
+    distanceMeters
+  );
+  const longitudeScale = 111320 * Math.cos(pointLatitude * Math.PI / 180);
+  const latitudeScale = 110540;
+  const distanceSquared = distanceMeters * distanceMeters;
+
+  return segments.some(segment => {
+    if (!boundingBoxesOverlap(segment.bbox, pointBbox)) return false;
+
+    const startX = (segment.start[0] - pointLongitude) * longitudeScale;
+    const startY = (segment.start[1] - pointLatitude) * latitudeScale;
+    const endX = (segment.end[0] - pointLongitude) * longitudeScale;
+    const endY = (segment.end[1] - pointLatitude) * latitudeScale;
+    const deltaX = endX - startX;
+    const deltaY = endY - startY;
+    const segmentLengthSquared = deltaX * deltaX + deltaY * deltaY;
+    const projection = segmentLengthSquared === 0
+      ? 0
+      : Math.max(0, Math.min(1, -(startX * deltaX + startY * deltaY) / segmentLengthSquared));
+    const closestX = startX + projection * deltaX;
+    const closestY = startY + projection * deltaY;
+
+    return closestX * closestX + closestY * closestY <= distanceSquared;
+  });
+}
+
+function getServiceHexIds(serviceName) {
+  if (serviceHexIdsCache.has(serviceName)) {
+    const cachedIds = serviceHexIdsCache.get(serviceName);
+    return cachedIds;
+  }
+
+  const serviceHexIds = new Set();
+  if (!busLinesLayer || !hexes) {
+    serviceHexIdsCache.set(serviceName, serviceHexIds);
+    return serviceHexIds;
+  }
+
+  if (!hexBoundingBoxesCache) {
+    hexBoundingBoxesCache = hexes.features.map(feature => ({
+      feature,
+      bbox: turf.bbox(feature),
+      center: feature.properties?._adjustedCenter
+        ? turf.point(feature.properties._adjustedCenter)
+        : turf.center(turf.polygon(feature.geometry.coordinates))
+    }));
+  }
+
+  const serviceLines = busLinesLayer.getLayers()
+    .filter(layer => layer.feature?.properties?.service_name === serviceName)
+    .map(layer => layer.toGeoJSON());
+  let serviceSegments = serviceSegmentsCache.get(serviceName);
+  if (!Array.isArray(serviceSegments)) {
+    serviceSegments = serviceLines.flatMap(getLineSegments);
+    serviceSegmentsCache.set(serviceName, serviceSegments);
+  }
+
+  if (serviceSegments.length === 0) {
+    serviceHexIdsCache.set(serviceName, serviceHexIds);
+    return serviceHexIds;
+  }
+
+  let bboxCandidates = 0;
+  let centreTests = 0;
+  const serviceBbox = serviceSegments.reduce((bbox, segment) => [
+    Math.min(bbox[0], segment.bbox[0]),
+    Math.min(bbox[1], segment.bbox[1]),
+    Math.max(bbox[2], segment.bbox[2]),
+    Math.max(bbox[3], segment.bbox[3])
+  ], [Infinity, Infinity, -Infinity, -Infinity]);
+  const expandedServiceBbox = expandBboxByMeters(serviceBbox, 330);
+  hexBoundingBoxesCache.forEach(({feature, bbox, center}) => {
+    if (!boundingBoxesOverlap(bbox, expandedServiceBbox)) return;
+
+    bboxCandidates++;
+    centreTests++;
+    if (pointWithinDistanceOfSegments(center, serviceSegments, 330)) {
+      serviceHexIds.add(feature.properties?.hex_id);
+    }
+  });
+
+  serviceHexIdsCache.set(serviceName, serviceHexIds);
+  return serviceHexIds;
 }
 
 function applyFilters(features) {
@@ -7445,8 +7654,8 @@ function calculateScoreStatistics(features) {
     avgPercentile: calculateWeightedAverage(metrics.percentile, metrics.population),
     minPercentile: Math.min(...metrics.percentile.filter(val => val > 0)),
     maxPercentile: Math.max(...metrics.percentile),
-    metricRow1: 'Score',
-    metricRow2: 'Score Percentile',
+    metricRow1: 'Connectivity score',
+    metricRow2: 'Connectivity Score percentile',
     isScoreLayer: true,
     selectedYear
   };
@@ -7551,8 +7760,8 @@ function updateStatisticsUI(stats) {
   if (stats.isScoreLayer) {
     setRowVisibility(scoreRow, true);
     setRowVisibility(percentileRow, true);
-    if (scoreLabel) scoreLabel.textContent = stats.metricRow1 || 'Score';
-    if (percentileLabel) percentileLabel.textContent = stats.metricRow2 || 'Score Percentile';
+    if (scoreLabel) scoreLabel.textContent = stats.metricRow1 || 'Connectivity score';
+    if (percentileLabel) percentileLabel.textContent = stats.metricRow2 || 'Connectivity Score percentile';
 
     const formatScore = value => stats.selectedYear.includes('-') ? `${(value * 100).toFixed(1)}%` : formatValue(value, 1);
     const avgScoreEl = document.getElementById('avg-score');
@@ -7593,8 +7802,14 @@ function updateStatisticsUI(stats) {
   const tableRows = document.querySelectorAll('#summary-table-body .metric-row[data-metric-key]');
   tableRows.forEach(row => {
     const metricKey = row.dataset.metricKey;
-    const metric = availableMetrics[metricKey];
+    const metric = availableMetrics[metricKey] || amenityMetrics[metricKey];
     if (!metric) return;
+
+    if (metric.amenityType) {
+      const totalElem = document.getElementById(`total-${metricKey}`);
+      if (totalElem) totalElem.textContent = stats.amenityCounts?.[metric.amenityType] ?? 0;
+      return;
+    }
     
     const maxVal = stats[`max_${metricKey}`];
     const step = metricKey === 'imd_decile_mhclg' ? 1 : chooseStepFromMax(maxVal);
@@ -7820,9 +8035,11 @@ function highlightSelectedArea() {
     return;
   }
 
-  const hasRangeFilter = filterGroups.some(groupState => groupState.type === 'Range');
+  const hasHexGridFilter = filterGroups.some(groupState =>
+    groupState.type === 'Range' || groupState.type === 'PublicTransportService'
+  );
 
-  if (hasRangeFilter) {
+  if (hasHexGridFilter) {
     const sourceFeatures = getCurrentFeatures();
     if (!sourceFeatures || sourceFeatures.length === 0) {
       if (highlightLayer) {
@@ -7931,13 +8148,10 @@ const availableMetrics = {
   // -----------------------------------------------------------------------
   // Base / Reference
   // -----------------------------------------------------------------------
-  'total_score': { name: 'Total Score', dataField: 'Total Score', aggregation: 'average' },
-  'pop': { name: 'Population (2025)', dataField: 'pop', aggregation: 'total' },
   'car_availability': { name: 'Car Availability (per household)', dataField: 'hh_caravail_ts045', aggregation: 'average' },
   'popemp': { name: 'Residents in Employment (2025)', dataField: 'popemp', aggregation: 'total' },
   'jobs': { name: 'Jobs (2025)', dataField: 'jobs', aggregation: 'total' },
   'hh': { name: 'Households (2025)', dataField: 'hh', aggregation: 'total' },
-  'imd_decile_mhclg': { name: 'IMD Decile', dataField: 'imd_decile_mhclg', aggregation: 'average' },
   
   // Growth & Futures
   'pop_growth': { name: 'Population Growth', dataField: 'pop_growth', aggregation: 'total' },
@@ -7949,28 +8163,28 @@ const availableMetrics = {
   'hh_fut': { name: 'Households (future)', dataField: 'hh_fut', aggregation: 'total' },
   
   // TS007 Age by Single Year (counts)
-  'pop_0-4_ts007': { name: 'Population aged 0–4', dataField: 'pop_0-4_ts007', aggregation: 'total' },
-  'pop_5-9_ts007': { name: 'Population aged 5–9', dataField: 'pop_5-9_ts007', aggregation: 'total' },
-  'pop_10-15_ts007': { name: 'Population aged 10–15', dataField: 'pop_10-15_ts007', aggregation: 'total' },
-  'pop_16-19_ts007': { name: 'Population aged 16–19', dataField: 'pop_16-19_ts007', aggregation: 'total' },
-  'pop_20-24_ts007': { name: 'Population aged 20–24', dataField: 'pop_20-24_ts007', aggregation: 'total' },
-  'pop_25-34_ts007': { name: 'Population aged 25–34', dataField: 'pop_25-34_ts007', aggregation: 'total' },
-  'pop_35-49_ts007': { name: 'Population aged 35–49', dataField: 'pop_35-49_ts007', aggregation: 'total' },
-  'pop_50-64_ts007': { name: 'Population aged 50–64', dataField: 'pop_50-64_ts007', aggregation: 'total' },
-  'pop_65-74_ts007': { name: 'Population aged 65–74', dataField: 'pop_65-74_ts007', aggregation: 'total' },
-  'pop_75-84_ts007': { name: 'Population aged 75–84', dataField: 'pop_75-84_ts007', aggregation: 'total' },
+  'pop_0-4_ts007': { name: 'Population aged 0-4', dataField: 'pop_0-4_ts007', aggregation: 'total' },
+  'pop_5-9_ts007': { name: 'Population aged 5-9', dataField: 'pop_5-9_ts007', aggregation: 'total' },
+  'pop_10-15_ts007': { name: 'Population aged 10-15', dataField: 'pop_10-15_ts007', aggregation: 'total' },
+  'pop_16-19_ts007': { name: 'Population aged 16-19', dataField: 'pop_16-19_ts007', aggregation: 'total' },
+  'pop_20-24_ts007': { name: 'Population aged 20-24', dataField: 'pop_20-24_ts007', aggregation: 'total' },
+  'pop_25-34_ts007': { name: 'Population aged 25-34', dataField: 'pop_25-34_ts007', aggregation: 'total' },
+  'pop_35-49_ts007': { name: 'Population aged 35-49', dataField: 'pop_35-49_ts007', aggregation: 'total' },
+  'pop_50-64_ts007': { name: 'Population aged 50-64', dataField: 'pop_50-64_ts007', aggregation: 'total' },
+  'pop_65-74_ts007': { name: 'Population aged 65-74', dataField: 'pop_65-74_ts007', aggregation: 'total' },
+  'pop_75-84_ts007': { name: 'Population aged 75-84', dataField: 'pop_75-84_ts007', aggregation: 'total' },
   'pop_85+_ts007': { name: 'Population aged 85 and over', dataField: 'pop_85+_ts007', aggregation: 'total' },
   // TS007 Age by Single Year (percent)
-  'pop_0-4%_ts007': { name: 'Population aged 0–4 (% of population)', dataField: 'pop_0-4%_ts007', aggregation: 'average' },
-  'pop_5-9%_ts007': { name: 'Population aged 5–9 (% of population)', dataField: 'pop_5-9%_ts007', aggregation: 'average' },
-  'pop_10-15%_ts007': { name: 'Population aged 10–15 (% of population)', dataField: 'pop_10-15%_ts007', aggregation: 'average' },
-  'pop_16-19%_ts007': { name: 'Population aged 16–19 (% of population)', dataField: 'pop_16-19%_ts007', aggregation: 'average' },
-  'pop_20-24%_ts007': { name: 'Population aged 20–24 (% of population)', dataField: 'pop_20-24%_ts007', aggregation: 'average' },
-  'pop_25-34%_ts007': { name: 'Population aged 25–34 (% of population)', dataField: 'pop_25-34%_ts007', aggregation: 'average' },
-  'pop_35-49%_ts007': { name: 'Population aged 35–49 (% of population)', dataField: 'pop_35-49%_ts007', aggregation: 'average' },
-  'pop_50-64%_ts007': { name: 'Population aged 50–64 (% of population)', dataField: 'pop_50-64%_ts007', aggregation: 'average' },
-  'pop_65-74%_ts007': { name: 'Population aged 65–74 (% of population)', dataField: 'pop_65-74%_ts007', aggregation: 'average' },
-  'pop_75-84%_ts007': { name: 'Population aged 75–84 (% of population)', dataField: 'pop_75-84%_ts007', aggregation: 'average' },
+  'pop_0-4%_ts007': { name: 'Population aged 0-4 (% of population)', dataField: 'pop_0-4%_ts007', aggregation: 'average' },
+  'pop_5-9%_ts007': { name: 'Population aged 5-9 (% of population)', dataField: 'pop_5-9%_ts007', aggregation: 'average' },
+  'pop_10-15%_ts007': { name: 'Population aged 10-15 (% of population)', dataField: 'pop_10-15%_ts007', aggregation: 'average' },
+  'pop_16-19%_ts007': { name: 'Population aged 16-19 (% of population)', dataField: 'pop_16-19%_ts007', aggregation: 'average' },
+  'pop_20-24%_ts007': { name: 'Population aged 20-24 (% of population)', dataField: 'pop_20-24%_ts007', aggregation: 'average' },
+  'pop_25-34%_ts007': { name: 'Population aged 25-34 (% of population)', dataField: 'pop_25-34%_ts007', aggregation: 'average' },
+  'pop_35-49%_ts007': { name: 'Population aged 35-49 (% of population)', dataField: 'pop_35-49%_ts007', aggregation: 'average' },
+  'pop_50-64%_ts007': { name: 'Population aged 50-64 (% of population)', dataField: 'pop_50-64%_ts007', aggregation: 'average' },
+  'pop_65-74%_ts007': { name: 'Population aged 65-74 (% of population)', dataField: 'pop_65-74%_ts007', aggregation: 'average' },
+  'pop_75-84%_ts007': { name: 'Population aged 75-84 (% of population)', dataField: 'pop_75-84%_ts007', aggregation: 'average' },
   'pop_85+%_ts007': { name: 'Population aged 85 and over (% of population)', dataField: 'pop_85+%_ts007', aggregation: 'average' },
   
   // TS008 Sex
@@ -8049,55 +8263,147 @@ const availableMetrics = {
   'workpop_ttw_wfh%_wp025': { name: 'Workplace population Travel to Work - work from home (% of workplace population)', dataField: 'workpop_ttw_wfh%_wp025', aggregation: 'average' },
 };
 
+const amenityMetrics = {
+  amenity_PriSch: { name: 'Number of Primary Schools', amenityType: 'PriSch' },
+  amenity_SecSch: { name: 'Number of Secondary Schools', amenityType: 'SecSch' },
+  amenity_FurEd: { name: 'Number of Further Education', amenityType: 'FurEd' },
+  amenity_Em500: { name: 'Number of Employment (500+)', amenityType: 'Em500' },
+  amenity_Em5000: { name: 'Number of Employment (5000+)', amenityType: 'Em5000' },
+  amenity_StrEmp: { name: 'Number of Strategic Employment', amenityType: 'StrEmp' },
+  amenity_CitCtr: { name: 'Number of City Centres', amenityType: 'CitCtr' },
+  amenity_MajCtr: { name: 'Number of Major Centres', amenityType: 'MajCtr' },
+  amenity_DisCtr: { name: 'Number of District Centres', amenityType: 'DisCtr' },
+  amenity_GP: { name: 'Number of General Practices', amenityType: 'GP' },
+  amenity_Hos: { name: 'Number of Hospitals', amenityType: 'Hos' }
+};
+
 // Populate link hexagon transparency/outline dropdowns with metrics
 initializeLinkMetricDropdowns();
 
-let activeMetrics = ['Score', 'Score Percentile', 'Population (2025)', 'IMD Decile', 'Car Availability'];
+let activeMetrics = ['Connectivity score', 'Connectivity Score percentile', 'Population (2025)', 'IMD Decile', 'Car Availability (per household)'];
 
 /**
  * Initialize the metrics dropdown with available options
  */
 function initializeMetricsDropdown() {
-  const dropdown = document.getElementById('add-metric-dropdown');
-  if (!dropdown) return;
-  
-  // Clear existing options except the first one
-  while (dropdown.options.length > 1) {
-    dropdown.remove(1);
-  }
-  
-  // Add available metrics that aren't already displayed
-  Object.keys(availableMetrics).forEach(key => {
-    const metric = availableMetrics[key];
-    const isActive = activeMetrics.includes(metric.name);
-    
-    if (!isActive) {
-      const option = document.createElement('option');
-      option.value = key;
-      option.textContent = metric.name;
-      dropdown.appendChild(option);
-    }
+  const menu = document.getElementById('add-metric-menu');
+  if (!menu) return;
+
+  menu.innerHTML = '';
+  const metricEntries = [
+    ...Object.entries(availableMetrics),
+    ...Object.entries(amenityMetrics)
+  ].filter(([, metric]) => !activeMetrics.includes(metric.name));
+
+  const selectAllLabel = document.createElement('label');
+  selectAllLabel.className = 'checkbox-label';
+  const selectAllCheckbox = document.createElement('input');
+  selectAllCheckbox.type = 'checkbox';
+  const selectAllText = document.createElement('span');
+  selectAllText.innerHTML = '<i>Select/Deselect All</i>';
+  selectAllLabel.append(selectAllCheckbox, selectAllText);
+  menu.appendChild(selectAllLabel);
+
+  const metricCheckboxes = [];
+  metricEntries.forEach(([key, metric]) => {
+    const label = document.createElement('label');
+    label.className = 'checkbox-label metric-option-label';
+    label.dataset.metricOption = 'true';
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.value = key;
+    checkbox.className = 'metric-option-checkbox';
+
+    const text = document.createElement('span');
+    text.textContent = metric.name;
+    label.append(checkbox, text);
+    menu.appendChild(label);
+    metricCheckboxes.push(checkbox);
   });
 
-  // Reapply any active search filter
+  const updateSelectAllState = () => {
+    const visibleCheckboxes = metricCheckboxes.filter(checkbox => checkbox.closest('label')?.style.display !== 'none');
+    const allChecked = visibleCheckboxes.length > 0 && visibleCheckboxes.every(checkbox => checkbox.checked);
+    const anyChecked = visibleCheckboxes.some(checkbox => checkbox.checked);
+    selectAllCheckbox.checked = allChecked;
+    selectAllCheckbox.indeterminate = anyChecked && !allChecked;
+  };
+
+  const addSelectedMetrics = selectedCheckboxes => {
+    const selectedMetrics = selectedCheckboxes.filter(checkbox => checkbox.checked);
+    selectedMetrics.forEach(checkbox => addMetricRow(checkbox.value, false));
+    if (selectedMetrics.length > 0) updateSummaryStatistics(getCurrentFeatures());
+    initializeMetricsDropdown();
+  };
+
+  metricCheckboxes.forEach(checkbox => checkbox.addEventListener('change', () => addSelectedMetrics([checkbox])));
+  selectAllCheckbox.addEventListener('change', () => {
+    const visibleCheckboxes = metricCheckboxes.filter(checkbox => checkbox.closest('label')?.style.display !== 'none');
+    visibleCheckboxes.forEach(checkbox => { checkbox.checked = selectAllCheckbox.checked; });
+    addSelectedMetrics(visibleCheckboxes);
+  });
+
   const searchInput = document.getElementById('addMetricSearch');
-  applySelectFilter(searchInput, dropdown);
+  applyMetricPickerSearch(searchInput, menu, updateSelectAllState);
+  updateSelectAllState();
+}
+
+function applyMetricPickerSearch(searchInput, menu, updateSelectAllState) {
+  if (!searchInput || !menu) return;
+
+  const term = searchInput.value.trim().toLowerCase();
+  menu.querySelectorAll('label[data-metric-option="true"]').forEach(label => {
+    const matches = !term || label.textContent.toLowerCase().includes(term);
+    label.style.setProperty('display', matches ? 'flex' : 'none', 'important');
+  });
+  if (updateSelectAllState) updateSelectAllState();
 }
 
 /**
  * Handle adding a new metric row
  */
 document.addEventListener('DOMContentLoaded', () => {
-  const dropdown = document.getElementById('add-metric-dropdown');
-  if (dropdown) {
-    attachSelectSearch('addMetricSearch', dropdown);
-    dropdown.addEventListener('change', function() {
-      if (this.value) {
-        addMetricRow(this.value);
-        this.value = '';
-        initializeMetricsDropdown();
+  const dropdownButton = document.getElementById('add-metric-dropdown');
+  const dropdownMenu = document.getElementById('add-metric-menu');
+  const metricSearch = document.getElementById('addMetricSearch');
+  if (dropdownButton && dropdownMenu) {
+    dropdownButton.addEventListener('click', event => {
+      event.preventDefault();
+      event.stopPropagation();
+      const shouldOpen = !dropdownMenu.classList.contains('show');
+      if (!shouldOpen) {
+        dropdownMenu.classList.remove('show', 'dropup');
+        return;
+      }
+
+      dropdownMenu.classList.add('show');
+      const buttonRect = dropdownButton.getBoundingClientRect();
+      const menuHeight = dropdownMenu.getBoundingClientRect().height;
+      const spaceBelow = window.innerHeight - buttonRect.bottom;
+      const openBelow = spaceBelow >= menuHeight;
+
+      dropdownMenu.style.position = 'fixed';
+      dropdownMenu.style.left = `${buttonRect.left}px`;
+      dropdownMenu.style.width = `${buttonRect.width}px`;
+      dropdownMenu.style.top = openBelow ? `${buttonRect.bottom}px` : 'auto';
+      dropdownMenu.style.bottom = openBelow ? 'auto' : `${window.innerHeight - buttonRect.top}px`;
+      dropdownMenu.classList.toggle('dropup', !openBelow);
+    });
+    dropdownMenu.addEventListener('click', event => event.stopPropagation());
+    document.addEventListener('click', event => {
+      if (!event.target.closest('.metric-picker')) {
+        dropdownMenu.classList.remove('show', 'dropup');
+        dropdownMenu.style.position = '';
+        dropdownMenu.style.left = '';
+        dropdownMenu.style.width = '';
+        dropdownMenu.style.top = '';
+        dropdownMenu.style.bottom = '';
       }
     });
+  }
+  if (metricSearch && dropdownMenu) {
+    metricSearch.addEventListener('input', () => applyMetricPickerSearch(metricSearch, dropdownMenu));
   }
   
   // Initialize amenities table collapse toggle
@@ -8130,6 +8436,12 @@ function setupAmenitiesToggle() {
   
   const toggleStatisticsBtn = document.getElementById('toggle-statistics-table');
   const statisticsContent = document.getElementById('statistics-content');
+  const exportSummaryCsvBtn = document.getElementById('export-summary-csv');
+
+  if (exportSummaryCsvBtn && exportSummaryCsvBtn.dataset.initialized !== 'true') {
+    exportSummaryCsvBtn.addEventListener('click', exportSummaryStatisticsCsv);
+    exportSummaryCsvBtn.dataset.initialized = 'true';
+  }
   
   if (toggleStatisticsBtn && statisticsContent) {
     // Remove existing listeners to avoid duplicates
@@ -8146,11 +8458,187 @@ function setupAmenitiesToggle() {
   }
 }
 
+function getStatisticsExportRows(areaType, areaName, features) {
+  const stats = calculateStatistics(features);
+  const rows = [];
+  const addedMetrics = new Set();
+  const exportValue = value => typeof value === 'number' && !Number.isFinite(value) ? '' : value;
+  const formatMetricValue = (value, step) => {
+    if (value === '' || value === null || value === undefined) return '';
+    if (typeof value === 'number' && !Number.isFinite(value)) return '';
+    return exportValue(formatValue(value, step));
+  };
+  const formatScore = value => {
+    if (value === '' || value === null || value === undefined || !Number.isFinite(value)) return '';
+    return stats.selectedYear?.includes('-') ? `${(value * 100).toFixed(1)}%` : formatValue(value, 1);
+  };
+  const addMetric = (metric, total = '', average = '', minimum = '', maximum = '') => {
+    if (addedMetrics.has(metric)) return;
+    addedMetrics.add(metric);
+    rows.push({
+      'Area Type': areaType,
+      'Area name': areaName,
+      Metric: metric,
+      Total: exportValue(total),
+      Average: exportValue(average),
+      Minimum: exportValue(minimum),
+      Maximum: exportValue(maximum)
+    });
+  };
+
+  const populationStep = chooseStepFromMax(stats.maxPopulation);
+  addMetric(
+    'Population (2025)',
+    formatMetricValue(stats.totalPopulation, populationStep),
+    '',
+    formatMetricValue(stats.minPopulation, populationStep),
+    formatMetricValue(stats.maxPopulation, populationStep)
+  );
+  addMetric(
+    'IMD Decile',
+    '',
+    formatMetricValue(stats.avgImdDecile, 1),
+    formatMetricValue(stats.minImdDecile, 1),
+    formatMetricValue(stats.maxImdDecile, 1)
+  );
+
+  if (stats.isScoreLayer) {
+    addMetric(
+      'Connectivity score',
+      '',
+      formatScore(stats.avgScore),
+      formatScore(stats.minScore),
+      formatScore(stats.maxScore)
+    );
+    addMetric(
+      'Connectivity Score percentile',
+      '',
+      formatMetricValue(stats.avgPercentile, 1),
+      formatMetricValue(stats.minPercentile, 1),
+      formatMetricValue(stats.maxPercentile, 1)
+    );
+  } else if (stats.isTimeLayer) {
+    addMetric(
+      'Journey Time (minutes)',
+      '',
+      formatMetricValue(stats.avgTime, 1),
+      formatMetricValue(stats.minTime, 1),
+      formatMetricValue(stats.maxTime, 1)
+    );
+  }
+
+  Object.keys(availableMetrics).forEach(metricKey => {
+    const metric = availableMetrics[metricKey];
+    const step = chooseStepFromMax(stats[`max_${metricKey}`]);
+    addMetric(
+      metric.name,
+      formatMetricValue(stats[`total_${metricKey}`] ?? 0, step),
+      formatMetricValue(stats[`avg_${metricKey}`] ?? 0, step),
+      formatMetricValue(stats[`min_${metricKey}`] ?? 0, step),
+      formatMetricValue(stats[`max_${metricKey}`] ?? 0, step)
+    );
+  });
+
+  Object.values(amenityMetrics).forEach(metric => {
+    addMetric(metric.name, exportValue(stats.amenityCounts?.[metric.amenityType] ?? 0));
+  });
+
+  return rows;
+}
+
+function downloadCsv(rows, fileName) {
+  const columns = Array.from(new Set(rows.flatMap(row => Object.keys(row))));
+  const escapeCsvValue = value => {
+    const text = value === null || value === undefined ? '' : String(value);
+    return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+  };
+  const csv = [
+    columns.map(escapeCsvValue).join(','),
+    ...rows.map(row => columns.map(column => escapeCsvValue(row[column])).join(','))
+  ].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+function exportSummaryStatisticsCsv() {
+  const exportStart = performance.now();
+  const sourceFeatures = getCurrentFeatures();
+  const filterGroups = getFilterGroups().map(getFilterGroupState).filter(Boolean);
+  const rows = [];
+  const exportedAreas = new Set();
+  const areaTypeLabels = {
+    LA: 'Local Authority',
+    Ward: 'Ward',
+    GrowthZone: 'Growth Zone',
+    WestLinkZone: 'WESTlink Zone',
+    PublicTransportService: 'Public Transport services'
+  };
+
+  const addAreaRows = (areaType, areaName, groups) => {
+    const areaKey = `${areaType}::${areaName}`;
+    if (exportedAreas.has(areaKey)) return;
+    exportedAreas.add(areaKey);
+    const features = groups.reduce(
+      (filteredFeatures, groupState) => applySingleFilter(filteredFeatures, groupState),
+      sourceFeatures
+    );
+    rows.push(...getStatisticsExportRows(areaType, areaName, features));
+  };
+
+  if (filterGroups.length === 0) {
+    addAreaRows('All', 'All', []);
+  }
+
+  filterGroups.forEach((groupState, groupIndex) => {
+    const areaType = areaTypeLabels[groupState.type] || groupState.type;
+    const allOptions = getOptionsForFilterType(groupState.type);
+    const selectedValues = groupState.selectedValues;
+    const combinedName = selectedValues.length === allOptions.length
+      ? 'All'
+      : selectedValues.join('; ');
+    const combinedGroups = filterGroups.map((candidate, candidateIndex) => (
+      candidateIndex === groupIndex ? {...candidate, selectedValues} : candidate
+    ));
+
+    addAreaRows(areaType, combinedName, combinedGroups);
+
+    selectedValues.forEach(areaName => {
+      const individualGroups = filterGroups.map((candidate, candidateIndex) => (
+        candidateIndex === groupIndex ? {...candidate, selectedValues: [areaName]} : candidate
+      ));
+      addAreaRows(areaType, areaName, individualGroups);
+    });
+  });
+
+  const date = new Date();
+  const datePart = `${String(date.getFullYear()).slice(-2)}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}`;
+  const areaTypeSlug = filterGroups.length === 0
+    ? 'all'
+    : Array.from(new Set(filterGroups.map(groupState => areaTypeLabels[groupState.type] || groupState.type)))
+      .join('_')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '');
+  downloadCsv(rows, `${datePart}_wecaconnectivitytool_summary_${areaTypeSlug}.csv`);
+  tafDebugLog('summary CSV export', {
+    rows: rows.length,
+    filterGroups: filterGroups.length,
+    ms: Math.round(performance.now() - exportStart)
+  });
+}
+
 /**
  * Add a new metric row to the table
  */
-function addMetricRow(metricKey) {
-  const metric = availableMetrics[metricKey];
+function addMetricRow(metricKey, refresh = true) {
+  const metric = availableMetrics[metricKey] || amenityMetrics[metricKey];
   if (!metric) return;
   
   const tableBody = document.getElementById('summary-table-body');
@@ -8183,7 +8671,7 @@ function addMetricRow(metricKey) {
   activeMetrics.push(metric.name);
   
   // Update summary statistics
-  updateSummaryStatistics(getCurrentFeatures());
+  if (refresh) updateSummaryStatistics(getCurrentFeatures());
 }
 
 /**

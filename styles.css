@@ -345,6 +345,14 @@ html, body {
 .dropdown-menu.show {
   display: block;
 }
+.metric-picker .dropdown-menu {
+  height: 300px;
+  max-height: 300px;
+}
+.metric-picker .dropdown-menu.dropup {
+  bottom: 100%;
+  top: auto;
+}
 .pin {
   position: relative;
   display: inline-block;
