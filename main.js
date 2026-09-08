@@ -16,12 +16,12 @@
 
 const map = L.map('map').setView([51.480, -2.591], 11);
 
-const baseLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/light_nolabels/{z}/{x}/{y}.png', {
+const baseLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/light_nolabels/{z}/{x}/{y}.png?key=cb1_31ut_1_76e76bebb9a846529323ebac', {
   attribution: '&copy; OpenStreetMap contributors & CartoDB, © Crown copyright and database rights 2025 OS 0100059651, Contains OS data © Crown copyright [and database right] 2025.',
   pane: 'tilePane'
 }).addTo(map);
 
-const LabelsLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/light_only_labels/{z}/{x}/{y}.png', {
+const LabelsLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/light_only_labels/{z}/{x}/{y}.png?key=cb1_31ut_1_76e76bebb9a846529323ebac', {
   opacity: 0.6,
   pane: 'tooltipPane'
 }).addTo(map);
