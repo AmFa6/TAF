@@ -8148,6 +8148,8 @@ const availableMetrics = {
   // -----------------------------------------------------------------------
   // Base / Reference
   // -----------------------------------------------------------------------
+  'pop': { name: 'Population (2025)', dataField: 'pop', aggregation: 'total' },
+  'imd_decile_mhclg': { name: 'IMD Decile', dataField: 'imd_decile_mhclg', aggregation: 'average' },
   'car_availability': { name: 'Car Availability (per household)', dataField: 'hh_caravail_ts045', aggregation: 'average' },
   'popemp': { name: 'Residents in Employment (2025)', dataField: 'popemp', aggregation: 'total' },
   'jobs': { name: 'Jobs (2025)', dataField: 'jobs', aggregation: 'total' },
@@ -8752,7 +8754,7 @@ function buildMetricOptions(selectEl, defaultKeys = []) {
 }
 
 function initializeLinkMetricDropdowns() {
-  const defaults = ['pop', 'imd_decile_mhclg', 'hh_caravail_ts045'];
+  const defaults = ['pop', 'imd_decile_mhclg', 'car_availability'];
   [
     ScoresOpacity,
     ScoresOutline,
